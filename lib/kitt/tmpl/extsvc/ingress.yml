@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: __SERVICE_NAME__
+  namespace: __NAMESPACE__
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: __AUTH_NAME__
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+    nginx.ingress.kubernetes.io/backend-protocol: "__SERVER_PROTO__"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
+spec:
+  ingressClassName: nginx
+# BEG: USE_TLS
+  tls:
+  - hosts:
+    - '__EXTERNAL_HOST__'
+    secretName: '__CERT_NAME__'
+# END: USE_TLS
+  rules:
+  - host: '__EXTERNAL_HOST__'
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: __SERVICE_NAME__
+            port:
+              number: __INTERNAL_PORT__

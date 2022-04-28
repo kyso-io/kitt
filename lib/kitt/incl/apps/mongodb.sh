@@ -1,0 +1,406 @@
+#!/bin/sh
+# ----
+# File:        apps/mongodb.sh
+# Description: Functions to manage mongodb deployments for kyso on k8s clusters
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# Set the variable to 1 to avoid including the file more than once
+# shellcheck disable=SC2034
+INCL_APPS_MONGODB_SH="1"
+
+# ---------
+# Variables
+# ---------
+
+# CMND_DSC="mongodb: manage mongodb deployment for kyso"
+
+# Defaults
+export DEPLOYMENT_DEFAULT_MONGODB_ARCHITECTURE="standalone" # replicaset
+export DEPLOYMENT_DEFAULT_MONGODB_REGISTRY="docker.io"
+export DEPLOYMENT_DEFAULT_MONGODB_REPO="bitnami/mongodb"
+export DEPLOYMENT_DEFAULT_MONGODB_ENABLE_METRICS="false"
+export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_CLASS=""
+export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_SIZE="8Gi"
+export DEPLOYMENT_DEFAULT_MONGODB_PF_PORT=""
+
+# Fixed values
+export MONGODB_REPO_NAME="bitnami"
+export MONGODB_REPO_URL="https://charts.bitnami.com/bitnami"
+export MONGODB_EXPORTER_REPO="bitnami/mongodb-exporter"
+export MONGODB_RELEASE="kyso-mongodb"
+export MONGODB_CHART="bitnami/mongodb"
+export MONGODB_VERSION="11.1.1"
+export MONGODB_CLI_TAG="4.4.13-debian-10-r14"
+export MONGODB_DB_NAME="kyso"
+export MONGODB_DB_USER="kysodb"
+
+# --------
+# Includes
+# --------
+
+if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=../common.sh
+  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+  # shellcheck source=./common.sh
+  [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
+fi
+
+# ---------
+# Functions
+# ---------
+
+apps_mongodb_export_variables() {
+  [ -z "$__apps_mongodb_export_variables" ] || return 0
+  _deployment="$1"
+  _cluster="$2"
+  apps_common_export_variables "$_deployment" "$_cluster"
+  # Values
+  export MONGODB_NAMESPACE="mongodb-$DEPLOYMENT_NAME"
+  # Directories
+  export MONGODB_TMPL_DIR="$TMPL_DIR/apps/mongodb"
+  export MONGODB_HELM_DIR="$DEPLOY_HELM_DIR/mongodb"
+  export MONGODB_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/mongodb"
+  export MONGODB_SECRETS_DIR="$DEPLOY_SECRETS_DIR/mongodb"
+  export MONGODB_PF_DIR="$DEPLOY_SECRETS_DIR/mongodb"
+  # Templates
+  export MONGODB_HELM_VALUES_TMPL="$MONGODB_TMPL_DIR/values.yaml"
+  export MONGODB_PVC_TMPL="$MONGODB_TMPL_DIR/pvc.yaml"
+  export MONGODB_PV_TMPL="$MONGODB_TMPL_DIR/pv.yaml"
+  # Files
+  export MONGODB_HELM_VALUES_YAML="$MONGODB_HELM_DIR/values${SOPS_EXT}.yaml"
+  export MONGODB_PVC_YAML="$MONGODB_KUBECTL_DIR/pvc.yaml"
+  export MONGODB_PV_YAML="$MONGODB_KUBECTL_DIR/pv.yaml"
+  export MONGODB_ROOT_PASS_FILE="$MONGODB_SECRETS_DIR/root-pass${SOPS_EXT}.txt"
+  export MONGODB_USER_PASS_FILE="$MONGODB_SECRETS_DIR/user-pass${SOPS_EXT}.txt"
+  export MONGODB_PF_OUT="$MONGODB_PF_DIR/kubectl.out"
+  export MONGODB_PF_PID="$MONGODB_PF_DIR/kubectl.pid"
+  # Use defaults for variables missing from config files
+  if [ "$DEPLOYMENT_MONGODB_ARCHITECTURE" ]; then
+    export MONGODB_ARCHITECTURE="$DEPLOYMENT_MONGODB_ARCHITECTURE" 
+  else
+    export MONGODB_ARCHITECTURE="$DEPLOYMENT_DEFAULT_MONGODB_ARCHITECTURE" 
+  fi
+  if [ "$DEPLOYMENT_MONGODB_REGISTRY" ]; then
+    export MONGODB_REGISTRY="$DEPLOYMENT_MONGODB_REGISTRY" 
+  else
+    export MONGODB_REGISTRY="$DEPLOYMENT_DEFAULT_MONGODB_REGISTRY" 
+  fi
+  if [ "$DEPLOYMENT_MONGODB_REPO" ]; then
+    export MONGODB_REPO="$DEPLOYMENT_MONGODB_REPO" 
+  else
+    export MONGODB_REPO="$DEPLOYMENT_DEFAULT_MONGODB_REPO" 
+  fi
+  if [ "$DEPLOYMENT_MONGODB_ENABLE_METRICS" ]; then
+    if is_selected "$DEPLOYMENT_MONGODB_ENABLE_METRICS"; then
+      export MONGODB_ENABLE_METRICS="true"
+    else
+      export MONGODB_ENABLE_METRICS="false"
+    fi
+  elif [ "$DEPLOYMENT_DEFAULT_MONGODB_ENABLE_METRICS" ]; then
+    if is_selected "$DEPLOYMENT_DEFAULT_MONGODB_ENABLE_METRICS"; then
+      export MONGODB_ENABLE_METRICS="true"
+    else
+      export MONGODB_ENABLE_METRICS="false"
+    fi
+  else
+    export MONGODB_ENABLE_METRICS="false"
+  fi
+  if [ "$DEPLOYMENT_MONGODB_STORAGE_CLASS" ]; then
+    export MONGODB_STORAGE_CLASS="$DEPLOYMENT_MONGODB_STORAGE_CLASS" 
+  else
+    export MONGODB_STORAGE_CLASS="$DEPLOYMENT_DEFAULT_MONGODB_STORAGE_CLASS" 
+  fi
+  if [ "$DEPLOYMENT_MONGODB_STORAGE_SIZE" ]; then
+    export MONGODB_STORAGE_SIZE="$DEPLOYMENT_MONGODB_STORAGE_SIZE" 
+  else
+    export MONGODB_STORAGE_SIZE="$DEPLOYMENT_DEFAULT_MONGODB_STORAGE_SIZE" 
+  fi
+  if [ "$DEPLOYMENT_MONGODB_PF_PORT" ]; then
+    export MONGODB_PF_PORT="$DEPLOYMENT_MONGODB_PF_PORT"
+  else
+    export MONGODB_PF_PORT="$DEPLOYMENT_DEFAULT_MONGODB_PF_PORT" 
+  fi
+  __apps_mongodb_export_variables="1"
+}
+
+apps_mongodb_check_directories() {
+  apps_common_check_directories
+  for _d in "$MONGODB_HELM_DIR" "$MONGODB_KUBECTL_DIR" "$MONGODB_SECRETS_DIR" \
+    "$MONGODB_PF_DIR"; do
+    [ -d "$_d" ] || mkdir "$_d"
+  done
+}
+
+apps_mongodb_clean_directories() {
+  # Try to remove empty dirs, except if they contain secrets
+  for _d in "$MONGODB_HELM_DIR" "$MONGODB_KUBECTL_DIR" "$MONGODB_SECRETS_DIR" \
+    "$MONGODB_PF_DIR"; do
+    if [ -d "$_d" ]; then
+      rmdir "$_d" 2>/dev/null || true
+    fi
+  done
+}
+
+apps_mongodb_read_variables() {
+  header "MongoDB Settings"
+  read_value "MongoDB Architecture ('standalone'/'replicaset')" \
+   "${MONGODB_ARCHITECTURE}"
+  MONGODB_ARCHITECTURE=${READ_VALUE}
+  read_value "MongoDB Registry" "${MONGODB_REGISTRY}"
+  MONGODB_REGISTRY=${READ_VALUE}
+  read_value "MongoDB Registry Repository" "${MONGODB_REPO}"
+  MONGODB_REPO=${READ_VALUE}
+  read_value "MongoDB Enable Metrics" "${MONGODB_ENABLE_METRICS}"
+  MONGODB_ENABLE_METRICS=${READ_VALUE}
+  read_value "MongoDB storageClass ('local-storage' requires existing PV)" \
+    "${MONGODB_STORAGE_CLASS}"
+  MONGODB_STORAGE_CLASS=${READ_VALUE}
+  read_value "MongoDB Storage Size" "${MONGODB_STORAGE_SIZE}"
+  MONGODB_STORAGE_SIZE=${READ_VALUE}
+  read_value "Fixed port for mongo pf? (i.e. 27017 or '-' for random)" \
+    "$MONGODB_PF_PORT"
+  MONGODB_PF_PORT=${READ_VALUE}
+}
+
+apps_mongodb_print_variables() {
+  cat <<EOF
+# MongoDB Settings
+# ---
+# MongoDB Deployment Architecture ('standalone' or 'replicaset'), for now we
+# have only tested the 'standalone' model
+MONGODB_ARCHITECTURE=$MONGODB_ARCHITECTURE
+# MongoDB Registry (change if using a private registry only)
+MONGODB_REGISTRY=$MONGODB_REGISTRY
+# MongoDB Repo on the Registry (again, change if using a private registry only)
+MONGODB_REPO=$MONGODB_REPO
+# Set to true to add metrics to the deployment, useful with our own
+# prometheus deployment
+MONGODB_ENABLE_METRICS=$MONGODB_ENABLE_METRICS
+# MongoDB Storage Class ('local-storage' requires existing PV and architecture
+# 'standalone')
+MONGODB_STORAGE_CLASS=$MONGODB_STORAGE_CLASS
+# MongoDB Volume Size (if storage is local or NFS the value is ignored)
+MONGODB_STORAGE_SIZE=$MONGODB_STORAGE_SIZE
+# Fixed port for mongodb pf (standard is 27017, empty for random)
+MONGODB_PF_PORT=$MONGODB_PF_PORT
+# ---
+EOF
+}
+
+apps_mongodb_print_root_database_uri() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _db_user="root"
+  _db_pass="$(file_to_stdout "$MONGODB_ROOT_PASS_FILE")"
+  if [ "$3" ]; then
+    _db_host="$3"
+  else
+    _db_host="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+  fi
+  _db_name="admin"
+  echo "mongodb://$_db_user:$_db_pass@$_db_host/$_db_name"
+}
+
+apps_mongodb_print_user_database_uri() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _db_user="$MONGODB_DB_USER"
+  _db_pass="$(file_to_stdout "$MONGODB_USER_PASS_FILE")"
+  if [ "$3" ]; then
+    _db_host="$3"
+  else
+    _db_host="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+  fi
+  _db_name="$MONGODB_DB_NAME"
+  echo "mongodb://$_db_user:$_db_pass@$_db_host/$_db_name"
+}
+
+apps_mongodb_install() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  apps_mongodb_check_directories
+  _app="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  _helm_values_tmpl="$MONGODB_HELM_VALUES_TMPL"
+  _helm_values_yaml="$MONGODB_HELM_VALUES_YAML"
+  _pvc_tmpl="$MONGODB_PVC_TMPL"
+  _pvc_yaml="$MONGODB_PVC_YAML"
+  _pv_tmpl="$MONGODB_PV_TMPL"
+  _pv_yaml="$MONGODB_PV_YAML"
+  _storage_class="$MONGODB_STORAGE_CLASS"
+  _storage_size="$MONGODB_STORAGE_SIZE"
+  _release="$MONGODB_RELEASE"
+  _chart="$MONGODB_CHART"
+  _version="$MONGODB_VERSION"
+  _root_pass_file="$MONGODB_ROOT_PASS_FILE"
+  _user_pass_file="$MONGODB_USER_PASS_FILE"
+  # Get database passwords
+  if [ -f "$_root_pass_file" ]; then
+    _mongodb_root_pass="$(file_to_stdout "$_root_pass_file")"
+  else
+    _mongodb_root_pass=""
+  fi
+  if [ -f "$_user_pass_file" ]; then
+    _mongodb_user_pass="$(file_to_stdout "$_user_pass_file")"
+  else
+    _mongodb_user_pass=""
+  fi
+  if [ "$_storage_class" = "local-storage" ] &&
+    [ "$MONGODB_ARCHITECTURE" = "standalone" ]; then
+    _pv_name="$_ns-pv"
+    _pvc_name="$_ns-pvc"
+    if is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
+      test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
+        mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
+    fi
+  else
+    _pv_name=""
+    _pvc_name=""
+  fi
+  # Install mongodb using the selected architecture
+  sed \
+    -e "s%__MONGODB_ARCHITECTURE__%$MONGODB_ARCHITECTURE%" \
+    -e "s%__MONGODB_REGISTRY__%$MONGODB_REGISTRY%" \
+    -e "s%__PULL_SECRETS_NAME__%$PULL_SECRETS_NAME%" \
+    -e "s%__MONGODB_REPO__%$MONGODB_REPO%" \
+    -e "s%__ENABLE_METRICS__%$MONGODB_ENABLE_METRICS%" \
+    -e "s%__MONGODB_EXPORTER_REPO__%$MONGODB_EXPORTER_REPO%" \
+    -e "s%__KUBE_STACK_RELEASE__%$KUBE_STACK_RELEASE%" \
+    -e "s%__MONGODB_ROOT_PASS__%$_mongodb_root_pass%" \
+    -e "s%__MONGODB_DB_NAME__%$MONGODB_DB_NAME%" \
+    -e "s%__MONGODB_DB_USER__%$MONGODB_DB_USER%" \
+    -e "s%__MONGODB_DB_PASS__%$_mongodb_user_pass%" \
+    -e "s%__PVC_NAME__%$_pvc_name%" \
+    -e "s%__STORAGE_CLASS__%$_storage_class%" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+  # Check helm repo
+  check_helm_repo "$MONGODB_REPO_NAME" "$MONGODB_REPO_URL"
+  # Install or upgrade chart
+  if ! find_namespace "$_ns"; then
+    create_namespace "$_ns"
+  fi
+  # Create PV & PVC if needed
+  if [ "$_storage_class" = "local-storage" ] &&
+    [ "$MONGODB_ARCHITECTURE" = "standalone" ]; then
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PV_NAME__%$_pv_name%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__STORAGE_CLASS__%$_storage_class%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      "$_pv_tmpl" >"$_pv_yaml"
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__STORAGE_CLASS__%$_storage_class%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      "$_pvc_tmpl" >"$_pvc_yaml"
+    for _yaml in "$_pv_yaml" "$_pvc_yaml"; do
+      kubectl_apply "$_yaml"
+    done
+  else
+    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+  fi
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_release" "$_chart" "$_version"
+  # Truncate and fix permissions of the password files
+  : >"$_root_pass_file"
+  chmod 0600 "$_root_pass_file"
+  : >"$_user_pass_file"
+  chmod 0600 "$_user_pass_file"
+  # Get passwords
+  kubectl get secret -n "$_ns" "$_release" \
+    -o jsonpath="{.data.mongodb-root-password}" |
+    base64 --decode | stdout_to_file "$_root_pass_file"
+  kubectl get secret -n "$_ns" "$_release" \
+    -o jsonpath="{.data.mongodb-passwords}" |
+    base64 --decode | awk -F',' '{print $1}' | stdout_to_file "$_user_pass_file"
+  # Wait for service to be available
+  kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
+    -n "$_ns" "$_release"
+}
+
+apps_mongodb_remove() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  _values_yaml="$MONGODB_HELM_VALUES_YAML"
+  _pvc_yaml="$MONGODB_PVC_YAML"
+  _pv_yaml="$MONGODB_PV_YAML"
+  _release="$MONGODB_RELEASE"
+  apps_mongodb_export_variables
+  if find_namespace "$_ns"; then
+    header "Removing '$_app' objects"
+    # Uninstall chart
+    helm uninstall -n "$_ns" "$_release" || true
+    if [ -f "$_values_yaml" ]; then
+      rm -f "$_values_yaml"
+    fi
+    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Delete namespace if there are no charts deployed
+    if [ -z "$(helm list -n "$_ns" -q)" ]; then
+      delete_namespace "$_ns"
+    fi
+    footer
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+  apps_mongodb_clean_directories
+}
+
+apps_mongodb_status() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  if find_namespace "$_ns"; then
+    kubectl get all,endpoints,ingress,secrets -n "$_ns"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_mongodb_summary() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _addon="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  _release="$MONGODB_HELM_RELEASE"
+  print_helm_summary "$_ns" "$_addon" "$_release"
+}
+
+apps_mongodb_command() {
+  _command="$1"
+  _deployment="$2"
+  _cluster="$3"
+  case "$_command" in
+    install) apps_mongodb_install "$_deployment" "$_cluster";;
+    remove) apps_mongodb_remove "$_deployment" "$_cluster";;
+    status) apps_mongodb_status "$_deployment" "$_cluster";;
+    summary) apps_mongodb_summary "$_deployment" "$_cluster";;
+    *) echo "Unknown mongodb subcommand '$1'"; exit 1 ;;
+  esac
+}
+
+apps_mongodb_command_list() {
+  echo "install remove status summary"
+}
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

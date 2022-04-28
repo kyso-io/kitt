@@ -1,0 +1,67 @@
+#!/bin/sh
+# ----
+# File:        config
+# Description: Command to configure kitt default values
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="config: configure kitt default values"
+
+# --------
+# Includes
+# --------
+
+if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=../incl/config.sh
+  [ "$INCL_CONFIG_SH" = "1" ] || . "$INCL_DIR/config.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") edit|show|update
+
+The values adjusted here are defaults for all kitt clusters.
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+case "$1" in
+edit) 
+  config_app_edit_variables
+  ;;
+show | update)
+  config_app_load_variables
+  header "Current KITT Defaults"
+  config_app_print_variables | grep -v "^#"
+  if [ "$1" = "update" ]; then
+    config_app_update_variables
+  fi
+  ;;
+*) usage 0 ;;
+esac
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

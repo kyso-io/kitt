@@ -1,0 +1,114 @@
+#!/bin/sh
+# ----
+# File:        lights
+# Description: Command to display the kitt-car-ascii-art animation.
+#              This is a shell version of the kitt-car-ascii-art challenge from 
+#              https://codegolf.stackexchange.com/questions/95517/.
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="lights: display kitt-car-ascii-art animation"
+
+# ---------
+# Functions
+# ---------
+
+play_sound() {
+  # shellcheck disable=SC2153
+  WAV="$CMND_DIR/../media/kitt-lights.wav"
+  if [ -f "$WAV" ] && type aplay >/dev/null 2>&1; then
+    aplay "$WAV" 2>/dev/null &
+    _sound_pid="$!"
+  fi
+}
+
+stop_sound() {
+  if [ "$_sound_pid" ]; then
+    kill -9 "$_sound_pid" 2>/dev/null || true
+  fi
+}
+
+beg_lights_loop() {
+  clear;
+  echo ""
+}
+
+run_lights_loop() {
+  iter="$1"
+  line="#++-----"
+  printf "  %02d %s %02d\r" "$iter" "$line" "$iter"
+  if [ "$((iter%3))" = "1" ]; then
+    stop_sound; play_sound
+  fi
+  sleep .15
+  while read -r line; do
+    printf "  %02d %s %02d\r" "$iter" "$line" "$iter"
+    sleep .15
+  done <<EOL
+#++-----
++#------
+++#-----
+-++#----
+--++#---
+---++#--
+----++#-
+-----++#
+------#+
+-----#++
+----#++-
+---#++--
+--#++---
+-#++----
+EOL
+}
+
+end_lights_loop() {
+  iter="$1"
+  line="#++-----"
+  printf "  %02d %s %02d\n" "$iter" "$line" "$iter"
+  echo ""
+}
+
+# Usage
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") LOOPS
+
+Idea taken from https://codegolf.stackexchange.com/questions/95517/.
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+# Check args
+case "$1" in
+  *[!0-9]*) usage 0 ;;
+  ''|0) usage 0 ;;
+  *) [ "$1" -lt "100" ] && loops="$1" || loops="99" ;;
+esac
+
+beg_lights_loop
+i="0"
+while [ "$i" -lt "$loops" ]; do
+  i=$((i+1))
+  run_lights_loop "$i"
+done
+stop_sound
+end_lights_loop "$i"
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

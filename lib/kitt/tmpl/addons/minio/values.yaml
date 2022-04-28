@@ -1,0 +1,10 @@
+# Use standalone mode, this is for testing
+mode: standalone
+rootUser: "__MINIO_ROOT_USER__"
+rootPassword: "__MINIO_ROOT_PASS__"
+buckets:
+- name: velero
+  policy: none
+persistence:
+  existingClaim: "__PVC_NAME__"
+  storageClass: "__STORAGE_CLASS__"

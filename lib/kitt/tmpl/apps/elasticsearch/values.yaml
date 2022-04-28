@@ -1,0 +1,16 @@
+replicas: __REPLICAS__
+image: "__IMAGE__"
+# imageTag: not set, we expect the one from the chart to be available
+antiAffinity: "soft"
+esJavaOpts: "__JAVAOPTS__"
+resources:
+  requests:
+    cpu: "__CPU_REQUESTS__"
+    memory: "__MEM_REQUESTS__"
+clusterHealthCheckParams: "local=true"
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: __STORAGE_SIZE__
+  storageClassName: "__STORAGE_CLASS__"

@@ -1,0 +1,6 @@
+controller:
+  ingressClassResource:
+    default: true
+extraArgs:
+  default-ssl-certificate: "ingress/__INGRESS_CERT_NAME__"
+  ingress-class: nginx

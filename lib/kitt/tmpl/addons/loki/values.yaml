@@ -1,0 +1,4 @@
+# Enable retention
+config:
+  compactor:
+    retention_enabled: true

@@ -1,0 +1,194 @@
+#!/bin/sh
+# ----
+# File:        addon
+# Description: Command to manage addons on k8s clusters
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="addon: manage addons on k8s clusters"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/addons.sh
+  [ "$INCL_ADDONS_SH" = "1" ] || . "$INCL_DIR/addons.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+usage_addon_dsc() {
+  _addon="$1"
+  if [ -f "$INCL_DIR/addons/$_addon.sh" ]; then
+    sed -ne "s/^\( *#.*\|\)CMND_DSC=\"\(.*\)\".*/\2/p" \
+      "$INCL_DIR/addons/$_addon.sh"
+  else
+    echo "$_addon"
+  fi
+}
+
+# Usage function
+usage() {
+  _addon_list="$(addon_list)"
+  if [ "$_addon_list" ]; then
+    _addon_usage_list="$(
+      for _a in $_addon_list; do 
+        echo "  - $(usage_addon_dsc "$_a")";
+      done)"
+  else
+    _addon_usage_list=""
+  fi
+  _addon_sets="$(addon_sets)"
+  if [ "$_addon_sets" ]; then
+    _addon_set_usage_list="$(
+      for _as in $_addon_sets; do echo "  - $_as"; done
+    )"
+  else
+    _addon_set_usage_list=""
+  fi
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") TOOL SUBCOMMAND [CLUSTER_NAME]
+
+Where TOOL can be:
+
+$(
+  if [ "$_addon_usage_list" ]; then
+    echo "- A single add-on:"
+    echo ""
+    echo "$_addon_usage_list";
+    echo ""
+    if [ "$_addon_set_usage_list" ]; then
+      echo "- A set of add-ons:"
+      echo ""
+      echo "$_addon_set_usage_list";
+      echo ""
+    fi
+  fi
+)
+
+The valid subcommands for each tool are listed passing only the TOOL name.
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$1"
+}
+
+usage_addon() {
+  _addon="$1"
+  cat <<EOF
+Subcommand to manage '$_addon' on a kubernetes cluster.
+
+Usage:
+
+  kitt $(basename "$0") $_addon SUBCOMMAND [CLUSTER_NAME]
+
+Where SUBCOMMAND is one of:
+
+$(for _cmd in $(addon_command_list "$_addon"); do echo "- $_cmd"; done)
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$2"
+}
+
+usage_addon_set() {
+  _addon_set="$1"
+  cat <<EOF
+Subcommand to manage the '$_addon_set' addon set on a kubernetes cluster.
+
+Usage:
+
+  kitt $(basename "$0") $_addon_set SUBCOMMAND [CLUSTER_NAME]
+
+The addons included are:
+
+$(
+for _a in $(addon_set_list "$_addon_set"); do
+  echo "- $(usage_addon_dsc "$_a")";
+done
+)
+
+And SUBCOMMAND is one of:
+
+$(for _cmd in $(addon_set_command_list "$_addon_set"); do echo "- $_cmd"; done)
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$2"
+}
+
+# ----
+# MAIN
+# ----
+
+_addon=""
+for _a in $(addon_list); do
+  if [ "$1" = "$_a" ]; then
+    _addon="$_a"
+    break
+  fi
+done
+
+_addon_set=""
+for _s in $(addon_sets); do
+  if [ "$1" = "$_s" ]; then
+    _addon_set="$_s"
+    break
+  fi
+done
+
+_command=""
+if [ "$_addon" ]; then
+  for _c in $(addon_command_list "$_addon"); do
+    if [ "$2" = "$_c" ]; then
+      _command="$2"
+      break
+    fi
+  done
+elif [ "$_addon_set" ]; then
+  for _c in $(addon_set_command_list "$_addon_set"); do
+    if [ "$2" = "$_c" ]; then
+      _command="$2"
+      break
+    fi
+  done
+fi
+
+_cluster="$3"
+cluster_export_variables "$_cluster"
+
+if [ "$_addon" ]; then
+  if [ "$_command" ]; then
+    addon_command "$_addon" "$_command"
+  else
+    usage_addon "$_addon" 0
+  fi
+elif [ "$_addon_set" ]; then
+  if [ "$_command" ]; then
+    addon_set_command "$_addon_set" "$_command"
+  else
+    usage_addon_set "$_addon_set" 0
+  fi
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

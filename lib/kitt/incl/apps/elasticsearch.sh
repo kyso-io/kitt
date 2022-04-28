@@ -1,0 +1,357 @@
+#!/bin/sh
+# ----
+# File:        apps/elasticsearch.sh
+# Description: Functions to manage elasticsearch deployments for kyso on k8s
+#              clusters.
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# Set the variable to 1 to avoid including the file more than once
+# shellcheck disable=SC2034
+INCL_APPS_ELASTICSEARCH_SH="1"
+
+# ---------
+# Variables
+# ---------
+
+# CMND_DSC="elasticsearch: manage elasticsearch deployment for kyso"
+
+# Defaults
+_image="docker.elastic.co/elasticsearch/elasticsearch"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE="$_image"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_REPLICAS="1"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_CLASS=""
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_SIZE="30Gi"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_PF_PORT=""
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_JAVAOPTS="-Xmx128m -Xms128m"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_CPU_REQUESTS="100m"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_MEM_REQUESTS="512M"
+
+# Fixed values
+export ELASTICSEARCH_REPO_NAME="elastic"
+export ELASTICSEARCH_REPO_URL="https://helm.elastic.co"
+export ELASTICSEARCH_RELEASE="kyso-elasticsearch"
+export ELASTICSEARCH_CHART="elastic/elasticsearch"
+export ELASTICSEARCH_VERSION="7.17.3"
+export ELASTICSEARCH_PVC_NAME="elasticsearch-master-elasticsearch-master-0"
+
+# --------
+# Includes
+# --------
+
+if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=../common.sh
+  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+  # shellcheck source=./common.sh
+  [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
+fi
+
+# ---------
+# Functions
+# ---------
+
+apps_elasticsearch_export_variables() {
+  [ -z "$__apps_elasticsearch_export_variables" ] || return 0
+  _deployment="$1"
+  _cluster="$2"
+  apps_common_export_variables "$_deployment" "$_cluster"
+  # Values
+  export ELASTICSEARCH_NAMESPACE="elasticsearch-$DEPLOYMENT_NAME"
+  # Directories
+  export ELASTICSEARCH_TMPL_DIR="$TMPL_DIR/apps/elasticsearch"
+  export ELASTICSEARCH_HELM_DIR="$DEPLOY_HELM_DIR/elasticsearch"
+  export ELASTICSEARCH_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/elasticsearch"
+  export ELASTICSEARCH_SECRETS_DIR="$DEPLOY_SECRETS_DIR/elasticsearch"
+  export ELASTICSEARCH_PF_DIR="$DEPLOY_PF_DIR/elasticsearch"
+  # Templates
+  export ELASTICSEARCH_HELM_VALUES_TMPL="$ELASTICSEARCH_TMPL_DIR/values.yaml"
+  export ELASTICSEARCH_PVC_TMPL="$ELASTICSEARCH_TMPL_DIR/pvc.yaml"
+  export ELASTICSEARCH_PV_TMPL="$ELASTICSEARCH_TMPL_DIR/pv.yaml"
+  # Files
+  _values_yaml="$ELASTICSEARCH_HELM_DIR/values${SOPS_EXT}.yaml"
+  export ELASTICSEARCH_HELM_VALUES_YAML="$_values_yaml"
+  export ELASTICSEARCH_PVC_YAML="$ELASTICSEARCH_KUBECTL_DIR/pvc.yaml"
+  export ELASTICSEARCH_PV_YAML="$ELASTICSEARCH_KUBECTL_DIR/pv.yaml"
+  export ELASTICSEARCH_PF_OUT="$ELASTICSEARCH_PF_DIR/kubectl.out"
+  export ELASTICSEARCH_PF_PID="$ELASTICSEARCH_PF_DIR/kubectl.pid"
+  # Use defaults for variables missing from config files
+  if [ "$DEPLOYMENT_ELASTICSEARCH_IMAGE" ]; then
+    ELASTICSEARCH_IMAGE="$DEPLOYMENT_ELASTICSEARCH_IMAGE" 
+  else
+    ELASTICSEARCH_IMAGE="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE" 
+  fi
+  export ELASTICSEARCH_IMAGE
+  if [ "$DEPLOYMENT_ELASTICSEARCH_REPLICAS" ]; then
+    ELASTICSEARCH_REPLICAS="$DEPLOYMENT_ELASTICSEARCH_REPLICAS" 
+  else
+    ELASTICSEARCH_REPLICAS="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_REPLICAS" 
+  fi
+  export ELASTICSEARCH_REPLICAS
+  if [ "$DEPLOYMENT_ELASTICSEARCH_JAVAOPTS" ]; then
+    ELASTICSEARCH_JAVAOPTS="$DEPLOYMENT_ELASTICSEARCH_JAVAOPTS"
+  else
+    ELASTICSEARCH_JAVAOPTS="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_JAVAOPTS" 
+  fi
+  export ELASTICSEARCH_JAVAOPTS
+  if [ "$DEPLOYMENT_ELASTICSEARCH_CPU_REQUESTS" ]; then
+    ELASTICSEARCH_CPU_REQUESTS="$DEPLOYMENT_ELASTICSEARCH_CPU_REQUESTS"
+  else
+    ELASTICSEARCH_CPU_REQUESTS="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_CPU_REQUESTS" 
+  fi
+  export ELASTICSEARCH_CPU_REQUESTS
+  if [ "$DEPLOYMENT_ELASTICSEARCH_MEM_REQUESTS" ]; then
+    ELASTICSEARCH_MEM_REQUESTS="$DEPLOYMENT_ELASTICSEARCH_MEM_REQUESTS"
+  else
+    ELASTICSEARCH_MEM_REQUESTS="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_MEM_REQUESTS" 
+  fi
+  export ELASTICSEARCH_MEM_REQUESTS
+  if [ "$DEPLOYMENT_ELASTICSEARCH_STORAGE_CLASS" ]; then
+    ELASTICSEARCH_STORAGE_CLASS="$DEPLOYMENT_ELASTICSEARCH_STORAGE_CLASS" 
+  else
+    _storage_class="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_CLASS"
+    ELASTICSEARCH_STORAGE_CLASS="$_storage_class"
+  fi
+  export ELASTICSEARCH_STORAGE_CLASS
+  if [ "$DEPLOYMENT_ELASTICSEARCH_STORAGE_SIZE" ]; then
+    ELASTICSEARCH_STORAGE_SIZE="$DEPLOYMENT_ELASTICSEARCH_STORAGE_SIZE" 
+  else
+    ELASTICSEARCH_STORAGE_SIZE="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_SIZE" 
+  fi
+  export ELASTICSEARCH_STORAGE_SIZE
+  if [ "$DEPLOYMENT_ELASTICSEARCH_PF_PORT" ]; then
+    ELASTICSEARCH_PF_PORT="$DEPLOYMENT_ELASTICSEARCH_PF_PORT"
+  else
+    ELASTICSEARCH_PF_PORT="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_PF_PORT" 
+  fi
+  export ELASTICSEARCH_PF_PORT
+  __apps_elasticsearch_export_variables="1"
+}
+
+apps_elasticsearch_check_directories() {
+  apps_common_check_directories
+  for _d in "$ELASTICSEARCH_HELM_DIR" "$ELASTICSEARCH_KUBECTL_DIR" \
+    "$ELASTICSEARCH_SECRETS_DIR" "$ELASTICSEARCH_PF_DIR"; do
+    [ -d "$_d" ] || mkdir "$_d"
+  done
+}
+
+apps_elasticsearch_clean_directories() {
+  # Try to remove empty dirs, except if they contain secrets
+  for _d in "$ELASTICSEARCH_HELM_DIR" "$ELASTICSEARCH_KUBECTL_DIR"\
+    "$ELASTICSEARCH_SECRETS_DIR" "$ELASTICSEARCH_PF_DIR"; do
+    if [ -d "$_d" ]; then
+      rmdir "$_d" 2>/dev/null || true
+    fi
+  done
+}
+
+apps_elasticsearch_read_variables() {
+  header "Elasticsearch Settings"
+  read_value "Elasticsearch replicas (chart defaults to 3)" \
+    "${ELASTICSEARCH_REPLICAS}"
+  ELASTICSEARCH_REPLICAS=${READ_VALUE}
+  read_value "Elasticsearch image (without tag)" "$ELASTICSEARCH_IMAGE"
+  ELASTICSEARCH_IMAGE=${READ_VALUE}
+  read_value "Elasticsearch java opts (chart defaults to empty)" \
+    "${ELASTICSEARCH_JAVAOPTS}"
+  ELASTICSEARCH_JAVAOPTS=${READ_VALUE}
+  read_value "Elasticsearch cpu request (chart defaults to 1000m)" \
+    "${ELASTICSEARCH_CPU_REQUESTS}"
+  ELASTICSEARCH_CPU_REQUESTS=${READ_VALUE}
+  read_value "Elasticsearch mem request (chart defaults to 2Gi)" \
+    "${ELASTICSEARCH_MEM_REQUESTS}"
+  ELASTICSEARCH_MEM_REQUESTS=${READ_VALUE}
+  read_value \
+    "Elasticsearch storageClass ('local-storage' requires PV and one replica)" \
+    "${ELASTICSEARCH_STORAGE_CLASS}"
+  ELASTICSEARCH_STORAGE_CLASS=${READ_VALUE}
+  read_value "Elasticsearch Storage Size" "${ELASTICSEARCH_STORAGE_SIZE}"
+  ELASTICSEARCH_STORAGE_SIZE=${READ_VALUE}
+  read_value "Fixed port for elasticsearch pf? (i.e. 9200 or '-' for random)" \
+    "$ELASTICSEARCH_PF_PORT"
+  ELASTICSEARCH_PF_PORT=${READ_VALUE}
+}
+
+apps_elasticsearch_print_variables() {
+  cat <<EOF
+# Elasticsearch Settings
+# ---
+# Elasticsearch replicas (chart defaults to 3)
+ELASTICSEARCH_REPLICAS=$ELASTICSEARCH_REPLICAS
+# Elasticsearch image (without tag)
+ELASTICSEARCH_IMAGE=$ELASTICSEARCH_IMAGE
+# Elasticsearch java opts (chart defaults to empty)
+ELASTICSEARCH_JAVAOPTS=$ELASTICSEARCH_JAVAOPTS
+# Elasticsearch cpu request (chart defaults to 1000m)
+ELASTICSEARCH_CPU_REQUESTS=$ELASTICSEARCH_CPU_REQUESTS
+# Elasticsearch mem request (chart defaults to 2Gi)
+ELASTICSEARCH_MEM_REQUESTS=$ELASTICSEARCH_MEM_REQUESTS
+# Elasticsearch storageClass ('local-storage' requires PV and one replica)
+ELASTICSEARCH_STORAGE_CLASS=$ELASTICSEARCH_STORAGE_CLASS
+# Elasticsearch Volume Size (if storage is local or NFS the value is ignored)
+ELASTICSEARCH_STORAGE_SIZE=$ELASTICSEARCH_STORAGE_SIZE
+# Fixed port for elasticsearch pf (standard is 9200, empty for random)
+ELASTICSEARCH_PF_PORT=$ELASTICSEARCH_PF_PORT
+# ---
+EOF
+}
+
+apps_elasticsearch_install() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  apps_elasticsearch_check_directories
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _helm_values_tmpl="$ELASTICSEARCH_HELM_VALUES_TMPL"
+  _helm_values_yaml="$ELASTICSEARCH_HELM_VALUES_YAML"
+  _pvc_tmpl="$ELASTICSEARCH_PVC_TMPL"
+  _pvc_yaml="$ELASTICSEARCH_PVC_YAML"
+  _pv_tmpl="$ELASTICSEARCH_PV_TMPL"
+  _pv_yaml="$ELASTICSEARCH_PV_YAML"
+  _release="$ELASTICSEARCH_RELEASE"
+  _chart="$ELASTICSEARCH_CHART"
+  _version="$ELASTICSEARCH_VERSION"
+  _storage_class="$ELASTICSEARCH_STORAGE_CLASS"
+  _storage_size="$ELASTICSEARCH_STORAGE_SIZE"
+  if [ "$_storage_class" = "local-storage" ] &&
+    [ "$ELASTICSEARCH_REPLICAS" -eq "1" ]; then
+    _storage_class_sed="s%__STORAGE_CLASS__%$_storage_class%"
+    _pv_name="$_ns-pv"
+    _pvc_name="$ELASTICSEARCH_PVC_NAME"
+    if is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
+      test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
+        mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
+    fi
+  else
+    _storage_class_sed="/__STORAGE_CLASS__/d;"
+    _pv_name=""
+    _pvc_name=""
+  fi
+  # Install elasticsearch using the selected architecture
+  sed \
+    -e "s%__REPLICAS__%$ELASTICSEARCH_REPLICAS%" \
+    -e "s%__IMAGE__%$ELASTICSEARCH_IMAGE%" \
+    -e "s%__JAVAOPTS__%$ELASTICSEARCH_JAVAOPTS%" \
+    -e "s%__CPU_REQUESTS__%$ELASTICSEARCH_CPU_REQUESTS%" \
+    -e "s%__MEM_REQUESTS__%$ELASTICSEARCH_MEM_REQUESTS%" \
+    -e "s%__PVC_NAME__%$_pvc_name%" \
+    -e "s%__STORAGE_SIZE__%$_storage_size%" \
+    -e "$_storage_class_sed" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+  # Check helm repo
+  check_helm_repo "$ELASTICSEARCH_REPO_NAME" "$ELASTICSEARCH_REPO_URL"
+  # Install or upgrade chart
+  if ! find_namespace "$_ns"; then
+    create_namespace "$_ns"
+  fi
+  # Create PV & PVC if needed
+  if [ "$_storage_class" = "local-storage" ] &&
+    [ "$ELASTICSEARCH_REPLICAS" -eq "1" ]; then
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PV_NAME__%$_pv_name%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__STORAGE_CLASS__%$_storage_class%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      "$_pv_tmpl" >"$_pv_yaml"
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__STORAGE_CLASS__%$_storage_class%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      "$_pvc_tmpl" >"$_pvc_yaml"
+    for _yaml in "$_pv_yaml" "$_pvc_yaml"; do
+      kubectl_apply "$_yaml"
+    done
+  else
+    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+  fi
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_release" "$_chart" "$_version"
+  # Wait for service to be available
+  kubectl rollout status --timeout="$ROLLOUT_STATUS_TIMEOUT" \
+    -n "$_ns" "statefulset/elasticsearch-master"
+}
+
+apps_elasticsearch_remove() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _values_yaml="$ELASTICSEARCH_HELM_VALUES_YAML"
+  _pvc_yaml="$ELASTICSEARCH_PVC_YAML"
+  _pv_tmpl="$ELASTICSEARCH_PV_TMPL"
+  _pv_yaml="$ELASTICSEARCH_PV_YAML"
+  _release="$ELASTICSEARCH_RELEASE"
+  apps_elasticsearch_export_variables
+  if find_namespace "$_ns"; then
+    header "Removing '$_app' objects"
+    # Uninstall chart
+    helm uninstall -n "$_ns" "$_release" || true
+    if [ -f "$_values_yaml" ]; then
+      rm -f "$_values_yaml"
+    fi
+    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Delete namespace if there are no charts deployed
+    if [ -z "$(helm list -n "$_ns" -q)" ]; then
+      delete_namespace "$_ns"
+    fi
+    footer
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+  apps_elasticsearch_clean_directories
+}
+
+apps_elasticsearch_status() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  if find_namespace "$_ns"; then
+    kubectl get all,endpoints,ingress,secrets -n "$_ns"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_elasticsearch_summary() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _addon="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
+  print_helm_summary "$_ns" "$_addon" "$_release"
+}
+
+apps_elasticsearch_command() {
+  _command="$1"
+  _deployment="$2"
+  _cluster="$3"
+  case "$_command" in
+    install) apps_elasticsearch_install "$_deployment" "$_cluster";;
+    remove) apps_elasticsearch_remove "$_deployment" "$_cluster";;
+    status) apps_elasticsearch_status "$_deployment" "$_cluster";;
+    summary) apps_elasticsearch_summary "$_deployment" "$_cluster";;
+    *) echo "Unknown elasticsearch subcommand '$1'"; exit 1 ;;
+  esac
+}
+
+apps_elasticsearch_command_list() {
+  echo "install remove status summary"
+}
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

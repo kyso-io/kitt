@@ -1,0 +1,75 @@
+#!/bin/sh
+# ----
+# File:        extsvc
+# Description: Command to configure external services on the cluster ingress
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="extsvc: manage external services on the cluster ingress"
+
+# --------
+# Includes
+# --------
+
+if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=../incl/extsvc.sh
+  [ "$INCL_EXTSVC_SH" = "1" ] || . "$INCL_DIR/extsvc.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") COMMAND SERVICE_NAME [CLUSTER_NAME]
+
+Where COMMAND can be:
+
+$(for _c in $(extsvc_command_list); do echo "- $_c"; done)
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+_command=""
+for _c in $(extsvc_command_list); do
+  if [ "$1" = "$_c" ]; then
+    _command="$1"
+    break
+  fi
+done
+
+_svcname="$2"
+_cluster="$3"
+
+extscv_export_variables "$_cluster"
+
+if [ "$_command" ]; then
+  extsvc_command "$_command" "$_svcname" "$_cluster"
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

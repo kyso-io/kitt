@@ -1,0 +1,86 @@
+#!/bin/sh
+# ----
+# File:        pf
+# Description: Command to run port-forwards against kyso services on a cluster
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="pf: manage port-forwards against kyso apps"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/common.sh
+  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+  # shellcheck source=../incl/pf.sh
+  [ "$INCL_PF_SH" = "1" ] || . "$INCL_DIR/pf.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") SUBCOMMAND SERVICE [DEPLOYMENT_NAME [CLUSTER_NAME]]
+
+Where SUBCOMMAND is one of:
+
+$(pf_command_list | sed -e "s/^/- /")
+
+And SERVICE one of:
+
+$(pf_service_list | sed -e "s/^/- /")
+
+If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
+
+- CLUSTER_NAME = '$CLUSTER_NAME'
+- DEPLOYMENT_NAME = '$DEPLOYMENT_NAME'
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+_command=""
+while read -r _c; do
+  if [ "$1" = "${_c%:*}" ]; then
+    _command="$1"
+    break
+  fi
+done <<EOF
+$(pf_command_list)
+EOF
+
+_deployment="$3"
+_cluster="$4"
+
+apps_common_export_variables "$_deployment" "$_cluster"
+
+if [ "$_command" ]; then
+  pf_command "$@"
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

@@ -1,0 +1,7 @@
+cron:
+  expr: "*/30 * * * * ?"
+app:
+  indexer:
+    elasticsearch: "__ELASTIC_URL__"
+    filepath: "/tmp"
+    scsBasePath: "/sftp/data/scs"

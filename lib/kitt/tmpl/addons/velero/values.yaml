@@ -1,0 +1,28 @@
+# Use minio as blob storage & default volumes to restic on k3d
+configuration:
+  provider: aws
+  backupStorageLocation:
+    bucket: velero
+    config:
+      region: minio
+      s3ForcePathStyle: true
+      s3Url: __S3_URL__
+      publicUrl: __S3_PUBLIC_URL__
+  defaultVolumesToRestic: true
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.4.1
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+credentials:
+  secretContents:
+    cloud: |
+     [default]
+     aws_access_key_id=__AWS_ACCESS_KEY_ID__
+     aws_secret_access_key=__AWS_SECRET_ACCESS_KEY__
+# Disable snapshots
+snapshotsEnabled: true
+# Deploy restic
+deployRestic: true

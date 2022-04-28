@@ -1,0 +1,94 @@
+#!/bin/sh
+# ----
+# File:        backup
+# Description: Command to manage backups of kyso deployments on a cluster
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="backup: manage backups of kyso deployments on a cluster"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/backup.sh
+  [ "$INCL_BACKUP_SH" = "1" ] || . "$INCL_DIR/backup.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") CMND APP [DEPLOYMENT_NAME [CLUSTER_NAME]]
+
+Where COMMAND is one of:
+
+$(for _cmnd in $(backup_command_list); do echo "- $_cmnd"; done)
+
+and APP is one of:
+
+$(for _app in $(backup_app_list); do echo "- $_app"; done)
+
+If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
+
+- CLUSTER_NAME = '$CLUSTER_NAME'
+- DEPLOYMENT_NAME = '$DEPLOYMENT_NAME'
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+_app=""
+if [ "$1" = "all" ]; then
+  _app="all"
+else
+  for _a in $(backup_app_list); do
+    if [ "$1" = "$_a" ]; then
+      _app="$_a"
+      break
+    fi
+  done
+fi
+
+_command=""
+for _c in $(backup_command_list); do
+  if [ "$2" = "$_c" ]; then
+    _command="$2"
+    break
+  fi
+done
+
+_deployment="$3"
+_cluster="$4"
+
+backup_export_variables "$_deployment" "$_cluster"
+
+if [ "$_command" ]; then
+  backup_command "$_app" "$_command"
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

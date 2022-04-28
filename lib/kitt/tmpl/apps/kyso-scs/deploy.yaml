@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __APP__
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/name: __APP__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: __APP__
+  template:
+    metadata:
+      labels:
+        app: __APP__
+    spec:
+      containers:
+      - name: nginx
+        image: __SCS_NGINX_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: AUTH_REQUEST_URI
+          value: __AUTH_REQUEST_URI__
+        - name: HTML_ROOT
+          value: /sftp/data
+        volumeMounts:
+        - mountPath: /sftp
+          name: __APP__-datadir
+      - name: mysecureshell
+        image: __SCS_MYSSH_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        ports:
+        - containerPort: 22
+          name: ssh
+        securityContext:
+          capabilities:
+            add:
+            - IPC_OWNER
+        env:
+        - name: MYSSH_SFTP_UID
+          value: '2020'
+        - name: MYSSH_SFTP_GID
+          value: '2020'
+        - name: MYSSH_HOST_KEYS_FILE
+          value: host_keys.txt
+        - name: MYSSH_USER_KEYS_FILE
+          value: user_keys.txt
+        - name: MYSSH_USER_PASS_FILE
+          value: user_pass.txt
+        volumeMounts:
+        - mountPath: /fileSecrets
+          name: __APP__-file-secrets
+          readOnly: true
+        - mountPath: /sftp
+          name: __APP__-datadir
+      - name: kyso-indexer
+        image: __INDEXER_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        ports:
+        - containerPort: 8080
+          name: indexer-http
+        volumeMounts:
+        - mountPath: /work/config
+          name: kyso-indexer-config
+          readOnly: true
+        - mountPath: /sftp
+          name: __APP__-datadir
+      volumes:
+      - name: __APP__-file-secrets
+        secret:
+          secretName: __MYSSH_SECRET__
+      - name: __APP__-datadir
+        persistentVolumeClaim:
+          claimName: __PVC_NAME__
+      - name: kyso-indexer-config
+        configMap:
+          name: kyso-indexer-config

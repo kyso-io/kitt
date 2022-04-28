@@ -1,0 +1,19 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: __CLUSTER_NAME__
+  region: __CLUSTER_REGION__
+  version: "__EKS_VERSION__"
+
+nodeGroups:
+- name: ng01
+  instanceType: m5.large
+  volumeSize: 80
+  desiredCapacity: __CLUSTER_NUM_WORKERS__
+  ssh:
+    allow: true
+  iam:
+    withAddonPolicies:
+      ebs: true
+      efs: true

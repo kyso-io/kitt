@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: __PVC_NAME__
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/name: __APP__
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: __STORAGE_SIZE__
+  storageClassName: "__STORAGE_CLASS__"

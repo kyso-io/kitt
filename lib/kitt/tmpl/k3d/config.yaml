@@ -1,0 +1,58 @@
+kind: Simple
+apiVersion: k3d.io/v1alpha4
+metadata:
+  name: __CLUSTER_NAME__
+servers: __NUM_SERVERS__
+agents: __NUM_WORKERS__
+image: __K3S_IMAGE__
+kubeAPI:
+  hostIP: __API_HOST__
+  hostPort: "__API_PORT__"
+# BEG: USE_LOCAL_STORAGE
+volumes:
+- volume: __CLUSTER_STORAGE__:/var/lib/rancher/k3s/storage
+  nodeFilters:
+  - all
+- volume: __CLUSTER_VOLUMES__:/volumes
+  nodeFilters:
+  - all
+# END: USE_LOCAL_STORAGE
+ports:
+- port: __HOST_IP__:__HTTP_PORT__:80
+  nodeFilters:
+  - loadbalancer
+- port: __HOST_IP__:__HTTPS_PORT__:443
+  nodeFilters:
+  - loadbalancer
+# BEG: REMOTE_REGISTRY
+registries:
+  config: |
+    mirrors:
+      __REGISTRY_NAME__:
+        endpoint:
+        - __REGISTRY_URL__
+    configs:
+      __REGISTRY_NAME__:
+        auth:
+          username: __REGISTRY_USER__
+          password: __REGISTRY_PASS__
+# END: REMOTE_REGISTRY
+options:
+  k3d:
+    wait: true
+    timeout: 1m0s # avoid an start/stop cicle when start fails
+    disableLoadbalancer: false
+    disableImageVolume: false
+    disableRollback: false
+  k3s:
+    extraArgs:
+    - arg: --tls-san=127.0.0.1
+      nodeFilters:
+      - server:*
+    - arg: --no-deploy=traefik
+      nodeFilters:
+      - server:*
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: true
+  runtime: {}

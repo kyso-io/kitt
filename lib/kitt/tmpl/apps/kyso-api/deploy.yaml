@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __APP__
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/name: __APP__
+spec:
+  replicas: __API_REPLICAS__
+  selector:
+    matchLabels:
+      app: __APP__
+  template:
+    metadata:
+      labels:
+        app: __APP__
+    spec:
+      containers:
+      - name: kyso-api
+        image: __API_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        env:
+        - name: DOTENV_FILE
+          value: "/secrets/kyso-api/env"
+        volumeMounts:
+        - name: kyso-api-secrets
+          mountPath: "/secrets/kyso-api"
+          readOnly: true
+        - name: data
+          mountPath: /data
+        ports:
+        - containerPort: 4000
+      volumes:
+      - name: kyso-api-secrets
+        secret:
+          secretName: kyso-api-secrets
+      - name: data
+        emptyDir: {}

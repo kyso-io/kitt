@@ -1,0 +1,144 @@
+#!/bin/sh
+# ----
+# File:        clust
+# Description: Command to configure, install or remove kubernetes clusters
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="clust: configure, install or remove kubernetes clusters"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/ctools.sh
+  [ "$INCL_CTOOLS_SH" = "1" ] || . "$INCL_DIR/ctools.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+usage_ctool_dsc() {
+  _ctool="$1"
+  if [ -f "$INCL_DIR/ctools/$_ctool.sh" ]; then
+    sed -ne "s/^\( *#.*\|\)CMND_DSC=\"\(.*\)\".*/\2/p" \
+      "$INCL_DIR/ctools/$_ctool.sh"
+  else
+    echo "$_ctool"
+  fi
+}
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  kitt $(basename "$0") {ls|tree [LEVEL]|TOOL SUBCOMMAND} [CLUSTER_NAME]
+
+Where:
+
+- ls: prints the list of existing clusters
+- tree: shows the cluster configuration files down to LEVEL (3 by default)
+
+And TOOL can be:
+
+$(for _ct in $(ctool_list); do echo "- $(usage_ctool_dsc "$_ct")"; done)
+
+The valid SUBCOMMANDs for each TOOL are listed passing only the TOOL name.
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$1"
+}
+
+usage_ctool() {
+  _ctool="$1"
+  _dsc="$(usage_ctool_dsc "$_ctool")"
+  cat <<EOF
+Subcommand to ${_dsc# *: }.
+
+Usage:
+
+  kitt $(basename "$0") $_ctool SUBCOMMAND [CLUSTER_NAME]
+
+Where SUBCOMMAND is one of:
+
+$(for _cmd in $(ctool_command_list "$_ctool"); do echo "- $_cmd"; done)
+
+If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
+EOF
+  exit "$2"
+}
+
+# ----
+# MAIN
+# ----
+
+_ctool=""
+for _t in $(ctool_list); do
+  if [ "$1" = "$_t" ]; then
+    _ctool="$_t"
+    break
+  fi
+done
+
+_command=""
+if [ "$_ctool" ]; then
+  for _c in $(ctool_command_list "$_ctool"); do
+    if [ "$2" = "$_c" ]; then
+      _command="$2"
+      break
+    fi
+  done
+fi
+
+_cluster="$3"
+cluster_export_variables "$_cluster"
+
+case "$1" in
+ls | list)
+  ls "${CLUSTERS_DIR}"
+  exit 0
+  ;;
+tree)
+  case "$2" in
+  *[!0-9]*|"") _level="3" ;;
+  *) _level="$2" ;;
+  esac
+  if [ -d "${CLUSTERS_DIR}/$CLUSTER_NAME" ]; then
+    if type tree >/dev/null 2>&1; then
+      tree -L "$_level" "${CLUSTERS_DIR}/$CLUSTER_NAME"
+    else
+      find "${CLUSTERS_DIR}/$CLUSTER_NAME" -maxdepth "$_level"
+    fi
+  fi
+  exit 0
+  ;;
+esac
+
+if [ "$_ctool" ]; then
+  if [ "$_command" ]; then
+    ctool_command "$_ctool" "$_command"
+  else
+    usage_ctool "$_ctool" 0
+  fi
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

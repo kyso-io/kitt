@@ -1,0 +1,35 @@
+global:
+  imageRegistry: "__MONGODB_REGISTRY__"
+  imagePullSecrets:
+  - "__PULL_SECRETS_NAME__"
+image:
+  repository: "__MONGODB_REPO__"
+  # tag: not set, we expect the one from the chart to be available
+architecture: __MONGODB_ARCHITECTURE__
+metrics:
+  enabled: __ENABLE_METRICS__
+  image:
+    repository: "__MONGODB_EXPORTER_REPO__"
+    # tag: not set, we expect the one from the chart to be available
+  extraFlags: "--compatible-mode"
+    # Added --compatible-mode for the metrics exporter (almost all grafana
+    # dashboards available use the old variable names) and use the chart to
+    # generate the serviceMonitor (we have added the release label to the
+    # additionalLabels to make the prometheus operator select the
+    # serviceMonitor automatically (it probably can be done using a different
+    # strategy, but this is simple and works).
+  serviceMonitor:
+    enabled: __ENABLE_METRICS__
+    additionalLabels:
+      release: __KUBE_STACK_RELEASE__
+auth:
+  rootPassword: "__MONGODB_ROOT_PASS__"
+  databases:
+  - __MONGODB_DB_NAME__
+  usernames:
+  - __MONGODB_DB_USER__
+  passwords:
+  - "__MONGODB_DB_PASS__"
+persistence:
+  existingClaim: "__PVC_NAME__"
+  storageClass: "__STORAGE_CLASS__"
