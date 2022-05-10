@@ -2,12 +2,17 @@
 configuration:
   provider: aws
   backupStorageLocation:
-    bucket: velero
+    bucket: __BUCKET__
     config:
-      region: minio
+      region: __REGION__
       s3ForcePathStyle: true
       s3Url: __S3_URL__
       publicUrl: __S3_PUBLIC_URL__
+  volumeSnapshotLocation:
+    spec:
+      provider: velero.io/aws
+      config:
+        region: __REGION__
   defaultVolumesToRestic: true
 initContainers:
   - name: velero-plugin-for-aws
@@ -22,7 +27,7 @@ credentials:
      [default]
      aws_access_key_id=__AWS_ACCESS_KEY_ID__
      aws_secret_access_key=__AWS_SECRET_ACCESS_KEY__
-# Disable snapshots
-snapshotsEnabled: true
+# Enable or disable snapshots
+snapshotsEnabled: __SNAPSHOTS_ENABLED__
 # Deploy restic
 deployRestic: true

@@ -50,6 +50,7 @@ addon_velero_export_variables() {
   export VELERO_SECRETS_DIR="$CLUST_SECRETS_DIR/velero"
   # Templates
   export VELERO_HELM_VALUES_TMPL="$VELERO_TMPL_DIR/values.yaml"
+  export VELERO_POLICY_JSON_TMPL="$VELERO_TMPL_DIR/velero-policy.json"
   # Files
   export VELERO_HELM_VALUES_YAML="$VELERO_HELM_DIR/values.yaml"
   export VELERO_S3_ENV="$VELERO_SECRETS_DIR/s3${SOPS_EXT}.env"
@@ -57,10 +58,12 @@ addon_velero_export_variables() {
   if is_selected "$VELERO_USE_MINIO"; then
     addon_minio_export_variables
     export VELERO_USE_LOCAL_STORAGE="$CLUSTER_USE_LOCAL_STORAGE"
-    export VELERO_S3_URL="http://minio:9000"
-    export VELERO_S3_PUBLIC_URL="https://minio.$CLUSTER_DOMAIN"
     export VELERO_AWS_ACCESS_KEY_ID="$MINIO_ROOT_USER"
     export VELERO_AWS_SECRET_ACCESS_KEY="$MINIO_ROOT_PASS"
+    export VELERO_BUCKET="velero"
+    export VELERO_REGION="minio"
+    export VELERO_S3_URL="http://minio:9000"
+    export VELERO_S3_PUBLIC_URL="https://minio.$CLUSTER_DOMAIN"
   fi
   # Set variable to avoid loading variables twice
   __addon_velero_export_variables="1"
@@ -84,10 +87,12 @@ addon_velero_clean_directories() {
 addon_velero_print_vars() {
   cat <<EOF
 USE_MINIO=$VELERO_USE_MINIO
-S3_URL=$VELERO_S3_URL
-S3_PUBLIC_URL=$VELERO_S3_PUBLIC_URL
 AWS_ACCESS_KEY_ID=$VELERO_AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY=$VELERO_AWS_SECRET_ACCESS_KEY
+BUCKET=$VELERO_BUCKET
+REGION=$VELERO_REGION
+S3_URL=$VELERO_S3_URL
+S3_PUBLIC_URL=$VELERO_S3_PUBLIC_URL
 EOF
 }
 
@@ -99,14 +104,40 @@ addon_velero_read_vars() {
     addon_velero_export_minio_variables
     return 0
   fi
-  read_value "Velero S3 URL" "$VELERO_S3_URL"
-  VELERO_S3_URL=${READ_VALUE}
-  read_value "Velero S3 Public URL" "$VELERO_S3_PUBLIC_URL"
-  VELERO_S3_PUBLIC_URL=${READ_VALUE}
-  read_value "Velero AWS Access Key Id" "$VELERO_AWS_ACCESS_KEY_ID"
-  VELERO_AWS_ACCESS_KEY_ID=${READ_VALUE}
-  read_value "Velero AWS Secret Access Key" "$VELERO_AWS_SECRET_ACCESS_KEY"
-  VELERO_AWS_SECRET_ACCESS_KEY=${READ_VALUE}
+  read_bool "Configure velero on AWS" "false"
+  if is_selected "${READ_VALUE}"; then
+    read_bool "Create velero bucket" "false"
+    if is_selected "${READ_VALUE}"; then
+      aws_create_velero_bucket || true
+    fi
+    read_bool "Create velero user" "false"
+    if is_selected "${READ_VALUE}"; then
+      aws_create_velero_user || true
+    fi
+    read_bool "Add velero user policy" "false"
+    if is_selected "${READ_VALUE}"; then
+      aws_add_velero_user_policy "$VELERO_POLICY_JSON_TMPL" || true
+    fi
+    read_bool "Create velero s3 env" "false"
+    if is_selected "${READ_VALUE}"; then
+      addon_velero_check_directories
+      aws_create_velero_s3_env "$VELERO_S3_ENV" || true
+      export_env_file_vars "$VELERO_S3_ENV" "VELERO"
+    fi
+  else
+    read_value "Velero Bucket" "$VELERO_BUCKET"
+    VELERO_BUCKET=$READ_VALUE
+    read_value "Velero Region" "$VELERO_REGION"
+    VELERO_REGION=$READ_VALUE
+    read_value "Velero AWS Access Key Id" "$VELERO_AWS_ACCESS_KEY_ID"
+    VELERO_AWS_ACCESS_KEY_ID=${READ_VALUE}
+    read_value "Velero AWS Secret Access Key" "$VELERO_AWS_SECRET_ACCESS_KEY"
+    VELERO_AWS_SECRET_ACCESS_KEY=${READ_VALUE}
+    read_value "Velero S3 URL" "$VELERO_S3_URL"
+    VELERO_S3_URL=${READ_VALUE}
+    read_value "Velero S3 Public URL" "$VELERO_S3_PUBLIC_URL"
+    VELERO_S3_PUBLIC_URL=${READ_VALUE}
+  fi
 }
 
 addon_velero_config() {
@@ -164,13 +195,31 @@ addon_velero_install() {
   if ! find_namespace "$_ns"; then
     create_namespace "$_ns"
   fi
+  if is_selected "$VELERO_USE_MINIO"; then
+    _snapshots_enabled="false"
+  else
+    _snapshots_enabled="true"
+  fi
+  if [ "$VELERO_S3_URL" ]; then
+    _s3_url_sed="s%__S3_URL__%$VELERO_S3_URL%"
+  else
+    _s3_url_sed="/__S3_URL__/d"
+  fi
+  if [ "$VELERO_S3_PUBLIC_URL" ]; then
+    _s3_public_url_sed="s%__S3_PUBLIC_URL__%$VELERO_S3_PUBLIC_URL%"
+  else
+    _s3_public_url_sed="/__S3_PUBLIC_URL__/d"
+  fi
   # Values for the chart
   sed \
     -e "s%__CLUSTER_DOMAIN__%$CLUSTER_DOMAIN%" \
-    -e "s%__S3_URL__%$VELERO_S3_URL%" \
-    -e "s%__S3_PUBLIC_URL__%$VELERO_S3_PUBLIC_URL%" \
     -e "s%__AWS_ACCESS_KEY_ID__%$VELERO_AWS_ACCESS_KEY_ID%" \
     -e "s%__AWS_SECRET_ACCESS_KEY__%$VELERO_AWS_SECRET_ACCESS_KEY%" \
+    -e "s%__BUCKET__%$VELERO_BUCKET%" \
+    -e "s%__REGION__%$VELERO_REGION%" \
+    -e "$_s3_url_sed" \
+    -e "$_s3_public_url_sed" \
+    -e "s%__SNAPSHOTS_ENABLED__%$_snapshots_enabled%" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"

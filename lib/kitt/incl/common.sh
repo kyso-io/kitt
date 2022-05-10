@@ -17,6 +17,8 @@ INCL_COMMON_SH="1"
 # --------
 
 if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=./common/aws.sh
+  [ "$INCL_COMMON_AWS_SH" = "1" ] || . "$INCL_DIR/common/aws.sh"
   # shellcheck source=./common/cluster.sh
   [ "$INCL_COMMON_CLUSTER_SH" = "1" ] || . "$INCL_DIR/common/cluster.sh"
   # shellcheck source=./common/deployment.sh
