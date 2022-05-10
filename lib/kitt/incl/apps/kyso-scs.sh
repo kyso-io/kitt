@@ -261,7 +261,7 @@ apps_kyso_scs_read_variables() {
     "Indexer Image URI (i.e. '$_ex_img' or export KYSO_INDEXER_IMAGE env var)" \
     "${KYSO_INDEXER_IMAGE}"
   KYSO_INDEXER_IMAGE=${READ_VALUE}
-  read_value "Kyso SCS Storage Class ('local-storage' requires existing PV)" \
+  read_value "Kyso SCS Storage Class ('local-storage' needs PV, 'efs-sc' eks)" \
     "${KYSO_SCS_STORAGE_CLASS}"
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
   read_value "Kyso SCS Volume Size" "${KYSO_SCS_STORAGE_SIZE}"
@@ -285,7 +285,7 @@ KYSO_SCS_NGINX_IMAGE=$KYSO_SCS_NGINX_IMAGE
 # If left empty the KYSO_INDEXER_IMAGE environment variable has to be set each
 # time the kyso-scs service is installed
 KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
-# Kyso SCS Storage Class ('local-storage' requires existing PV)
+# Kyso SCS Storage Class ('local-storage' requires existing PV, 'efs-sc' eks)
 KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 # Kyso SCS Volume Size (if the storage is local or NFS the value is ignored)
 KYSO_SCS_STORAGE_SIZE=$KYSO_SCS_STORAGE_SIZE

@@ -96,7 +96,6 @@ apps_read_variables() {
   apps_kyso_scs_read_variables
   footer
   apps_kyso_ui_read_variables
-  footer
 }
 
 apps_edit_variables() {
@@ -128,6 +127,7 @@ apps_update_variables() {
     footer
     apps_read_variables
     if [ -f "$DEPLOYMENT_CONFIG" ]; then
+      footer
       read_bool "Save updated configuration?" "Yes"
     else
       READ_VALUE="Yes"

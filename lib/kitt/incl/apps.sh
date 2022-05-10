@@ -45,9 +45,7 @@ fi
 # ---------
 
 apps_check_directories() {
-  for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR" "$DEPLOYMENT_DIR"; do
-    [ -d "$_d" ] || mkdir "$_d"
-  done
+  apps_common_check_directories
 }
 
 apps_command() {
