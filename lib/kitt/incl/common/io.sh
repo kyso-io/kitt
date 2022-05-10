@@ -45,6 +45,8 @@ read_value() {
   read -r READ_VALUE
   if [ "${READ_VALUE}" = "" ]; then
     READ_VALUE=$2
+  elif [ "${READ_VALUE}" = "-" ]; then
+    READ_VALUE=""
   fi
 }
 
