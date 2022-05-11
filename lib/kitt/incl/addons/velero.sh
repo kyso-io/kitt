@@ -24,8 +24,6 @@ export VELERO_HELM_REPO_NAME="vmware-tanzu"
 export VELERO_HELM_REPO_URL="https://vmware-tanzu.github.io/helm-charts"
 export VELERO_HELM_CHART="$VELERO_HELM_REPO_NAME/velero"
 export VELERO_HELM_RELEASE="velero"
-export VELERO_BASIC_AUTH_NAME="basic-auth"
-export VELERO_BASIC_AUTH_USER="k3d-mon"
 
 # --------
 # Includes
