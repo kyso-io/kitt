@@ -17,6 +17,8 @@ INCL_AWS_SH="1"
 # ---------
 
 # For now fixed values, will make configurable later
+export DEFAULT_EKS_EFS_REGION="eu-north-1"
+export DEFAULT_EKS_EFS_POLICY_NAME="AmazonEKS_EFS_CSI_Driver_Policy"
 export DEFAULT_VELERO_REGION="eu-north-1"
 export DEFAULT_VELERO_BUCKET="kyso-saas-velero"
 export DEFAULT_VELERO_USER="velero"
@@ -38,6 +40,47 @@ fi
 # Functions from https://github.com/vmware-tanzu/velero-plugin-for-aws#setup
 
 # Initial versions, will generalise later
+
+# EKS/EFS
+
+aws_add_eks_efs_policy() {
+  _tmpl="$1"
+  _policy="$DEFAULT_EKS_EFS_POLICY_NAME"
+  if [ -f "$_tmpl" ]; then
+    old_dir="$(pwd)"
+    tmp_dir="$(mktemp -d)"
+    cp "$_tmpl" "$tmp_dir/iam-policy-example.json"
+    cd "$tmp_dir"
+    aws iam create-policy \
+      --policy-name "$_policy" \
+      --policy-document "file://iam-policy-example.json" || true
+    cd "$old_dir"
+    rm -rf "$tmp_dir"
+  else
+    echo "Missing velero-policy.json template '$_tmpl'"
+    exit 1
+  fi
+}
+
+aws_add_eks_efs_service_account() {
+  _cluster="$1"
+  _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+  _policy="$DEFAULT_EKS_EFS_POLICY_NAME"
+  _region="$DEFAULT_EKS_EFS_REGION"
+  # Make sure we have an iam-oidc-provider available
+  eksctl utils associate-iam-oidc-provider --region="$_region" \
+    --cluster="$_cluster" --approve
+  # Create the service account
+  eksctl create iamserviceaccount \
+    --cluster "$_cluster" \
+    --namespace kube-system \
+    --name efs-csi-controller-sa \
+    --attach-policy-arn "arn:aws:iam::$_account_id:policy/$_policy" \
+    --approve \
+    --region "$_region"
+}
+
+# VELERO
 
 aws_create_velero_bucket() {
   _bucket="$DEFAULT_VELERO_BUCKET"

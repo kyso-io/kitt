@@ -46,24 +46,28 @@ addon_efs_export_variables() {
   ctool_eks_export_variables
   # Directories
   export EFS_TMPL_DIR="$TMPL_DIR/addons/efs"
+  export EFS_HELM_DIR="$CLUST_HELM_DIR/efs"
   export EFS_KUBECTL_DIR="$CLUST_KUBECTL_DIR/efs"
   # Templates
+  export EFS_EKS_EFS_POLICY_TMPL="$EFS_TMPL_DIR/iam-policy-example.json"
+  export EFS_HELM_VALUES_TMPL="$EFS_TMPL_DIR/values.yaml"
   export EFS_STORAGECLASS_TMPL="$EFS_TMPL_DIR/storageclass.yaml"
   # Files
+  export EFS_HELM_VALUES_YAML="$EFS_HELM_DIR/values.yaml"
   export EFS_STORAGECLASS_YAML="$EFS_KUBECTL_DIR/storageclass.yaml"
   # Set variable to avoid loading variables twice
   __addon_efs_export_variables="1"
 }
 
 addon_efs_check_directories() {
-  for _d in $EFS_KUBECTL_DIR; do
+  for _d in "$EFS_HELM_DIR" "$EFS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 addon_efs_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in $EFS_KUBECTL_DIR; do
+  for _d in "$EFS_HELM_DIR" "$EFS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
     fi
@@ -111,11 +115,21 @@ EOF
   _repo_url="$EFS_HELM_REPO_URL"
   _release="$EFS_HELM_RELEASE"
   _chart="$EFS_HELM_CHART"
+  _values_tmpl="$EFS_HELM_VALUES_TMPL"
+  _values_yaml="$EFS_HELM_VALUES_YAML"
   header "Installing '$_addon'"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
+  # Add EKS_EFS Policy
+  aws_add_eks_efs_policy "$EFS_EKS_EFS_POLICY_TMPL"
+  # Add role and attach it to the previous Policy
+  aws_add_eks_efs_service_account "$CLUSTER_NAME"
+  # Copy values tmpl to values.yaml
+  sed \
+    -e "s%__REGION__%$DEFAULT_EKS_EFS_REGION%" \
+    "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
-  helm_upgrade "$_ns" "" "$_release" "$_chart"
+  helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
   # Add storageclass
   sed \
     -e "s%__EFS_FILESYSTEMID__%$CLUSTER_EFS_FILESYSTEMID%" \
@@ -129,7 +143,11 @@ addon_efs_remove() {
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   _release="$EFS_HELM_RELEASE"
+  _values_yaml="$EFS_HELM_VALUES_YAML"
   helm uninstall -n "$_ns" "$_release" || true
+  if [ -f "$_values_yaml" ]; then
+    rm -f "$_values_yaml"
+  fi
   kubectl_delete "$EFS_STORAGECLASS_YAML" || true
   addon_efs_clean_directories
 }
