@@ -74,25 +74,25 @@ addon_efs_clean_directories() {
   done
 }
 
-# TODO: Add function to create EFS programatically
-# create_efs() {
-#   # Load EKS variables
-#   ctool_eks_export_variables
-#   if [ "$EKS_CLUSTER_EFS_FILESYSTEMID" ]; then
-#     echo "There is already a filesystem on the configuration"
-#     exit 1
-#   fi
-#   vpcid="$(eks_cluster_get_vpcid)"
-#   if [ "$vpcid" ]; then
-#      aws efs create-file-system \
-#        --creation-token KysoEFS \
-#        --backup \
-#        --encrypted \
-#        --performance-mode generalPurpose \
-#        --throughput-mode bursting \
-#        --region "$EKS_CLUSTER_REGION"
-#   fi
-# }
+addon_efs_createfs() {
+  addon_efs_export_variables
+  _orig_efs_filesystemid="$CLUSTER_EFS_FILESYSTEMID"
+  aws_add_eks_efs_filesystem "$CLUSTER_NAME"
+  if [ "$_orig_efs_filesystemid" = "$CLUSTER_EFS_FILESYSTEMID" ]; then
+    echo "The filesystem '$CLUSTER_EFS_FILESYSTEMID' already existed!"
+  else
+    echo "The new filesystem id is '$CLUSTER_EFS_FILESYSTEMID'"
+    if [ -f "$CLUSTER_CONFIG" ]; then
+      read_bool "Save updated configuration?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      ctool_eks_check_directories "$_cluster"
+      ctool_eks_print_variables | stdout_to_file "$CLUSTER_CONFIG"
+    fi
+  fi
+}
 
 addon_efs_install() {
   addon_efs_export_variables
@@ -101,10 +101,7 @@ addon_efs_install() {
     cat <<EOF
 Can't setup the EFS dynamic provisioner without an EFS File system ID.
 
-Create the EFS from https://console.aws.amazon.com/efs/ on the EKS VPC (for
-Kyso go to https://eu-north-1.console.aws.amazon.com/efs?region=eu-north-1#),
-get the File system ID and reconfigure EKS on the cluster '$CLUSTER_NAME' to
-use it.
+Create it with the 'createfs' subcommand and update the cluster configuration.
 EOF
     exit 1
   fi
@@ -173,6 +170,7 @@ addon_efs_summary() {
 
 addon_efs_command() {
   case "$1" in
+    createfs) addon_efs_createfs ;;
     install) addon_efs_install ;;
     remove) addon_efs_remove ;;
     status) addon_efs_status ;;
@@ -182,7 +180,7 @@ addon_efs_command() {
 }
 
 addon_efs_command_list() {
-  echo "install remove status summary"
+  echo "createfs install remove status summary"
 }
 
 # ----
