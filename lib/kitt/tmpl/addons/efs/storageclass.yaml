@@ -8,6 +8,6 @@ parameters:
   provisioningMode: efs-ap
   fileSystemId: __EFS_FILESYSTEMID__
   directoryPerms: "700"
-  gidRangeStart: "1000" # optional
-  gidRangeEnd: "3000" # optional
+  uid: "2020"
+  gid: "2020"
   basePath: "/efs" # optional
