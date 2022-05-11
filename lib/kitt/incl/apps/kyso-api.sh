@@ -333,9 +333,12 @@ apps_kyso_api_install() {
     stdout_to_file "$_secret_env"
   : >"$_secret_yaml"
   chmod 0600 "$_secret_yaml"
+  tmp_dir="$(mktemp -d)"
+  file_to_stdout "$_secret_env" >"$tmp_dir/env"
   kubectl create secret generic "$_app-secrets" --dry-run=client -o yaml \
-    --from-file=env="$_secret_env" --namespace="$_ns" |
+    --from-file=env="$tmp_dir/env" --namespace="$_ns" |
     stdout_to_file "$_secret_yaml"
+  rm -rf "$tmp_dir"
   # Prepare deployment file
   sed \
     -e "s%__APP__%$_app%" \
