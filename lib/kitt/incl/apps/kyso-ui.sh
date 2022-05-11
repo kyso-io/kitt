@@ -274,6 +274,14 @@ apps_kyso_ui_summary() {
   deployment_summary "$_ns" "$_app"
 }
 
+apps_kyso_ui_uris() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _hostname="${DEPLOYMENT_HOSTNAMES%% *}"
+  echo "https://$_hostname/"
+}
+
 apps_kyso_ui_command() {
   _command="$1"
   _deployment="$2"
@@ -283,12 +291,13 @@ apps_kyso_ui_command() {
     remove) apps_kyso_ui_remove "$_deployment" "$_cluster";;
     status) apps_kyso_ui_status "$_deployment" "$_cluster";;
     summary) apps_kyso_ui_summary "$_deployment" "$_cluster";;
+    uris) apps_kyso_ui_uris "$_deployment" "$_cluster";;
     *) echo "Unknown kyso-ui subcommand '$1'"; exit 1 ;;
   esac
 }
 
 apps_kyso_ui_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----

@@ -81,52 +81,52 @@ apps_kyso_api_export_variables() {
   export KYSO_API_INGRESS_YAML="$KYSO_API_KUBECTL_DIR/ingress.yaml"
   export KYSO_API_INGRESS_DOCS_YAML="$KYSO_API_KUBECTL_DIR/ingress-docs.yaml"
   _auth_file="$KYSO_API_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
-  export KYSO_API_AUTH_FILE="_auth_file"
+  export KYSO_API_AUTH_FILE="$_auth_file"
   _auth_yaml="$KYSO_API_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export KYSO_API_AUTH_YAML="$_auth_yaml"
   # Use defaults for variables missing from config files
   if [ "$DEPLOYMENT_KYSO_API_ENDPOINT" ]; then
-    KYSO_API_ENDPOINT="$DEPLOYMENT_KYSO_API_ENDPOINT" 
+    KYSO_API_ENDPOINT="$DEPLOYMENT_KYSO_API_ENDPOINT"
   else
-    KYSO_API_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_API_ENDPOINT" 
+    KYSO_API_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_API_ENDPOINT"
   fi
   export KYSO_API_ENDPOINT
   if [ -z "$KYSO_API_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_API_IMAGE" ]; then
-      KYSO_API_IMAGE="$DEPLOYMENT_KYSO_API_IMAGE" 
+      KYSO_API_IMAGE="$DEPLOYMENT_KYSO_API_IMAGE"
     else
-      KYSO_API_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_API_IMAGE" 
+      KYSO_API_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_API_IMAGE"
     fi
   fi
   export KYSO_API_IMAGE
   if [ "$DEPLOYMENT_KYSO_API_MAX_BODY_SIZE" ]; then
-    KYSO_API_MAX_BODY_SIZE="$DEPLOYMENT_KYSO_API_MAX_BODY_SIZE" 
+    KYSO_API_MAX_BODY_SIZE="$DEPLOYMENT_KYSO_API_MAX_BODY_SIZE"
   else
-    KYSO_API_MAX_BODY_SIZE="$DEPLOYMENT_DEFAULT_KYSO_API_MAX_BODY_SIZE" 
+    KYSO_API_MAX_BODY_SIZE="$DEPLOYMENT_DEFAULT_KYSO_API_MAX_BODY_SIZE"
   fi
   export KYSO_API_MAX_BODY_SIZE
   if [ "$DEPLOYMENT_KYSO_API_REPLICAS" ]; then
-    KYSO_API_REPLICAS="$DEPLOYMENT_KYSO_API_REPLICAS" 
+    KYSO_API_REPLICAS="$DEPLOYMENT_KYSO_API_REPLICAS"
   else
-    KYSO_API_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_API_REPLICAS" 
+    KYSO_API_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_API_REPLICAS"
   fi
   export KYSO_API_REPLICAS
   if [ "$DEPLOYMENT_KYSO_API_DOCS_INGRESS" ]; then
-    KYSO_API_DOCS_INGRESS="$DEPLOYMENT_KYSO_API_DOCS_INGRESS" 
+    KYSO_API_DOCS_INGRESS="$DEPLOYMENT_KYSO_API_DOCS_INGRESS"
   else
-    KYSO_API_DOCS_INGRESS="$DEPLOYMENT_DEFAULT_KYSO_API_DOCS_INGRESS" 
+    KYSO_API_DOCS_INGRESS="$DEPLOYMENT_DEFAULT_KYSO_API_DOCS_INGRESS"
   fi
   export KYSO_API_DOCS_INGRESS
   if [ "$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA" ]; then
-    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA" 
+    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA"
   else
-    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_TEST_DATA" 
+    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_TEST_DATA"
   fi
   export KYSO_API_POPULATE_TEST_DATA
   if [ "$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX" ]; then
-    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX" 
+    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX"
   else
-    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX" 
+    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX"
   fi
   export KYSO_API_POPULATE_MAIL_PREFIX
   __apps_kyso_api_export_variables="1"
@@ -414,21 +414,43 @@ apps_kyso_api_summary() {
   deployment_summary "$_ns" "$_app"
 }
 
+apps_kyso_api_uris() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _hostname="${DEPLOYMENT_HOSTNAMES%% *}"
+  echo "https://$_hostname/api/"
+  if is_selected "$KYSO_API_DOCS_INGRESS"; then
+    if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+      is_selected "$KYSO_API_DOCS_INGRESS" &&
+      [ -f "$KYSO_API_AUTH_FILE" ]; then
+      _uap="$(file_to_stdout "$KYSO_API_AUTH_FILE")"
+      echo "https://$_uap@$_hostname/api/docs/"
+    else
+      echo "https://$_hostname/api/docs/"
+    fi
+  fi
+}
+
 apps_kyso_api_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-    install) apps_kyso_api_install "$_deployment" "$_cluster";;
-    remove) apps_kyso_api_remove "$_deployment" "$_cluster";;
-    status) apps_kyso_api_status "$_deployment" "$_cluster";;
-    summary) apps_kyso_api_summary "$_deployment" "$_cluster";;
-    *) echo "Unknown kyso-api subcommand '$1'"; exit 1 ;;
+  install) apps_kyso_api_install "$_deployment" "$_cluster" ;;
+  remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
+  status) apps_kyso_api_status "$_deployment" "$_cluster" ;;
+  summary) apps_kyso_api_summary "$_deployment" "$_cluster" ;;
+  uris) apps_kyso_api_uris "$_deployment" "$_cluster" ;;
+  *)
+    echo "Unknown kyso-api subcommand '$1'"
+    exit 1
+    ;;
   esac
 }
 
 apps_kyso_api_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----

@@ -216,18 +216,31 @@ addon_dashboard_summary() {
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
+addon_dashboard_uris() {
+  addon_dashboard_export_variables
+  _hostname="dashboard.$CLUSTER_DOMAIN"
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+    [ -f "$DASHBOARD_AUTH_FILE" ]; then
+    _uap="$(file_to_stdout "$DASHBOARD_AUTH_FILE")"
+    echo "https://$_uap@$_hostname/"
+  else
+    echo "https://$_hostname/"
+  fi
+}
+
 addon_dashboard_command() {
   case "$1" in
     install) addon_dashboard_install ;;
     remove) addon_dashboard_remove ;;
     status) addon_dashboard_status ;;
     summary) addon_dashboard_summary ;;
+    uris) addon_dashboard_uris ;;
     *) echo "Unknown dashboard subcommand '$1'"; exit 1 ;;
   esac
 }
 
 addon_dashboard_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----

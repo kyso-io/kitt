@@ -46,7 +46,7 @@ create_htpasswd_secret_yaml() {
     _pass=""
   fi
   if [ -z "$_pass" ]; then
-    _pass="$(openssl rand -base64 12)"
+    _pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
     : >"$_auth_file"
     chmod 0600 "$_auth_file"
     echo "$_auth_user:$_pass" | stdout_to_file "$_auth_file"

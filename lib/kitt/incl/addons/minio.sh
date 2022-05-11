@@ -58,7 +58,7 @@ addon_minio_export_variables() {
   export MINIO_HELM_VALUES_YAML="$MINIO_HELM_DIR/values.yaml"
   export MINIO_INGRESS_YAML="$MINIO_KUBECTL_DIR/ingress.yaml"
   _auth_file="$MINIO_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
-  export MINIO_AUTH_FILE="_auth_file"
+  export MINIO_AUTH_FILE="$_auth_file"
   _auth_yaml="$MINIO_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export MINIO_AUTH_YAML="$_auth_yaml"
   export MINIO_PV_YAML="$MINIO_KUBECTL_DIR/pv.yaml"
@@ -237,6 +237,17 @@ addon_minio_summary() {
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
+addon_dashboard_uris() {
+  addon_dashboard_export_variables
+  _hostname="dashboard.$CLUSTER_DOMAIN"
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+    [ -f "$DASHBOARD_AUTH_FILE" ]; then
+    _uap="$(file_to_stdout "$DASHBOARD_AUTH_FILE")"
+    echo "https://$_uap@$_hostname/"
+  else
+    echo "https://$_hostname/"
+  fi
+}
 addon_minio_command() {
   case "$1" in
     install) addon_minio_install ;;

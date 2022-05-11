@@ -129,6 +129,14 @@ addon_prometheus_install() {
   for _yaml in "$_auth_yaml" "$_ingress_yaml"; do
     kubectl_apply "$_yaml"
   done
+  # Wait for installation to complete
+  kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
+    -n "$_ns" "$_release-grafana"
+  # Save grafana admin password
+  kubectl get secret -n "$_ns" "$_release-grafana" \
+    -o jsonpath="{.data.admin-password}" |
+    base64 --decode |
+    stdout_to_file "$GRAFANA_ADMIN_PASS"
   footer
 }
 
@@ -184,18 +192,39 @@ addon_prometheus_summary() {
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
+addon_prometheus_uris() {
+  addon_prometheus_export_variables
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+    [ -f "$PROMETHEUS_AUTH_FILE" ]; then
+    _uap="$(file_to_stdout "$PROMETHEUS_AUTH_FILE")"
+  else
+    _uap=""
+  fi
+  for _hostname in "grafana" "prometheus" "prometheus-alertmanager"; do
+    if [ "$_uap" ]; then
+      echo "https://$_uap@$_hostname.$CLUSTER_DOMAIN/"
+    else
+      echo "https://$_hostname.$CLUSTER_DOMAIN/"
+    fi
+  done
+  if [ -f "$GRAFANA_ADMIN_PASS" ]; then
+    echo "Grafana login: 'admin/$(file_to_stdout "$GRAFANA_ADMIN_PASS")'"
+  fi
+}
+
 addon_prometheus_command() {
   case "$1" in
     install) addon_prometheus_install ;;
     remove) addon_prometheus_remove ;;
     status) addon_prometheus_status ;;
     summary) addon_prometheus_summary ;;
+    uris) addon_prometheus_uris ;;
     *) echo "Unknown prometheus subcommand '$1'"; exit 1 ;;
   esac
 }
 
 addon_prometheus_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----

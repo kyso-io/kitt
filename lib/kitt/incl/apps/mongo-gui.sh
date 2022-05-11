@@ -66,7 +66,7 @@ apps_mongo_gui_export_variables() {
   export MONGO_GUI_SVC_YAML="$MONGO_GUI_KUBECTL_DIR/service.yaml"
   export MONGO_GUI_INGRESS_YAML="$MONGO_GUI_KUBECTL_DIR/ingress.yaml"
   _auth_file="$MONGO_GUI_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
-  export MONGO_GUI_AUTH_FILE="_auth_file"
+  export MONGO_GUI_AUTH_FILE="$_auth_file"
   _auth_yaml="$MONGO_GUI_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export MONGO_GUI_AUTH_YAML="$_auth_yaml"
   # Use defaults for variables missing from config files
@@ -254,6 +254,20 @@ apps_mongo_gui_summary() {
   deployment_summary "$_ns" "$_app"
 }
 
+apps_mongo_gui_uris() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _hostname="${DEPLOYMENT_HOSTNAMES%% *}"
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+    [ -f "$MONGO_GUI_AUTH_FILE" ]; then
+    _uap="$(file_to_stdout "$MONGO_GUI_AUTH_FILE")"
+    echo "https://$_uap@$_hostname/mongo-gui/"
+  else
+    echo "https://$_hostname/mongo-gui/"
+  fi
+}
+
 apps_mongo_gui_command() {
   _command="$1"
   _deployment="$2"
@@ -263,12 +277,13 @@ apps_mongo_gui_command() {
     remove) apps_mongo_gui_remove "$_deployment" "$_cluster";;
     status) apps_mongo_gui_status "$_deployment" "$_cluster";;
     summary) apps_mongo_gui_summary "$_deployment" "$_cluster";;
+    uris) apps_mongo_gui_uris "$_deployment" "$_cluster";;
     *) echo "Unknown mongo-gui subcommand '$1'"; exit 1 ;;
   esac
 }
 
 apps_mongo_gui_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----
