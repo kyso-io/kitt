@@ -23,7 +23,7 @@ _image="registry.kyso.io/docker/mongo-gui:latest"
 export DEPLOYMENT_DEFAULT_MONGO_GUI_IMAGE="$_image"
 
 # Fixed values
-export MONGO_GUI_BASIC_AUTH="basic-auth"
+export MONGO_GUI_BASIC_AUTH_NAME="basic-auth"
 export MONGO_GUI_BASIC_AUTH_USER="mongo-admin"
 
 # --------

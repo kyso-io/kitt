@@ -29,7 +29,7 @@ export DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX="lo"
 
 # Fixed values
 export KYSO_API_PORT="4000"
-export KYSO_API_BASIC_AUTH="basic-auth"
+export KYSO_API_BASIC_AUTH_NAME="basic-auth"
 export KYSO_API_BASIC_AUTH_USER="apidoc"
 
 # --------
