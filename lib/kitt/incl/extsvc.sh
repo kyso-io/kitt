@@ -133,8 +133,7 @@ EOF
 }
 
 extsvc_check_directories() {
-  _cluster="$1"
-  cluster_check_directories "$_cluster"
+  cluster_check_directories
   for _d in "$CLUST_EXTSVC_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_SECRETS_DIR" \
     "$EXTSVC_BASE_KUBECTL_DIR" "$EXTSVC_BASE_SECRETS_DIR" "$EXTSVC_CONFIG_DIR" \
     "$EXTSVC_KUBECTL_DIR" "$EXTSVC_SECRETS_DIR"; do
@@ -272,7 +271,7 @@ extsvc_config() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-        extsvc_check_directories "$_cluster"
+        extsvc_check_directories
         extsvc_print_config_variables | stdout_to_file "$EXTSVC_CONFIG"
       footer
       echo "Configuration saved to '$EXTSVC_CONFIG'"
@@ -345,7 +344,7 @@ extsvc_install() {
     exit 1
   fi
   # Check directories
-  extsvc_check_directories "$_cluster"
+  extsvc_check_directories
   # Install
   header "Installing external service '$_extsvc'"
   # Check if the namespace exists
@@ -406,7 +405,7 @@ extsvc_remove() {
   _extsvc="$1"
   _cluster="$2"
   extsvc_export_variables "$_extsvc" "$_cluster"
-  extsvc_check_directories "$_cluster"
+  extsvc_check_directories
   _ns="$EXTSVC_NAMESPACE"
   _auth_yaml="$EXTSVC_AUTH_YAML"
   _cert_yaml="$EXTSVC_CERT_YAML"

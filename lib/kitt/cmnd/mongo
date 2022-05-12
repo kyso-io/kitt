@@ -32,12 +32,13 @@ fi
 
 # Usage function
 usage() {
+  _kit="$APP_BASE_NAME"
   cat <<EOF
 Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") SUBCOMMAND {USER|FILE} [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kit $(basename "$0") SUBCOMMAND {USER|FILE} [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
 Where SUBCOMMAND is one of:
 

@@ -97,7 +97,7 @@ KITT (Kyso Internal Tool of Tools).
 
 Usage:
 
-  $0 [--debug] COMMAND {ARGS}
+  $APP_BASE_NAME [--debug] COMMAND {ARGS}
 
 Where COMMAND can be one of:
 
@@ -111,6 +111,12 @@ EOF
 # ----
 # MAIN
 # ----
+
+export APP_CALL_PATH="$0"
+APP_BASE_NAME="$(basename "$APP_CALL_PATH")"
+export APP_BASE_NAME
+APP_REAL_PATH="$(readlinkf_posix "$APP_CALL_PATH")"
+export APP_REAL_PATH
 
 # Check that the required directories exist & export their paths
 setup_app_dirs
@@ -134,7 +140,7 @@ fi
 # Run command
 CMND="$CMND_DIR/$1"
 if [ -f "$CMND" ] && [ -x "$CMND" ]; then
-  shift
+  shift 1
   $EXEC_CMND "$CMND" "$@"
 else
   usage 0

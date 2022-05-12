@@ -42,12 +42,13 @@ usage_ctool_dsc() {
 
 # Usage function
 usage() {
+  _kitt="$APP_BASE_NAME"
   cat <<EOF
 Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") {ls|tree [LEVEL]|TOOL SUBCOMMAND} [CLUSTER_NAME]
+  $_kitt $(basename "$0") {ls|tree [LEVEL]|TOOL SUBCOMMAND} [CLUSTER_NAME]
 
 Where:
 
@@ -73,7 +74,7 @@ Subcommand to ${_dsc# *: }.
 
 Usage:
 
-  kitt $(basename "$0") $_ctool SUBCOMMAND [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") $_ctool SUBCOMMAND [CLUSTER_NAME]
 
 Where SUBCOMMAND is one of:
 

@@ -41,8 +41,7 @@ ctool_ext_export_variables() {
 }
 
 ctool_ext_check_directories() {
-  _cluster="$1"
-  cluster_check_directories "$_cluster"
+  cluster_check_directories
 }
 
 ctool_ext_read_variables() {

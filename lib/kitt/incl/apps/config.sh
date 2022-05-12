@@ -133,7 +133,7 @@ apps_update_variables() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_check_directories "$_deployment" "$_cluster"
+      apps_check_directories
       apps_print_variables "$_deployment" "$_cluster" |
         stdout_to_file "$DEPLOYMENT_CONFIG"
       footer

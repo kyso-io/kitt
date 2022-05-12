@@ -37,7 +37,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") edit|show|update
+  $APP_BASE_NAME $(basename "$0") edit|show|update
 
 The values adjusted here are defaults for all kitt clusters.
 EOF

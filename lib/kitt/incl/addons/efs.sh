@@ -88,7 +88,7 @@ addon_efs_createfs() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      ctool_eks_check_directories "$_cluster"
+      ctool_eks_check_directories
       ctool_eks_print_variables | stdout_to_file "$CLUSTER_CONFIG"
     fi
   fi

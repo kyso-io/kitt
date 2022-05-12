@@ -37,7 +37,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") COMMAND SERVICE_NAME [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") COMMAND SERVICE_NAME [CLUSTER_NAME]
 
 Where COMMAND can be:
 

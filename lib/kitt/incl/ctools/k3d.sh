@@ -98,8 +98,6 @@ ctool_k3d_export_variables() {
 }
 
 ctool_k3d_check_directories() {
-  _cluster="$1"
-  ctool_k3d_export_variables "$_cluster"
   cluster_check_directories
   for _d in $CLUST_K3D_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
@@ -228,7 +226,7 @@ ctool_k3d_install() {
   # Remove old cluster?
   ctool_k3d_remove_cluster "$_cluster"
   # Check directories (the remove command can remove them)
-  ctool_k3d_check_directories "$_cluster"
+  ctool_k3d_check_directories
   # Compute K3D_OPTS
   K3D_OPTS=""
   # Use local registry?

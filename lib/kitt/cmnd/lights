@@ -31,7 +31,7 @@ play_sound() {
 
 stop_sound() {
   if [ "$_sound_pid" ]; then
-    kill -9 "$_sound_pid" 2>/dev/null || true
+  $APP_BASE_NAME -9 "$_sound_pid" 2>/dev/null || true
   fi
 }
 
@@ -83,7 +83,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") LOOPS
+  $APP_BASE_NAME $(basename "$0") LOOPS
 
 Idea taken from https://codegolf.stackexchange.com/questions/95517/.
 EOF

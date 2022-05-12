@@ -64,7 +64,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") TOOL SUBCOMMAND [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") TOOL SUBCOMMAND [CLUSTER_NAME]
 
 Where TOOL can be:
 
@@ -97,7 +97,7 @@ Subcommand to manage '$_addon' on a kubernetes cluster.
 
 Usage:
 
-  kitt $(basename "$0") $_addon SUBCOMMAND [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") $_addon SUBCOMMAND [CLUSTER_NAME]
 
 Where SUBCOMMAND is one of:
 
@@ -115,7 +115,7 @@ Subcommand to manage the '$_addon_set' addon set on a kubernetes cluster.
 
 Usage:
 
-  kitt $(basename "$0") $_addon_set SUBCOMMAND [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") $_addon_set SUBCOMMAND [CLUSTER_NAME]
 
 The addons included are:
 

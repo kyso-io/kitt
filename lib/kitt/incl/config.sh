@@ -12,18 +12,6 @@ set -e
 # shellcheck disable=SC2034
 INCL_CONFIG_SH="1"
 
-# --------
-# Includes
-# --------
-
-if [ -d "$INCL_DIR" ]; then
-  # shellcheck source=./common.sh
-  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
-else
-  echo "This file has to be sourced using kitt.sh"
-  exit 1
-fi
-
 # ---------
 # Variables
 # ---------
@@ -69,6 +57,18 @@ export APP_DEFAULT_CLUSTER_USE_BASIC_AUTH
 
 [ "$APP_DEFAULT_CLUSTER_USE_SOPS" ] || APP_DEFAULT_CLUSTER_USE_SOPS="false"
 export APP_DEFAULT_CLUSTER_USE_SOPS
+
+# --------
+# Includes
+# --------
+
+if [ -d "$INCL_DIR" ]; then
+  # shellcheck source=./common.sh
+  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+else
+  echo "This file has to be sourced using kitt.sh"
+  exit 1
+fi
 
 # ---------
 # Functions

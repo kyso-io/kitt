@@ -42,12 +42,13 @@ usage_app_dsc() {
 
 # Usage function
 usage() {
+  _kitt="$APP_BASE_NAME"
   cat <<EOF
 Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") {all|APP} SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kitt $(basename "$0") {all|APP} SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
 Where APP can be:
 
@@ -66,12 +67,13 @@ EOF
 usage_app() {
   _app="$1"
   _dsc="$(usage_app_dsc "$_app")"
+  _kitt="$APP_BASE_NAME"
   cat <<EOF
 Subcommand to ${_dsc#*: }.
 
 Usage:
 
-  kitt $(basename "$0") $_app SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kitt $(basename "$0") $_app SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
 Where SUBCOMMAND is one of:
 

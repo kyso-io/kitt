@@ -49,10 +49,6 @@ fi
 # Functions
 # ---------
 
-check_ctool_directories() {
-  cluster_check_directories
-}
-
 ctool_command() {
   _ctool="$1"
   _command="$2"

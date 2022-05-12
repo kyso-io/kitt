@@ -68,7 +68,7 @@ ctool_eks_export_variables() {
 }
 
 ctool_eks_check_directories() {
-  cluster_check_directories "$1"
+  cluster_check_directories
   for _d in $CLUST_EKS_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
@@ -153,7 +153,7 @@ ctool_eks_install() {
     header "EKS cluster '${CLUSTER_NAME}' already exist"
     echo "The cluster status is '${cluster_status}'"
   else
-    ctool_eks_check_directories "$_cluster"
+    ctool_eks_check_directories
     header "Creating EKS cluster '${CLUSTER_NAME}'"
     sed \
       -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \

@@ -34,12 +34,13 @@ fi
 
 # Usage function
 usage() {
+  _kitt="$APP_BASE_NAME"
   cat <<EOF
 Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  kitt $(basename "$0") SUBCOMMAND SERVICE [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kitt $(basename "$0") SUBCOMMAND SERVICE [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
 Where SUBCOMMAND is one of:
 

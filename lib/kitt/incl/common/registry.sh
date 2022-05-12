@@ -36,8 +36,7 @@ export_registry_variables() {
 }
 
 check_registry_directories() {
-  _cluster="$1"
-  cluster_check_directories "$_cluster"
+  cluster_check_directories
   for _d in "$CLUST_KUBECTL_DIR" "$CLUST_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done

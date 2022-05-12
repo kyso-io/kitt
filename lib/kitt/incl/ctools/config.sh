@@ -122,15 +122,15 @@ EOF
     if is_selected "${READ_VALUE}"; then
       case "$_ckind" in
       eks)
-        ctool_eks_check_directories "$_cluster"
+        ctool_eks_check_directories
         ctool_eks_print_variables | stdout_to_file "$CLUSTER_CONFIG"
         ;;
       ext)
-        ctool_ext_check_directories "$_cluster"
+        ctool_ext_check_directories
         ctool_ext_print_variables | stdout_to_file "$CLUSTER_CONFIG"
         ;;
       k3d)
-        ctool_k3d_check_directories "$_cluster"
+        ctool_k3d_check_directories
         ctool_k3d_print_variables | stdout_to_file "$CLUSTER_CONFIG"
         ;;
       esac
