@@ -90,7 +90,7 @@ create_basic_auth_yaml() {
     _pass=""
   fi
   if [ -z "$_pass" ]; then
-    _pass="$(openssl rand -base64 12)"
+    _pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
     : >"$_text"
     chmod 0600 "$_text"
     echo "$_user:$_pass" | stdout_to_file "$_text"

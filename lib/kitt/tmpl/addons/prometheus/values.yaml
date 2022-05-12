@@ -1,4 +1,5 @@
 grafana:
+  adminPassword: __ADMIN_PASS__
   additionalDataSources:
   - name: Loki
     type: loki

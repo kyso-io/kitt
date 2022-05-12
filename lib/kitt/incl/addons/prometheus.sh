@@ -52,7 +52,8 @@ addon_prometheus_export_variables() {
   export PROMETHEUS_HELM_VALUES_TMPL="$PROMETHEUS_TMPL_DIR/values.yaml"
   export PROMETHEUS_INGRESS_TMPL="$PROMETHEUS_TMPL_DIR/ingress.yaml"
   # Files
-  export PROMETHEUS_HELM_VALUES_YAML="$PROMETHEUS_HELM_DIR/values.yaml"
+  PROMETHEUS_HELM_VALUES_YAML="$PROMETHEUS_HELM_DIR/values${SOPS_EXT}.yaml"
+  export PROMETHEUS_HELM_VALUES_YAML
   export PROMETHEUS_INGRESS_YAML="$PROMETHEUS_KUBECTL_DIR/ingress.yaml"
   PROMETHEUS_AUTH_FILE="$PROMETHEUS_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
   export PROMETHEUS_AUTH_FILE
@@ -112,7 +113,14 @@ addon_prometheus_install() {
     create_namespace "$_ns"
   fi
   # Values for the chart
-  cp "$_values_tmpl" "$_values_yaml"
+  if [ -f "$GRAFANA_ADMIN_PASS" ]; then
+    _admin_pass="$(file_to_stdout "$GRAFANA_ADMIN_PASS")"
+  else
+    _admin_pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
+  fi
+  sed \
+    -e "s%__ADMIN_PASS__%$_admin_pass%" \
+    "$_values_tmpl" | stdout_to_file "$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
   # Create htpasswd for ingress if needed or remove the yaml if present
@@ -200,16 +208,17 @@ addon_prometheus_uris() {
   else
     _uap=""
   fi
-  for _hostname in "grafana" "prometheus" "prometheus-alertmanager"; do
+  echo "https://grafana.$CLUSTER_DOMAIN/"
+  if [ -f "$GRAFANA_ADMIN_PASS" ]; then
+    echo "Grafana 'admin' pass: '$(file_to_stdout "$GRAFANA_ADMIN_PASS")'"
+  fi
+  for _hostname in "prometheus" "prometheus-alertmanager"; do
     if [ "$_uap" ]; then
       echo "https://$_uap@$_hostname.$CLUSTER_DOMAIN/"
     else
       echo "https://$_hostname.$CLUSTER_DOMAIN/"
     fi
   done
-  if [ -f "$GRAFANA_ADMIN_PASS" ]; then
-    echo "Grafana login: 'admin/$(file_to_stdout "$GRAFANA_ADMIN_PASS")'"
-  fi
 }
 
 addon_prometheus_command() {
