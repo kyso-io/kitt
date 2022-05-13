@@ -392,6 +392,19 @@ apps_kyso_api_remove() {
   apps_kyso_api_clean_directories
 }
 
+apps_kyso_api_restart() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _app="kyso-api"
+  _ns="$KYSO_API_NAMESPACE"
+  if find_namespace "$_ns"; then
+    deployment_restart "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_kyso_api_status() {
   _deployment="$1"
   _cluster="$2"
@@ -438,6 +451,7 @@ apps_kyso_api_command() {
   _cluster="$3"
   case "$_command" in
   install) apps_kyso_api_install "$_deployment" "$_cluster" ;;
+  restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
   status) apps_kyso_api_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_api_summary "$_deployment" "$_cluster" ;;
@@ -450,7 +464,7 @@ apps_kyso_api_command() {
 }
 
 apps_kyso_api_command_list() {
-  echo "install remove status summary uris"
+  echo "install remove restart status summary uris"
 }
 
 # ----

@@ -232,6 +232,19 @@ apps_mongo_gui_remove() {
   apps_mongo_gui_clean_directories
 }
 
+apps_mongo_gui_restart() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _app="mongo-gui"
+  _ns="$MONGO_GUI_NAMESPACE"
+  if find_namespace "$_ns"; then
+    deployment_restart "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_mongo_gui_status() {
   _deployment="$1"
   _cluster="$2"
@@ -275,6 +288,7 @@ apps_mongo_gui_command() {
   case "$_command" in
     install) apps_mongo_gui_install "$_deployment" "$_cluster";;
     remove) apps_mongo_gui_remove "$_deployment" "$_cluster";;
+    restart) apps_mongo_gui_restart "$_deployment" "$_cluster";;
     status) apps_mongo_gui_status "$_deployment" "$_cluster";;
     summary) apps_mongo_gui_summary "$_deployment" "$_cluster";;
     uris) apps_mongo_gui_uris "$_deployment" "$_cluster";;

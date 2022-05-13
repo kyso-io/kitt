@@ -458,6 +458,19 @@ apps_kyso_scs_remove() {
   apps_kyso_scs_clean_directories
 }
 
+apps_kyso_scs_restart() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _app="kyso-scs"
+  _ns="$KYSO_SCS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    deployment_restart "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_kyso_scs_status() {
   _deployment="$1"
   _cluster="$2"
@@ -486,6 +499,7 @@ apps_kyso_scs_command() {
   _cluster="$3"
   case "$_command" in
   install) apps_kyso_scs_install "$_deployment" "$_cluster" ;;
+  restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
