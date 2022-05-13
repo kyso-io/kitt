@@ -511,7 +511,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "install remove status summary"
+  echo "install remove restart status summary"
 }
 
 # ----

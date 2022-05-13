@@ -297,7 +297,7 @@ apps_mongo_gui_command() {
 }
 
 apps_mongo_gui_command_list() {
-  echo "install remove status summary uris"
+  echo "install remove restart status summary uris"
 }
 
 # ----

@@ -311,7 +311,7 @@ apps_kyso_ui_command() {
 }
 
 apps_kyso_ui_command_list() {
-  echo "install remove status summary uris"
+  echo "install remove restart status summary uris"
 }
 
 # ----
