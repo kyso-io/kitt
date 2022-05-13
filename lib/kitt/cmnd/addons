@@ -1,6 +1,6 @@
 #!/bin/sh
 # ----
-# File:        addon
+# File:        addons
 # Description: Command to manage addons on k8s clusters
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
 # Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
@@ -12,7 +12,7 @@ set -e
 # Variables
 # ---------
 
-CMND_DSC="addon: manage addons on k8s clusters"
+CMND_DSC="addons: manage addons on k8s clusters"
 
 # --------
 # Includes
