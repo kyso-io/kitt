@@ -37,18 +37,7 @@ kubectl_op() {
   ret="0"
   [ -f "$file" ] || return "$ret"
   file_to_stdout "$file" | kubectl "$op" -f - || ret="$?"
-  if [ "$op" = "apply" ]; then
-    if [ "$APP_DEPLOYMENT_ANNOTATIONS_DIR" ]; then
-      fname="$(basename "$file")"
-      afile="$APP_DEPLOYMENT_ANNOTATIONS_DIR/${fname%%.*}"
-      if [ -f "$afile" ]; then
-        sed -ne "/^#/!{p;}" "$afile" | while read -r annotation; do
-          file_to_stdout "$file" |
-            kubectl annotate --overwrite -f - "$annotation" || true
-        done
-      fi
-    fi
-  elif [ "$op" = "delete" ]; then
+  if [ "$op" = "delete" ]; then
     rm -f "$file"
   fi
   return "$ret"

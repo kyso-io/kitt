@@ -126,6 +126,7 @@ create_app_ingress_yaml() {
   else
     basic_auth_sed="/nginx.ingress.kubernetes.io\/auth-/d"
   fi
+  _yaml_annotations="$_yaml.annotations"
   _yaml_hostname_rule="$_yaml.hostname_rule"
   _yaml_hostname_tls="$_yaml.hostname_tls"
   # Generate ingress hostname rules
@@ -135,6 +136,24 @@ create_app_ingress_yaml() {
   for hostname in $DEPLOYMENT_HOSTNAMES; do
     echo "$hostname_rule" | sed -e "s%__HOSTNAME__%$hostname%g"
   done >"$_yaml_hostname_rule"
+  # Annotations
+  _yaml_fname="${_yaml#"$DEPLOY_KUBECTL_DIR/"}"
+  _annotations_file="$DEPLOY_ANNOTATIONS_DIR/${_yaml_fname}"
+  # Backwards compatibility for JnJ, try the filename without extension
+  if [ ! -f "$_annotations_file" ]; then
+    _annotations_file="$DEPLOY_ANNOTATIONS_DIR/${_yaml_fname%%.*}"
+  fi
+  if [ -f "$_annotations_file" ]; then
+    sed -ne "/^#/!{p;}" "$_annotations_file" | while read -r annotation; do
+      _name="${annotation%%=*}"
+      _value="${annotation#*=}"
+      sed -n \
+        -e "/annotations/{n;s/^\([[:space:]]\+\).*$/\1$_name: \"$_value\"/p}" \
+        "$_tmpl" >"$_yaml_annotations"
+    done
+  else
+    : >"$_yaml_annotations"
+  fi
   # Generate ingress TLS rules & certs
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     _cmnd="/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/"
@@ -146,6 +165,7 @@ create_app_ingress_yaml() {
   fi
   # Generate ingress YAML file
   sed \
+    -e "/annotations:/r $_yaml_annotations" \
     -e "/^# END: HOSTNAME_RULE/r $_yaml_hostname_rule" \
     -e "/^# END: HOSTNAME_TLS/r $_yaml_hostname_tls" \
     -e "/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/d" \
@@ -158,7 +178,7 @@ create_app_ingress_yaml() {
       -e "s%__MAX_BODY_SIZE__%$_max_body_size%g" \
       -e "s%__FORCE_SSL_REDIRECT__%$CLUSTER_FORCE_SSL_REDIRECT%g" \
       >"$_yaml"
-  rm -f "$_yaml_hostname_rule" "$_yaml_hostname_tls"
+  rm -f "$_yaml_annotations" "$_yaml_hostname_rule" "$_yaml_hostname_tls"
 }
 
 # ----
