@@ -242,7 +242,7 @@ ctool_eks_command() {
 }
 
 ctool_eks_command_list() {
-  echo "config install remove scale status"
+  echo "install remove scale status"
 }
 
 # ----
