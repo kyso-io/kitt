@@ -42,14 +42,30 @@ tools_install_app() {
   _type="$(type "$_app" 2>/dev/null)" && found="true" || found="false"
   if [ "$found" = "true" ]; then
     echo "$_app found ($_type)."
-    MSG="Re-install in /usr/local/bin? ${yes_no}"
-    OPT="No"
+    MSG="Re-install in /usr/local/bin?"
+    OPT="false"
   else
     echo "$_app could not be found."
-    MSG="Install it in /usr/local/bin? ${yes_no}"
-    OPT="Yes"
+    MSG="Install it in /usr/local/bin?"
+    OPT="true"
   fi
-  read_value "$MSG" "$OPT"
+  read_bool "$MSG" "$OPT"
+  is_selected "${READ_VALUE}" && return 0 || return 1
+}
+
+tools_install_pkg() {
+  _app="$1"
+  _type="$(type "$_app" 2>/dev/null)" && found="true" || found="false"
+  if [ "$found" = "true" ]; then
+    echo "$_app found ($_type)."
+    MSG="Re-install using apt?"
+    OPT="false"
+  else
+    echo "$_app could not be found."
+    MSG="Install it using apt?"
+    OPT="true"
+  fi
+  read_bool "$MSG" "$OPT"
   is_selected "${READ_VALUE}" && return 0 || return 1
 }
 
@@ -118,18 +134,9 @@ tools_check_helm() {
   fi
 }
 
-tools_check_k3d() {
-  if tools_install_app "k3d"; then
-    [ -d /usr/local/bin ] || sudo mkdir /usr/local/bin
-    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh |
-      bash
-    k3d version
-    if [ -d "$BASH_COMPLETION" ]; then
-      sudo sh -c "k3d completion bash > $BASH_COMPLETION/k3d"
-    fi
-    if [ -d "$ZSH_COMPLETIONS" ]; then
-      sudo sh -c "k3d completion zsh > $ZSH_COMPLETIONS/_k3d"
-    fi
+tools_check_inotifywait() {
+  if tools_install_pkg "inotifywait"; then
+    sudo apt update && sudo apt install inotify-tools && sudo apt clean
   fi
 }
 
@@ -150,6 +157,48 @@ tools_check_jq() {
     sudo install "$tmp_dir/jq" /usr/local/bin/
     rm -rf "$tmp_dir"
     jq --version
+  fi
+}
+
+tools_check_json2file() {
+  if tools_install_pkg "json2file-go"; then
+    sudo apt update && sudo apt install json2file-go && sudo apt clean
+  fi
+}
+
+tools_check_jq() {
+  if tools_install_app "jq"; then
+    repo_path="stedolan/jq"
+    case "$(uname)" in
+      Linux) os_arch="linux64" ;;
+      Darwin) os_arch="osx-amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+      sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    tmp_dir="$(mktemp -d)"
+    curl -sL "$download_url" -o "$tmp_dir/jq"
+    sudo install "$tmp_dir/jq" /usr/local/bin/
+    rm -rf "$tmp_dir"
+    jq --version
+  fi
+}
+
+
+tools_check_k3d() {
+  if tools_install_app "k3d"; then
+    [ -d /usr/local/bin ] || sudo mkdir /usr/local/bin
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh |
+      bash
+    k3d version
+    if [ -d "$BASH_COMPLETION" ]; then
+      sudo sh -c "k3d completion bash > $BASH_COMPLETION/k3d"
+    fi
+    if [ -d "$ZSH_COMPLETIONS" ]; then
+      sudo sh -c "k3d completion zsh > $ZSH_COMPLETIONS/_k3d"
+    fi
   fi
 }
 
@@ -209,6 +258,12 @@ tools_check_kubectx() {
   fi
 }
 
+tools_check_mkcert() {
+  if tools_install_pkg "mkcert"; then
+    sudo apt update && sudo apt install mkcert && sudo apt clean
+  fi
+}
+
 tools_check_sops() {
   if tools_install_app "sops"; then
     repo_path="mozilla/sops"
@@ -228,6 +283,18 @@ tools_check_sops() {
     cd "$orig_pwd"
     rm -rf "$tmp_dir"
     sops --version
+  fi
+}
+
+tools_check_tsp() {
+  if tools_install_pkg "tsp"; then
+    sudo apt update && sudo apt install task-spooler && sudo apt clean
+  fi
+}
+
+tools_check_uuid() {
+  if tools_install_pkg "uuid"; then
+    sudo apt update && sudo apt install uuid && sudo apt clean
   fi
 }
 
@@ -270,19 +337,28 @@ tools_check() {
     docker) tools_check_docker ;;
     eksctl) tools_check_eksctl ;;
     helm) tools_check_helm ;;
+    inotifywait) tools_check_inotifywait ;;
     jq) tools_check_jq ;;
+    json2file|json2file-go) tools_check_json2file ;;
     k3d) tools_check_k3d ;;
     kubectl) tools_check_kubectl ;;
     kubectx) tools_check_kubectx ;;
+    mkcert) tools_check_mkcert ;;
     sops) tools_check_sops ;;
+    tsp) tools_check_tsp ;;
+    uuid) tools_check_uuid ;;
     velero) tools_check_velero ;;
     *) echo "Unknown application '$_app'" ;;
     esac
   done
 }
 
-tools_list() {
+tools_apps_list() {
   echo "aws docker eksctl helm jq k3d kubectl kubectx sops velero"
+}
+
+tools_pkgs_list() {
+  echo "inotifywait json2file mkcert tsp uuid"
 }
 
 # ----

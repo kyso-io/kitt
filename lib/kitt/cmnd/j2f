@@ -1,0 +1,101 @@
+#!/bin/sh
+# ----
+# File:        j2f
+# Description: Command to manage deployments with json2file & gitlab webhooks
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="j2f: manage app deployments with json2file & gitlab webhooks"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/tools.sh
+  [ "$INCL_J2F_SH" = "1" ] || . "$INCL_DIR/j2f.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+usage_cmnd_dsc() {
+  _cmnd="$1"
+  if [ -f "$INCL_DIR/j2f/$_cmnd.sh" ]; then
+    sed -ne "s/^\( *#.*\|\)CMND_DSC=\"\(.*\)\".*/\2/p" \
+      "$INCL_DIR/j2f/$_cmnd.sh"
+  else
+    echo "$_cmnd"
+  fi
+}
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $APP_BASE_NAME $(basename "$0") SUBCOMMAND ARGS
+
+Where SUBCOMMAND can be:
+
+$(for _c in $(j2f_command_list); do echo "- $(usage_cmnd_dsc "$_c")"; done)
+
+The valid ARGS for each SUBCOMMAND are listed passing only the SUBCOMMAND.
+EOF
+  exit "$1"
+}
+
+usage_cmnd() {
+  _cmnd="$1"
+  _dsc="$(usage_cmnd_dsc "$_cmnd")"
+  cat <<EOF
+Subcommand to ${_dsc#*: }.
+
+Usage:
+
+  $APP_BASE_NAME $(basename "$0") $_cmnd ARGS
+
+Where ARGS can be:
+
+$(for _a in $(j2f_command_args "$_cmnd"); do echo "- $_a"; done)
+EOF
+  exit "$2"
+}
+
+# ----
+# MAIN
+# ----
+_command=""
+for _c in $(j2f_command_list); do
+  if [ "$1" = "$_c" ]; then
+    _command="$1"
+    break
+  fi
+done
+
+if [ "$_command" ]; then
+  shift 1
+  if [ "$#" -eq "0" ]; then
+    usage_cmnd "$_command" "0"
+  else
+    j2f_command "$_command" "$@"
+  fi
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

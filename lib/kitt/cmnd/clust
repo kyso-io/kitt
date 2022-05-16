@@ -48,11 +48,12 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $_kitt $(basename "$0") {ls|tree [LEVEL]|TOOL SUBCOMMAND} [CLUSTER_NAME]
+  $_kitt $(basename "$0") {ls|lsd|tree [LEVEL]|TOOL SUBCOMMAND} [CLUSTER_NAME]
 
 Where:
 
 - ls: prints the list of existing clusters
+- lsd: prints the list of deployments on the given cluster
 - tree: shows the cluster configuration files down to LEVEL (3 by default)
 
 And TOOL can be:
@@ -114,6 +115,12 @@ case "$1" in
 ls | list)
   ls "${CLUSTERS_DIR}"
   exit 0
+  ;;
+lsd)
+  if [ -d "${CLUSTERS_DIR}/$CLUSTER_NAME/deployments" ]; then
+    ls "${CLUSTERS_DIR}/$CLUSTER_NAME/deployments"
+    exit 0
+  fi
   ;;
 tree)
   case "$2" in
