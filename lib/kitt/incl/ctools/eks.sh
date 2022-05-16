@@ -23,7 +23,9 @@ export APP_DEFAULT_CLUSTER_REGION="eu-north-1"
 export APP_DEFAULT_CLUSTER_EKS_NODEGROUP="ng01"
 export APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE="m5.large"
 export APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE="80"
-export APP_DEFAULT_CLUSTER_EKS_WORKERS="3"
+export APP_DEFAULT_CLUSTER_EKS_MIN_WORKERS="1"
+export APP_DEFAULT_CLUSTER_EKS_MAX_WORKERS="9"
+export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS="3"
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
 export APP_DEFAULT_CLUSTER_EKS_VERSION="1.22"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
@@ -63,8 +65,14 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_EKS_VOLUME_SIZE" ] ||
     CLUSTER_EKS_VOLUME_SIZE="${APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE}"
   export CLUSTER_EKS_VOLUME_SIZE
+  [ "$CLUSTER_MAX_WORKERS" ] ||
+    CLUSTER_MAX_WORKERS="${APP_DEFAULT_CLUSTER_EKS_MAX_WORKERS}"
+  export CLUSTER_MAX_WORKERS
+  [ "$CLUSTER_MIN_WORKERS" ] ||
+    CLUSTER_MIN_WORKERS="${APP_DEFAULT_CLUSTER_EKS_MIN_WORKERS}"
+  export CLUSTER_MIN_WORKERS
   [ "$CLUSTER_NUM_WORKERS" ] ||
-    CLUSTER_NUM_WORKERS="${APP_DEFAULT_CLUSTER_EKS_WORKERS}"
+    CLUSTER_NUM_WORKERS="${APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS}"
   export CLUSTER_NUM_WORKERS
   [ "$CLUSTER_EFS_FILESYSTEMID" ] ||
     CLUSTER_EFS_FILESYSTEMID="${APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID}"
@@ -99,7 +107,13 @@ ctool_eks_read_variables() {
   CLUSTER_EKS_INSTANCE_TYPE=${READ_VALUE}
   read_value "Cluster EKS Volume Size" "${CLUSTER_EKS_VOLUME_SIZE}"
   CLUSTER_EKS_VOLUME_SIZE=${READ_VALUE}
-  read_value "Cluster Workers" "${CLUSTER_NUM_WORKERS}"
+  read_value "Cluster Min Workers" "${CLUSTER_MIN_WORKERS}"
+  CLUSTER_MIN_WORKERS=${READ_VALUE}
+  read_value "Cluster Max Workers" "${CLUSTER_MAX_WORKERS}"
+  CLUSTER_MAX_WORKERS=${READ_VALUE}
+  read_value \
+    "Cluster Workers (between $CLUSTER_MIN_WORKERS & $CLUSTER_MAX_WORKERS)" \
+    "${CLUSTER_NUM_WORKERS}"
   CLUSTER_NUM_WORKERS=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
   CLUSTER_EFS_FILESYSTEMID=${READ_VALUE}
@@ -136,6 +150,10 @@ EKS_NODEGROUP=$CLUSTER_EKS_NODEGROUP
 EKS_INSTANCE_TYPE=$CLUSTER_EKS_INSTANCE_TYPE
 # EKS Nodes Volume Size
 EKS_VOLUME_SIZE=$CLUSTER_EKS_VOLUME_SIZE
+# Minimum Number of ECS nodes to launch as workers
+MIN_WORKERS=$CLUSTER_MIN_WORKERS
+# Maximum Number of ECS nodes to launch as workers
+MAX_WORKERS=$CLUSTER_MAX_WORKERS
 # Number of ECS nodes to launch as workers
 NUM_WORKERS=$CLUSTER_NUM_WORKERS
 # EFS filesystem to use for dynamic volumes
@@ -187,6 +205,8 @@ ctool_eks_install() {
       -e "s%__CLUSTER_EKS_INSTANCE_TYPE__%$CLUSTER_EKS_INSTANCE_TYPE%g" \
       -e "s%__CLUSTER_EKS_VOLUME_SIZE__%$CLUSTER_EKS_VOLUME_SIZE%g" \
       -e "s%__CLUSTER_NUM_WORKERS__%$CLUSTER_NUM_WORKERS%g" \
+      -e "s%__CLUSTER_MAX_WORKERS__%$CLUSTER_MAX_WORKERS%g" \
+      -e "s%__CLUSTER_MIN_WORKERS__%$CLUSTER_MIN_WORKERS%g" \
       "$EKS_CONFIG_TMPL" >"$EKS_CONFIG_YAML"
     eksctl create cluster --config-file="$EKS_CONFIG_YAML"
   fi
@@ -220,8 +240,10 @@ ctool_eks_remove() {
 
 ctool_eks_scale() {
   _cluster="$1"
-  eksctl scale nodegroup --cluster="$_cluster" --nodes="$CLUSTER_NUM_WORKERS" \
-    --name="$CLUSTER_EKS_NODEGROUP"
+  ctool_eks_export_variables "$_cluster"
+  eksctl scale nodegroup --cluster="$CLUSTER_NAME" \
+    --name="$CLUSTER_EKS_NODEGROUP" --nodes-min="$CLUSTER_MIN_WORKERS" \
+    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_NUM_WORKERS"
 }
 
 ctool_eks_status() {

@@ -11,6 +11,8 @@ nodeGroups:
   instanceType: __CLUSTER_EKS_INSTANCE_TYPE__
   volumeSize: __CLUSTER_EKS_VOLUME_SIZE__
   desiredCapacity: __CLUSTER_NUM_WORKERS__
+  maxSize: __CLUSTER_MAX_WORKERS__
+  minSize: __CLUSTER_MIN_WORKERS__
   ssh:
     allow: true
   iam:
