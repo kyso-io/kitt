@@ -128,6 +128,15 @@ KYSO_UI_REPLICAS=$KYSO_UI_REPLICAS
 EOF
 }
 
+apps_kyso_ui_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_ui_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_UI_NAMESPACE"
+  _label="app=kyso-ui"
+  kubectl -n "$_ns" logs -l "$_label" -f
+}
+
 apps_kyso_ui_install() {
   _deployment="$1"
   _cluster="$2"
@@ -300,6 +309,7 @@ apps_kyso_ui_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+    logs) apps_kyso_ui_logs "$_deployment" "$_cluster";;
     install) apps_kyso_ui_install "$_deployment" "$_cluster";;
     restart) apps_kyso_ui_restart "$_deployment" "$_cluster";;
     remove) apps_kyso_ui_remove "$_deployment" "$_cluster";;
@@ -311,7 +321,7 @@ apps_kyso_ui_command() {
 }
 
 apps_kyso_ui_command_list() {
-  echo "install remove restart status summary uris"
+  echo "logs install remove restart status summary uris"
 }
 
 # ----

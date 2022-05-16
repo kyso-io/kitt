@@ -199,6 +199,15 @@ ELASTICSEARCH_PF_PORT=$ELASTICSEARCH_PF_PORT
 EOF
 }
 
+apps_elasticsearch_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _label="app=elasticsearch-master"
+  kubectl -n "$_ns" logs -l "$_label" -f
+}
+
 apps_elasticsearch_install() {
   _deployment="$1"
   _cluster="$2"
@@ -341,6 +350,7 @@ apps_elasticsearch_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+    logs) apps_elasticsearch_logs "$_deployment" "$_cluster";;
     install) apps_elasticsearch_install "$_deployment" "$_cluster";;
     remove) apps_elasticsearch_remove "$_deployment" "$_cluster";;
     status) apps_elasticsearch_status "$_deployment" "$_cluster";;
@@ -350,7 +360,7 @@ apps_elasticsearch_command() {
 }
 
 apps_elasticsearch_command_list() {
-  echo "install remove status summary"
+  echo "logs install remove status summary"
 }
 
 # ----

@@ -201,6 +201,15 @@ KYSO_API_POPULATE_MAIL_PREFIX=$KYSO_API_POPULATE_MAIL_PREFIX
 EOF
 }
 
+apps_kyso_api_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_API_NAMESPACE"
+  _label="app=kyso-api"
+  kubectl -n "$_ns" logs -l "$_label" -f
+}
+
 apps_kyso_api_install() {
   _deployment="$1"
   _cluster="$2"
@@ -450,6 +459,7 @@ apps_kyso_api_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  logs) apps_kyso_api_logs "$_deployment" "$_cluster" ;;
   install) apps_kyso_api_install "$_deployment" "$_cluster" ;;
   restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
@@ -464,7 +474,7 @@ apps_kyso_api_command() {
 }
 
 apps_kyso_api_command_list() {
-  echo "install remove restart status summary uris"
+  echo "logs install remove restart status summary uris"
 }
 
 # ----

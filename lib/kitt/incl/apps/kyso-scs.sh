@@ -295,6 +295,16 @@ KYSO_SCS_MYSSH_PF_PORT=$KYSO_SCS_MYSSH_PF_PORT
 EOF
 }
 
+apps_kyso_scs_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _label="app=kyso-scs"
+  _container="kyso-indexer"
+  kubectl -n "$_ns" logs -l "$_label" -c "$_container" -f
+}
+
 apps_kyso_scs_install() {
   _deployment="$1"
   _cluster="$2"
@@ -498,6 +508,7 @@ apps_kyso_scs_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  logs) apps_kyso_scs_logs "$_deployment" "$_cluster" ;;
   install) apps_kyso_scs_install "$_deployment" "$_cluster" ;;
   restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
@@ -511,7 +522,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "install remove restart status summary"
+  echo "logs install remove restart status summary"
 }
 
 # ----

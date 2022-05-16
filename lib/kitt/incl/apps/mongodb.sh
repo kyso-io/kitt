@@ -221,6 +221,15 @@ apps_mongodb_print_user_database_uri() {
   echo "mongodb://$_db_user:$_db_pass@$_db_host/$_db_name"
 }
 
+apps_mongodb_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _ns="$MONGODB_NAMESPACE"
+  _label="app.kubernetes.io/name=mongodb"
+  kubectl -n "$_ns" logs -l "$_label" -f
+}
+
 apps_mongodb_install() {
   _deployment="$1"
   _cluster="$2"
@@ -390,6 +399,7 @@ apps_mongodb_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+    logs) apps_mongodb_logs "$_deployment" "$_cluster";;
     install) apps_mongodb_install "$_deployment" "$_cluster";;
     remove) apps_mongodb_remove "$_deployment" "$_cluster";;
     status) apps_mongodb_status "$_deployment" "$_cluster";;
@@ -399,7 +409,7 @@ apps_mongodb_command() {
 }
 
 apps_mongodb_command_list() {
-  echo "install remove status summary"
+  echo "logs install remove status summary"
 }
 
 # ----

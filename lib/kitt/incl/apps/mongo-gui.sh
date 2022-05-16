@@ -110,6 +110,15 @@ MONGO_GUI_IMAGE=$MONGO_GUI_IMAGE
 EOF
 }
 
+apps_mongo_gui_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _ns="$MONGO_GUI_NAMESPACE"
+  _label="app=mongo-gui"
+  kubectl -n "$_ns" logs -l "$_label" -f
+}
+
 apps_mongo_gui_install() {
   _deployment="$1"
   _cluster="$2"
@@ -286,6 +295,7 @@ apps_mongo_gui_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+    logs) apps_mongo_gui_logs "$_deployment" "$_cluster";;
     install) apps_mongo_gui_install "$_deployment" "$_cluster";;
     remove) apps_mongo_gui_remove "$_deployment" "$_cluster";;
     restart) apps_mongo_gui_restart "$_deployment" "$_cluster";;
@@ -297,7 +307,7 @@ apps_mongo_gui_command() {
 }
 
 apps_mongo_gui_command_list() {
-  echo "install remove restart status summary uris"
+  echo "logs install remove restart status summary uris"
 }
 
 # ----
