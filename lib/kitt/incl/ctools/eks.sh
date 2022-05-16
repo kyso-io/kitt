@@ -20,6 +20,9 @@ INCL_CTOOLS_EKS_SH="1"
 
 # EKS defaults
 export APP_DEFAULT_CLUSTER_REGION="eu-north-1"
+export APP_DEFAULT_CLUSTER_EKS_NODEGROUP="ng01"
+export APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE="m5.large"
+export APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE="80"
 export APP_DEFAULT_CLUSTER_EKS_WORKERS="3"
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
 export APP_DEFAULT_CLUSTER_EKS_VERSION="1.22"
@@ -51,6 +54,15 @@ ctool_eks_export_variables() {
   export CLUSTER_EKS_VERSION
   [ "$CLUSTER_REGION" ] || CLUSTER_REGION="${APP_DEFAULT_CLUSTER_REGION}"
   export CLUSTER_REGION
+  [ "$CLUSTER_EKS_NODEGROUP" ] ||
+    CLUSTER_EKS_NODEGROUP="${APP_DEFAULT_CLUSTER_EKS_NODEGROUP}"
+  export CLUSTER_EKS_NODEGROUP
+  [ "$CLUSTER_EKS_INSTANCE_TYPE" ] ||
+    CLUSTER_EKS_INSTANCE_TYPE="${APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE}"
+  export CLUSTER_EKS_INSTANCE_TYPE
+  [ "$CLUSTER_EKS_VOLUME_SIZE" ] ||
+    CLUSTER_EKS_VOLUME_SIZE="${APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE}"
+  export CLUSTER_EKS_VOLUME_SIZE
   [ "$CLUSTER_NUM_WORKERS" ] ||
     CLUSTER_NUM_WORKERS="${APP_DEFAULT_CLUSTER_EKS_WORKERS}"
   export CLUSTER_NUM_WORKERS
@@ -81,6 +93,12 @@ ctool_eks_read_variables() {
   CLUSTER_EKS_VERSION=${READ_VALUE}
   read_value "Cluster Region" "${CLUSTER_REGION}"
   CLUSTER_REGION=${READ_VALUE}
+  read_value "Cluster EKS Node Group" "${CLUSTER_EKS_NODEGROUP}"
+  CLUSTER_EKS_NODEGROUP=${READ_VALUE}
+  read_value "Cluster EKS Instance Type" "${CLUSTER_EKS_INSTANCE_TYPE}"
+  CLUSTER_EKS_INSTANCE_TYPE=${READ_VALUE}
+  read_value "Cluster EKS Volume Size" "${CLUSTER_EKS_VOLUME_SIZE}"
+  CLUSTER_EKS_VOLUME_SIZE=${READ_VALUE}
   read_value "Cluster Workers" "${CLUSTER_NUM_WORKERS}"
   CLUSTER_NUM_WORKERS=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
@@ -112,6 +130,12 @@ DOMAIN=$CLUSTER_DOMAIN
 EKS_VERSION=$CLUSTER_EKS_VERSION
 # AWS Region to use for the EKS deployment
 REGION=$CLUSTER_REGION
+# Name of the EKS node group
+EKS_NODEGROUP=$CLUSTER_EKS_NODEGROUP
+# EKS Instance Type
+EKS_INSTANCE_TYPE=$CLUSTER_EKS_INSTANCE_TYPE
+# EKS Nodes Volume Size
+EKS_VOLUME_SIZE=$CLUSTER_EKS_VOLUME_SIZE
 # Number of ECS nodes to launch as workers
 NUM_WORKERS=$CLUSTER_NUM_WORKERS
 # EFS filesystem to use for dynamic volumes
@@ -159,6 +183,9 @@ ctool_eks_install() {
       -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
       -e "s%__EKS_VERSION__%$CLUSTER_EKS_VERSION%g" \
       -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
+      -e "s%__CLUSTER_EKS_NODEGROUP__%$CLUSTER_EKS_NODEGROUP%g" \
+      -e "s%__CLUSTER_EKS_INSTANCE_TYPE__%$CLUSTER_EKS_INSTANCE_TYPE%g" \
+      -e "s%__CLUSTER_EKS_VOLUME_SIZE__%$CLUSTER_EKS_VOLUME_SIZE%g" \
       -e "s%__CLUSTER_NUM_WORKERS__%$CLUSTER_NUM_WORKERS%g" \
       "$EKS_CONFIG_TMPL" >"$EKS_CONFIG_YAML"
     eksctl create cluster --config-file="$EKS_CONFIG_YAML"
@@ -191,6 +218,12 @@ ctool_eks_remove() {
   fi
 }
 
+ctool_eks_scale() {
+  _cluster="$1"
+  eksctl scale nodegroup --cluster="$_cluster" --nodes="$CLUSTER_NUM_WORKERS" \
+    --name="$CLUSTER_EKS_NODEGROUP"
+}
+
 ctool_eks_status() {
   _cluster="$1"
   eks_get_cluster_status "$_cluster"
@@ -202,13 +235,14 @@ ctool_eks_command() {
   case "$_command" in
     install) ctool_eks_install "$_cluster" ;;
     remove) ctool_eks_remove "$_cluster" ;;
+    scale) ctool_eks_scale "$_cluster" ;;
     status) ctool_eks_status "$_cluster" ;;
     *) echo "Unknown eks subcommand '$_command'"; exit 1 ;;
   esac
 }
 
 ctool_eks_command_list() {
-  echo "config install remove status"
+  echo "config install remove scale status"
 }
 
 # ----

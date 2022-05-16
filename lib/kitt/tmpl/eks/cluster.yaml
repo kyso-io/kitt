@@ -7,9 +7,9 @@ metadata:
   version: "__EKS_VERSION__"
 
 nodeGroups:
-- name: ng01
-  instanceType: m5.large
-  volumeSize: 80
+- name: __CLUSTER_EKS_NODEGROUP__
+  instanceType: __CLUSTER_EKS_INSTANCE_TYPE__
+  volumeSize: __CLUSTER_EKS_VOLUME_SIZE__
   desiredCapacity: __CLUSTER_NUM_WORKERS__
   ssh:
     allow: true
