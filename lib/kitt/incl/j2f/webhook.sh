@@ -240,6 +240,9 @@ j2f_webhook_print_mailto() {
 j2f_webhook_command() {
   j2f_webhook_export_variables
   export J2F_WEBHOOK_JSON_INPUT_FILE="$1"
+  if [ ! -f "$J2F_WEBHOOK_JSON_INPUT_FILE" ]; then
+    j2f_webhook_reject "Input arg '$1' is not a file, aborting"
+  fi
   j2f_webhook_log "Processing file '$J2F_WEBHOOK_JSON_INPUT_FILE'"
   eval "$(jq -r "$J2F_ENV_VARS_QUERY" "$J2F_WEBHOOK_JSON_INPUT_FILE")"
   # shellcheck disable=SC2154
