@@ -300,7 +300,7 @@ j2f_webhook_command() {
   if [ "$valid_deployments" ]; then
     deployments="${valid_deployments# }"
   else
-    j2f_webhook_reject "no deployments from '$deployments' found locally, abort"
+    j2f_webhook_reject "no '$deployments' deployments found locally, aborting!"
   fi
   # shellcheck disable=SC2154
   cat >>"$J2F_WEBHOOK_LOGFILE_PATH" <<EOF
