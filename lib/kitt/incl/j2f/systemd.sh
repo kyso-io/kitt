@@ -64,7 +64,7 @@ j2f_systemd_export_variables() {
   export J2F_KEY_PATH="$J2F_TLS_DIR/key.pem"
   # Generate J2F_DIRLIST if not defined
   if [ -z "$J2F_DIRLIST" ]; then
-    J2F_DIRLIST="kyso-api:$(uuid);kyso-scs:$(uuid);kyso-ui:$(uuid)"
+    J2F_DIRLIST="kyso-api:$(uuid);kyso-indexer:$(uuid);kyso-ui:$(uuid)"
     export J2F_DIRLIST
   fi
   # set variable to avoid running the function twice
