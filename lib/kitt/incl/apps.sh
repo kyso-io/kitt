@@ -83,13 +83,13 @@ apps_command() {
     apps_kyso_scs_command "$_command" "$_deployment" "$_cluster"
     ;;
   kyso-ui)
-    apps_kyso_ui_command "$_command""$_deployment" "$_cluster"
+    apps_kyso_ui_command "$_command" "$_deployment" "$_cluster"
     ;;
   mongodb)
-    apps_mongodb_command "$_command""$_deployment" "$_cluster"
+    apps_mongodb_command "$_command" "$_deployment" "$_cluster"
     ;;
   mongo-gui | mongo_gui)
-    apps_mongo_gui_command "$_command""$_deployment" "$_cluster"
+    apps_mongo_gui_command "$_command" "$_deployment" "$_cluster"
     ;;
   esac
 }
