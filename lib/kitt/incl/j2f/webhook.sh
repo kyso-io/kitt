@@ -223,10 +223,10 @@ j2f_webhook_troubled() {
 j2f_webhook_print_mailto() {
   _addr="$1"
   # shellcheck disable=SC2154
-  if [ -z "${j2f_email##*@*}" ]; then
-    _user_email="\"$j2f_name <$j2f_email>\""
-  elif [ -z "${j2f_ci_email##*@*}" ]; then
-    _user_email="\"$j2f_ci_name <$j2f_ci_email>\""
+  if [ -z "${gl_email##*@*}" ]; then
+    _user_email="\"$gl_name <$gl_email>\""
+  elif [ -z "${gl_ci_email##*@*}" ]; then
+    _user_email="\"$gl_ci_name <$gl_ci_email>\""
   fi
   if [ "$_addr" ] && [ "$_user_email" ]; then
     echo "$_addr,$_user_email"
@@ -243,47 +243,47 @@ j2f_webhook_command() {
   j2f_webhook_log "Processing file '$J2F_WEBHOOK_JSON_INPUT_FILE'"
   eval "$(jq -r "$J2F_ENV_VARS_QUERY" "$J2F_WEBHOOK_JSON_INPUT_FILE")"
   # shellcheck disable=SC2154
-  if [ "$j2f_object_kind" != 'pipeline' ]; then
-    j2f_webhook_reject "object_kind = '$j2f_object_kind', not 'pipeline'"
+  if [ "$gl_object_kind" != 'pipeline' ]; then
+    j2f_webhook_reject "object_kind = '$gl_object_kind', not 'pipeline'"
   fi
   # shellcheck disable=SC2154
-  if [ "$j2f_status" != 'success' ]; then
-    j2f_webhook_reject "status = '$j2f_status'"
+  if [ "$gl_status" != 'success' ]; then
+    j2f_webhook_reject "status = '$gl_status'"
   fi
   # shellcheck disable=SC2154
-  if [ "$j2f_source" != 'push' ] && [ "$j2f_source" != 'web' ]; then
-    j2f_webhook_reject "pipeline source = '$j2f_source', not 'push' or 'web'"
+  if [ "$gl_source" != 'push' ] && [ "$gl_source" != 'web' ]; then
+    j2f_webhook_reject "pipeline source = '$gl_source', not 'push' or 'web'"
   fi
   # shellcheck disable=SC2154
-  project_path="${j2f_web_url#"$J2F_GITLAB_URL"/}"
+  project_path="${gl_web_url#"$J2F_GITLAB_URL"/}"
   case "$project_path" in
   "kyso-io/kyso-api") app="kyso-api"; img_var="KYSO_API_IMAGE" ;;
   "kyso-io/kyso-indexer") app="kyso-scs"; img_var="KYSO_SCS_INDEXER_IMAGE" ;;
   "kyso-io/kyso-ui") app="kyso-ui"; img_var="KYSO_UI_IMAGE" ;;
-  *) j2f_webhook_reject "web_url = '$j2f_web_url', ignored" ;;
+  *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac
   # shellcheck disable=SC2154
-  case "$j2f_tag" in
+  case "$gl_tag" in
   false)
-    case "$j2f_ref" in
+    case "$gl_ref" in
     "develop") deployments="dev" ;;
     "jnj") deployments="jnj" ;;
     "main" | "master") deployments="staging" ;;
-    *) j2f_webhook_reject "branch = '$j2f_ref', ignored" ;;
+    *) j2f_webhook_reject "branch = '$gl_ref', ignored" ;;
     esac
-    img_url="$J2F_REGISTRY_URI/$project_path/$j2f_ref:$j2f_sha"
+    img_url="$J2F_REGISTRY_URI/$project_path/$gl_ref:$gl_sha"
     ref_type="branch"
     ;;
   true)
-    case "$j2f_ref" in
+    case "$gl_ref" in
     beta-*) deployments="beta" ;;
     demo-*) deployments="demo" ;;
     prod-*) deployments="prod" ;;
     saas-*) deployments="saas" ;;
     test-*) deployments="test" ;;
-    *) j2f_webhook_reject "tag = '$j2f_ref', ignored" ;;
+    *) j2f_webhook_reject "tag = '$gl_ref', ignored" ;;
     esac
-    img_url="$J2F_REGISTRY_URI/$project_path:$j2f_ref"
+    img_url="$J2F_REGISTRY_URI/$project_path:$gl_ref"
     ref_type="tag"
     ;;
   esac
@@ -306,7 +306,7 @@ j2f_webhook_command() {
   cat >>"$J2F_WEBHOOK_LOGFILE_PATH" <<EOF
 
 Deploying image '$img_url'
-Built from $ref_type '$j2f_ref', commit $j2f_url
+Built from $ref_type '$gl_ref', commit $gl_url
 
 EOF
 
@@ -340,16 +340,16 @@ EOF
       to_addr="$(print_mailto "$to_addr")"
     fi
     if [ "$to_addr" ]; then
-      subject="👍 $app deployment on $deps for $ref_type $j2f_ref"
-      subject="$subject of project $j2f_project_name 👍"
+      subject="👍 $app deployment on $deps for $ref_type $gl_ref"
+      subject="$subject of project $gl_project_name 👍"
       mail -s "${J2F_MAIL_PREFIX}${subject}" "$to_addr" \
         <"$J2F_WEBHOOK_LOGFILE_PATH"
     fi
     if [ "$J2F_SLACK_TOKEN" ] && [ "$J2F_SLACK_CHANNEL" ]; then
-      message="👍 *$app* deployment on \`$deps\` for $ref_type \`$j2f_ref\`"
-      message="$message of project \`$j2f_project_name\`"
-      if [ "$j2f_name" ]; then
-        message="$message triggered by $j2f_name"
+      message="👍 *$app* deployment on \`$deps\` for $ref_type \`$gl_ref\`"
+      message="$message of project \`$gl_project_name\`"
+      if [ "$gl_name" ]; then
+        message="$message triggered by $gl_name"
       fi
       message="$message 👍"
       curl -s https://slack.com/api/chat.postMessage \
@@ -358,8 +358,8 @@ EOF
       curl -s https://slack.com/api/files.upload \
         -H "Authorization: Bearer $J2F_SLACK_TOKEN" \
         -F channels="${J2F_SLACK_CHANNEL}" \
-        -F title="Deployment log for $ref_type '$j2f_ref', commit '$j2f_sha'" \
-        -F filename="deployment-$ref_type-$j2f_ref-$j2f_sha.log" \
+        -F title="Deployment log for $ref_type '$gl_ref', commit '$gl_sha'" \
+        -F filename="deployment-$ref_type-$gl_ref-$gl_sha.log" \
         -F file=@"$J2F_WEBHOOK_LOGFILE_PATH" >/dev/null
     fi
   else
@@ -368,16 +368,16 @@ EOF
       to_addr="$(print_mailto "$to_addr")"
     fi
     if [ "$to_addr" ]; then
-      subject="😱👎 $app deployment on $deps for $ref_type $j2f_ref"
-      subject="$subject of project $j2f_project_name 👎😱"
+      subject="😱👎 $app deployment on $deps for $ref_type $gl_ref"
+      subject="$subject of project $gl_project_name 👎😱"
       mail -s "${J2F_MAIL_PREFIX}${subject}" "$to_addr" \
         <"$J2F_WEBHOOK_LOGFILE_PATH"
     fi
     if [ "$J2F_SLACK_TOKEN" ] && [ "$J2F_SLACK_CHANNEL" ]; then
-      message="😱👎 *$app* deployment on \`$deps\` for $ref_type \`$j2f_ref\`"
-      message="$message of project \`$j2f_project_name\` 👎😱"
-      if [ "$j2f_name" ]; then
-        message="$message triggered by $j2f_name"
+      message="😱👎 *$app* deployment on \`$deps\` for $ref_type \`$gl_ref\`"
+      message="$message of project \`$gl_project_name\` 👎😱"
+      if [ "$gl_name" ]; then
+        message="$message triggered by $gl_name"
       fi
       message="$message 👎😱"
       curl -s https://slack.com/api/chat.postMessage \
@@ -386,8 +386,8 @@ EOF
       curl -s https://slack.com/api/files.upload \
         -H "Authorization: Bearer $J2F_SLACK_TOKEN" \
         -F channels="${J2F_SLACK_CHANNEL}" \
-        -F title="Deployment log for $ref_type '$j2f_ref', commit '$j2f_sha'" \
-        -F filename="deployment-$ref_type-$j2f_ref-$j2f_sha.log" \
+        -F title="Deployment log for $ref_type '$gl_ref', commit '$gl_sha'" \
+        -F filename="deployment-$ref_type-$gl_ref-$gl_sha.log" \
         -F file=@"$J2F_WEBHOOK_LOGFILE_PATH" >/dev/null
     fi
   fi
