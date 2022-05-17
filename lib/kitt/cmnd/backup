@@ -59,25 +59,25 @@ EOF
 # MAIN
 # ----
 
+_command=""
+for _c in $(backup_command_list); do
+  if [ "$1" = "$_c" ]; then
+    _command="$1"
+    break
+  fi
+done
+
 _app=""
-if [ "$1" = "all" ]; then
+if [ "$2" = "all" ]; then
   _app="all"
 else
   for _a in $(backup_app_list); do
-    if [ "$1" = "$_a" ]; then
+    if [ "$2" = "$_a" ]; then
       _app="$_a"
       break
     fi
   done
 fi
-
-_command=""
-for _c in $(backup_command_list); do
-  if [ "$2" = "$_c" ]; then
-    _command="$2"
-    break
-  fi
-done
 
 _deployment="$3"
 _cluster="$4"
@@ -85,7 +85,7 @@ _cluster="$4"
 backup_export_variables "$_deployment" "$_cluster"
 
 if [ "$_command" ]; then
-  backup_command "$_app" "$_command"
+  backup_command "$_command" "$_app"
 else
   usage 0
 fi

@@ -76,10 +76,10 @@ backup_create_backup() {
 }
 
 backup_command() {
-  _app="$1"
-  _command="$2"
+  _command="$1"
+  _app="$2"
   case "$_command" in
-  backup)
+  create)
     if [ "$_app" = "all" ]; then
       for _a in $(backup_app_list); do
         backup_create_backup "$_a"
@@ -93,7 +93,7 @@ backup_command() {
 }
 
 backup_command_list() {
-  echo "backup restore"
+  echo "create restore"
 }
 
 # ----
