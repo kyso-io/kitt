@@ -99,7 +99,7 @@ addon_velero_read_vars() {
   read_bool "Use minio for velero" "$VELERO_USE_MINIO"
   VELERO_USE_MINIO=${READ_VALUE}
   if is_selected "$VELERO_USE_MINIO"; then
-    addon_velero_export_minio_variables
+    addon_velero_export_variables
     return 0
   fi
   read_bool "Configure velero on AWS" "false"
