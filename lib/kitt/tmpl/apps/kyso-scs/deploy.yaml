@@ -11,11 +11,11 @@ spec:
     matchLabels:
       app: __APP__
   template:
-    annotations:
-      backup.velero.io/__BACKUP_ACTION__: __APP__-datadir
     metadata:
       labels:
         app: __APP__
+      annotations:
+        backup.velero.io/__BACKUP_ACTION__: __APP__-datadir
     spec:
       containers:
       - name: nginx
