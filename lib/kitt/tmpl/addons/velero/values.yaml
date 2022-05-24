@@ -1,4 +1,10 @@
 # Use minio as blob storage & default volumes to restic on k3d
+# Resource requests/limits to specify for the Velero deployment (we have
+# reduced the cpu requested, by default the chart asks for 500m)
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
 configuration:
   provider: aws
   backupStorageLocation:
@@ -31,3 +37,9 @@ credentials:
 snapshotsEnabled: __SNAPSHOTS_ENABLED__
 # Deploy restic
 deployRestic: true
+# Reduce restic initial request (CPU to 100m, nt 500m and MEM 256 vs 512)
+restic:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
