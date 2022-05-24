@@ -28,6 +28,8 @@ export MINIO_ROOT_USER="minio"
 export MINIO_ROOT_PASS="321oinim"
 export MINIO_BASIC_AUTH_NAME="basic-auth"
 export MINIO_BASIC_AUTH_USER="k3d-mon"
+export MINIO_MEMORY="4Gi"
+export MINIO_STORAGE_SIZE="500Gi"
 
 # --------
 # Includes
@@ -111,15 +113,16 @@ addon_minio_install() {
   _auth_yaml="$MINIO_AUTH_YAML"
   if is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
     _storage_class="local-storage"
-    _storage_size="500Gi"
+    _storage_size="$MINIO_STORAGE_SIZE"
     _pv_name="$_release-$_ns-pv"
     _pvc_name="$_release-$_ns-pvc"
   else
     _storage_class=""
-    _storage_size="500Gi"
+    _storage_size="$MINIO_STORAGE_SIZE"
     _pv_name=""
     _pvc_name=""
   fi
+  _memory="$MINIO_MEMORY"
   header "Installing '$_addon'"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
@@ -133,6 +136,7 @@ addon_minio_install() {
     -e "s%__MINIO_ROOT_PASS__%$MINIO_ROOT_PASS%" \
     -e "s%__STORAGE_CLASS__%$_storage_class%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \
+    -e "s%__MINIO_MEMORY__%$MINIO_MEMORY%" \
     "$_values_tmpl" >"$_values_yaml"
   if is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
     test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||

@@ -8,3 +8,6 @@ buckets:
 persistence:
   existingClaim: "__PVC_NAME__"
   storageClass: "__STORAGE_CLASS__"
+resources:
+  requests:
+    memory: __MINIO_MEMORY__
