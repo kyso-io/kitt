@@ -68,8 +68,9 @@ backup_create_backup() {
   done
   if [ "$_ns" ]; then
     _bk_name="$_ns-$(date +%Y%m%d%H%M%S)"
-    velero backup create "$_bk_name" --default-volumes-to-restic \
-      --include-namespaces "$_ns" --include-resources '*'
+    velero backup create "$_bk_name" \
+      --include-namespaces "$_ns" \
+      --include-resources '*'
   else
     echo "Unknown application"
   fi

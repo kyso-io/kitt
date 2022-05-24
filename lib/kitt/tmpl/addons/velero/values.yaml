@@ -15,10 +15,9 @@ configuration:
       s3Url: __S3_URL__
       publicUrl: __S3_PUBLIC_URL__
   volumeSnapshotLocation:
-    spec:
-      provider: velero.io/aws
-      config:
-        region: __REGION__
+    provider: velero.io/aws
+    config:
+      region: __REGION__
   defaultVolumesToRestic: __DEFAULT_VOLUMES_TO_RESTIC__
 initContainers:
   - name: velero-plugin-for-aws
