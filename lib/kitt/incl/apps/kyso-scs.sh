@@ -273,7 +273,7 @@ apps_kyso_scs_read_variables() {
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
   read_value "Kyso SCS Volume Size" "${KYSO_SCS_STORAGE_SIZE}"
   KYSO_SCS_STORAGE_SIZE=${READ_VALUE}
-  read_boolean "Kyso SCS backups use restic" "${KYSO_SCS_RESTIC_BACKUP}"
+  read_bool "Kyso SCS backups use restic" "${KYSO_SCS_RESTIC_BACKUP}"
   KYSO_SCS_RESTIC_BACKUP=${READ_VALUE}
   read_value "Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random)" \
     "${KYSO_MYSSH_PF_PORT}"
