@@ -41,7 +41,7 @@ backup_export_variables() {
 }
 
 backup_app_list() {
-  echo "elasticsearch mongodb mongo-gui kyso-api kyso-scs kyso-ui"
+  echo "elasticsearch mongodb kyso-scs mongo-gui kyso-api kyso-ui"
 }
 
 backup_app_namespace() {
@@ -76,6 +76,31 @@ backup_create_backup() {
   fi
 }
 
+backup_schedule_backup() {
+  _app="$1"
+  _ns=""
+  _hour="0"
+  _minute="0"
+  # app backups are scheduled 15' apart
+  for _a in $(backup_app_list); do
+    _minute="$(((_minute+15)%60))"
+    if [ "$_minute" -eq "0" ]; then
+      _hour="$((_hour+1))"
+    fi
+    if [ "$_app" = "$_a" ]; then
+      _ns="$(backup_app_namespace "$_a")"
+      break
+    fi
+  done
+  if [ "$_ns" ]; then
+    velero create schedule "$_ns" \
+      --schedule="$_minute $_hour * * *" \
+      --include-namespaces "$_ns" \
+      --include-resources '*'
+  else
+    echo "Unknown application"
+  fi
+}
 backup_command() {
   _command="$1"
   _app="$2"
@@ -90,11 +115,20 @@ backup_command() {
     fi
     ;;
   restore) echo "Not implemented yet" ;;
+  schedule)
+    if [ "$_app" = "all" ]; then
+      for _a in $(backup_app_list); do
+        backup_schedule_backup "$_a"
+      done
+    else
+      backup_schedule_backup "$_app"
+    fi
+    ;;
   esac
 }
 
 backup_command_list() {
-  echo "create restore"
+  echo "create restore schedule"
 }
 
 # ----
