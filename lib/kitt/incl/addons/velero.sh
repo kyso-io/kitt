@@ -17,6 +17,7 @@ INCL_ADDONS_VELERO_SH="1"
 # ---------
 
 # CMND_DSC="velero: manage the cluster velero deployment (backups)"
+export CLUSTER_DEFAULT_VOLUMES_TO_RESTIC="false"
 
 # Fixed values
 export VELERO_NAMESPACE="velero"
@@ -62,6 +63,9 @@ addon_velero_export_variables() {
     export VELERO_REGION="minio"
     export VELERO_S3_URL="http://minio:9000"
     export VELERO_S3_PUBLIC_URL="https://minio.$CLUSTER_DOMAIN"
+    export VELERO_DEFAULT_VOLUMES_TO_RESTIC="true"
+  elif [ -z "$VELERO_DEFAULT_VOLUMES_TO_RESTIC" ]; then
+    export VELERO_DEFAULT_VOLUMES_TO_RESTIC="$CLUSTER_DEFAULT_VOLUMES_TO_RESTIC"
   fi
   # Set variable to avoid loading variables twice
   __addon_velero_export_variables="1"
@@ -89,6 +93,7 @@ AWS_ACCESS_KEY_ID=$VELERO_AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY=$VELERO_AWS_SECRET_ACCESS_KEY
 BUCKET=$VELERO_BUCKET
 REGION=$VELERO_REGION
+DEFAULT_VOLUMES_TO_RESTIC=$VELERO_DEFAULT_VOLUMES_TO_RESTIC
 S3_URL=$VELERO_S3_URL
 S3_PUBLIC_URL=$VELERO_S3_PUBLIC_URL
 EOF
@@ -127,6 +132,9 @@ addon_velero_read_vars() {
     VELERO_BUCKET=$READ_VALUE
     read_value "Velero Region" "$VELERO_REGION"
     VELERO_REGION=$READ_VALUE
+    read_bool "Velero volume backups use restic by default" \
+      "$VELERO_DEFAULT_VOLUMES_TO_RESTIC"
+    VELERO_DEFAULT_VOLUMES_TO_RESTIC=$READ_VALUE
     read_value "Velero AWS Access Key Id" "$VELERO_AWS_ACCESS_KEY_ID"
     VELERO_AWS_ACCESS_KEY_ID=${READ_VALUE}
     read_value "Velero AWS Secret Access Key" "$VELERO_AWS_SECRET_ACCESS_KEY"
@@ -215,6 +223,7 @@ addon_velero_install() {
     -e "s%__AWS_SECRET_ACCESS_KEY__%$VELERO_AWS_SECRET_ACCESS_KEY%" \
     -e "s%__BUCKET__%$VELERO_BUCKET%" \
     -e "s%__REGION__%$VELERO_REGION%" \
+    -e "s%__DEFAULT_VOLUMES_TO_RESTIC__%$VELERO_DEFAULT_VOLUMES_TO_RESTIC%" \
     -e "$_s3_url_sed" \
     -e "$_s3_public_url_sed" \
     -e "s%__SNAPSHOTS_ENABLED__%$_snapshots_enabled%" \

@@ -27,6 +27,7 @@ export DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE="8Gi"
+export DEPLOYMENT_DEFAULT_KYSO_SCS_RESTIC_BACKUP="false"
 
 # Fixed values
 export KYSO_SCS_USER="scs"
@@ -108,22 +109,28 @@ apps_kyso_scs_export_variables() {
   fi
   export KYSO_INDEXER_IMAGE
   if [ "$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS" ]; then
-    KYSO_SCS_STORAGE_CLASS="$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS" 
+    KYSO_SCS_STORAGE_CLASS="$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS"
   else
     _storage_class="$DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS"
     KYSO_SCS_STORAGE_CLASS="$_storage_class"
   fi
   export KYSO_SCS_STORAGE_CLASS
   if [ "$DEPLOYMENT_KYSO_SCS_STORAGE_SIZE" ]; then
-    KYSO_SCS_STORAGE_SIZE="$DEPLOYMENT_KYSO_SCS_STORAGE_SIZE" 
+    KYSO_SCS_STORAGE_SIZE="$DEPLOYMENT_KYSO_SCS_STORAGE_SIZE"
   else
-    KYSO_SCS_STORAGE_SIZE="$DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE" 
+    KYSO_SCS_STORAGE_SIZE="$DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE"
   fi
   export KYSO_SCS_STORAGE_SIZE
+  if [ "$DEPLOYMENT_KYSO_SCS_RESTIC_BACKUP" ]; then
+    KYSO_SCS_RESTIC_BACKUP="$DEPLOYMENT_KYSO_SCS_RESTIC_BACKUP"
+  else
+    KYSO_SCS_RESTIC_BACKUP="$DEPLOYMENT_DEFAULT_KYSO_SCS_RESTIC_BACKUP"
+  fi
+  export KYSO_SCS_RESTIC_BACKUP
   if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_PF_PORT" ]; then
     KYSO_SCS_MYSSH_PF_PORT="$DEPLOYMENT_KYSO_SCS_MYSSH_PF_PORT"
   else
-    KYSO_SCS_MYSSH_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT" 
+    KYSO_SCS_MYSSH_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT"
   fi
   export KYSO_SCS_MYSSH_PF_PORT
   __apps_kyso_scs_export_variables="1"
@@ -266,6 +273,8 @@ apps_kyso_scs_read_variables() {
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
   read_value "Kyso SCS Volume Size" "${KYSO_SCS_STORAGE_SIZE}"
   KYSO_SCS_STORAGE_SIZE=${READ_VALUE}
+  read_boolean "Kyso SCS backups use restic" "${KYSO_SCS_RESTIC_BACKUP}"
+  KYSO_SCS_RESTIC_BACKUP=${READ_VALUE}
   read_value "Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random)" \
     "${KYSO_MYSSH_PF_PORT}"
   KYSO_MYSSH_PF_PORT=${READ_VALUE}
@@ -289,6 +298,8 @@ KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
 KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 # Kyso SCS Volume Size (if the storage is local or NFS the value is ignored)
 KYSO_SCS_STORAGE_SIZE=$KYSO_SCS_STORAGE_SIZE
+# Kyso SCS backups use restic (adds annotations to use it or not)
+KYSO_SCS_RESTIC_BACKUP=$KYSO_SCS_RESTIC_BACKUP
 # Fixed port for mysecureshell pf (recommended is 2020, random if empty)
 KYSO_SCS_MYSSH_PF_PORT=$KYSO_SCS_MYSSH_PF_PORT
 # ---
@@ -335,6 +346,11 @@ apps_kyso_scs_install() {
     _cert_yaml="$KYSO_SCS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
     _cert_yamls="$_cert_yamls $_cert_yaml"
   done
+  if is_selected "$KYSO_SCS_USE_RESTIC"; then
+    _backup_action="backup-volumes"
+  else
+    _backup_action="backup-volumes-exclude"
+  fi
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
@@ -415,6 +431,7 @@ apps_kyso_scs_install() {
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__BACKUP_ACTION__%$_backup_action%" \
     -e "s%__SCS_MYSSH_IMAGE__%$KYSO_SCS_MYSSH_IMAGE%" \
     -e "s%__SCS_NGINX_IMAGE__%$KYSO_SCS_NGINX_IMAGE%" \
     -e "s%__INDEXER_IMAGE__%$KYSO_INDEXER_IMAGE%" \

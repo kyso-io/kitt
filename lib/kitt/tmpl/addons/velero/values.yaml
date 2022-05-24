@@ -13,7 +13,7 @@ configuration:
       provider: velero.io/aws
       config:
         region: __REGION__
-  defaultVolumesToRestic: true
+  defaultVolumesToRestic: __DEFAULT_VOLUMES_TO_RESTIC__
 initContainers:
   - name: velero-plugin-for-aws
     image: velero/velero-plugin-for-aws:v1.4.1
