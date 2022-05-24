@@ -346,7 +346,7 @@ apps_kyso_scs_install() {
     _cert_yaml="$KYSO_SCS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
     _cert_yamls="$_cert_yamls $_cert_yaml"
   done
-  if is_selected "$KYSO_SCS_USE_RESTIC"; then
+  if is_selected "$KYSO_SCS_RESTIC_BACKUP"; then
     _backup_action="backup-volumes"
   else
     _backup_action="backup-volumes-exclude"
