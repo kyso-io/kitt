@@ -37,7 +37,7 @@ j2f_config_export_variables() {
   # Check if we need to run the function
   [ -z "$__j2f_config_export_variables" ] || return 0
   j2f_common_export_variables
-  j2f_process_export_variables
+  j2f_spooler_export_variables
   j2f_systemd_export_variables
   j2f_webhook_export_variables
   # set variable to avoid running the function twice
@@ -46,21 +46,21 @@ j2f_config_export_variables() {
 
 j2f_config_check_directories() {
   j2f_common_check_directories
-  j2f_process_check_directories
+  j2f_spooler_check_directories
   j2f_systemd_check_directories
   j2f_webhook_check_directories
 }
 
 j2f_config_clean_directories() {
   j2f_common_clean_directories
-  j2f_process_clean_directories
+  j2f_spooler_clean_directories
   j2f_systemd_clean_directories
   j2f_webhook_clean_directories
 }
 
 j2f_config_print_variables() {
   j2f_common_print_variables
-  j2f_process_print_variables
+  j2f_spooler_print_variables
   j2f_systemd_print_variables
   j2f_webhook_print_variables
 }
@@ -69,7 +69,7 @@ j2f_config_read_variables() {
   header_with_note "Configuring json2file webhook processing"
   j2f_common_read_variables
   footer
-#  j2f_process_read_variables
+#  j2f_spooler_read_variables
 #  footer
   j2f_systemd_read_variables
   footer

@@ -29,8 +29,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_J2F_COMMON_SH" = "1" ] || . "$INCL_DIR/j2f/common.sh"
   # shellcheck source=./j2f/config.sh
   [ "$INCL_J2F_CONFIG_SH" = "1" ] || . "$INCL_DIR/j2f/config.sh"
-  # shellcheck source=./j2f/process.sh
-  [ "$INCL_J2F_PROCESS_SH" = "1" ] || . "$INCL_DIR/j2f/process.sh"
+  # shellcheck source=./j2f/spooler.sh
+  [ "$INCL_J2F_SPOOLER_SH" = "1" ] || . "$INCL_DIR/j2f/spooler.sh"
   # shellcheck source=./j2f/systemd.sh
   [ "$INCL_J2F_SYSTEMD_SH" = "1" ] || . "$INCL_DIR/j2f/systemd.sh"
   # shellcheck source=./j2f/webhook.sh
@@ -47,7 +47,7 @@ fi
 j2f_check_directories() {
   j2f_common_check_directories
   j2f_config_check_directories
-  j2f_process_check_directories
+  j2f_spooler_check_directories
   j2f_systemd_check_directories
   j2f_webhook_check_directories
 }
@@ -57,21 +57,21 @@ j2f_command() {
   shift 1
   case "$_command" in
   config) j2f_config_command "$@" ;;
-  process) j2f_process_command "$@" ;;
+  spooler) j2f_spooler_command "$@" ;;
   systemd) j2f_systemd_command "$@" ;;
   webhook) j2f_webhook_command "$@" ;;
   esac
 }
 
 j2f_command_list() {
-  echo "config process systemd webhook"
+  echo "config spooler systemd webhook"
 }
 
 j2f_command_args() {
   _command="$1"
   case "$_command" in
   config) j2f_config_command_args ;;
-  process) j2f_process_command_args ;;
+  spooler) j2f_spooler_command_args ;;
   systemd) j2f_systemd_command_args ;;
   webhook) j2f_webhook_command_args ;;
   esac

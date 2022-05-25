@@ -19,9 +19,9 @@ INCL_J2F_SYSTEMD_SH="1"
 # CMND_DSC="systemd: configure systemd services (json2file & webhook processor)"
 
 # Fixed values
-export J2F_PROCESS_SERVICE_NAME="kitt-j2f-$USER"
-J2F_PROCESS_SERVICE_FILE="/etc/systemd/system/$J2F_PROCESS_SERVICE_NAME.service"
-export J2F_PROCESS_SERVICE_FILE
+export J2F_SPOOLER_SERVICE_NAME="kitt-j2f-$USER-spooler"
+J2F_SPOOLER_SERVICE_FILE="/etc/systemd/system/$J2F_SPOOLER_SERVICE_NAME.service"
+export J2F_SPOOLER_SERVICE_FILE
 export J2F_BASEDIR_FILE="/etc/json2file-go/basedir"
 export J2F_DIRLIST_FILE="/etc/json2file-go/dirlist"
 export J2F_CRT_FILE="/etc/json2file-go/certfile"
@@ -109,7 +109,7 @@ EOF
 
 j2f_systemd_install_services() {
   j2f_systemd_export_variables
-  _command="$APP_REAL_PATH j2f process '$J2F_JSON2FILE_DIR'"
+  _command="$APP_REAL_PATH j2f spooler '$J2F_JSON2FILE_DIR'"
   j2f_common_check_tools "inotifywait json2file-go tsp uuid"
   # Configure json2file
   sudo sh -c "echo '$J2F_JSON2FILE_DIR' >'$J2F_BASEDIR_FILE'"
@@ -137,13 +137,13 @@ EOF
 ListenStream=
 ListenStream=$J2F_PORT
 EOF
-  # Configure process service
-  sudo sh -c "cat > $J2F_SYSTEMD_FILE" <<EOF
+  # Configure spooler service
+  sudo sh -c "cat > $J2F_SPOOLER_SERVICE_FILE" <<EOF
 [Install]
 WantedBy=multi-user.target
  
 [Unit]
-Description=json2file processor for $USER
+Description=json2file spooler for $USER
 After=docker.service
  
 [Service]
@@ -157,25 +157,25 @@ EOF
   sudo systemctl stop "$J2F_JSON2FILE_SERVICE_NAME"
   sudo systemctl start "$J2F_JSON2FILE_SERVICE_NAME"
   sudo systemctl enable "$J2F_JSON2FILE_SERVICE_NAME"
-  sudo systemctl stop "$J2F_PROCESS_SERVICE_NAME"
-  sudo systemctl start "$J2F_PROCESS_SERVICE_NAME"
-  sudo systemctl enable "$J2F_PROCESS_SERVICE_NAME"
+  sudo systemctl stop "$J2F_SPOOLER_SERVICE_NAME"
+  sudo systemctl start "$J2F_SPOOLER_SERVICE_NAME"
+  sudo systemctl enable "$J2F_SPOOLER_SERVICE_NAME"
 }
 
 j2f_systemd_remove_services() {
   sudo systemctl stop "$J2F_JSON2FILE_SERVICE_NAME" || true
   sudo systemctl disable "$J2F_JSON2FILE_SERVICE_NAME" || true
-  if [ -f "$J2F_SYSTEMD_FILE" ]; then
-    sudo systemctl stop "$J2F_PROCESS_SERVICE_NAME"
-    sudo systemctl disable "$J2F_PROCESS_SERVICE_NAME"
-    sudo rm -f "$J2F_PROCESS_SYSTEMD_FILE"
+  if [ -f "$J2F_SPOOLER_SERVICE_FILE" ]; then
+    sudo systemctl stop "$J2F_SPOOLER_SERVICE_NAME"
+    sudo systemctl disable "$J2F_SPOOLER_SERVICE_NAME"
+    sudo rm -f "$J2F_SPOOLER_SERVICE_FILE"
   fi
   sudo systemctl daemon-reload
 }
 
 j2f_systemd_restart_services() {
   sudo systemctl restart "$J2F_JSON2FILE_SERVICE_NAME"
-  sudo systemctl restart "$J2F_PROCESS_SERVICE_NAME"
+  sudo systemctl restart "$J2F_SPOOLER_SERVICE_NAME"
 }
 
 j2f_systemd_command() {
