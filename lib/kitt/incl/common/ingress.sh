@@ -146,10 +146,10 @@ create_app_ingress_yaml() {
   if [ -f "$_annotations_file" ]; then
     : >"$_yaml_annotations"
     # Add quotes if missing when using '=' ... not really sure if needed
-    sed -ne "/^#/!{s/=\([^'\"].*[^'\"]\)$/=\"\1\"/;s/=/: /;p;}" \
+    sed -ne "/^#/!{s%=\([^'\"].*[^'\"]\)$%=\"\1\"%;s%=%: %;p;}" \
       "$_annotations_file" | while read -r _annotation; do
       sed -n \
-        -e "/annotations/{n;s/^\([[:space:]]\+\).*$/\1$_annotation/p}" \
+        -e "/annotations/{n;s%^\([[:space:]]\+\).*$%\1$_annotation%p}" \
         "$_tmpl" >>"$_yaml_annotations"
     done
   else
