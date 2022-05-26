@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: __APP__
   namespace: __NAMESPACE__
   labels:
     app.kubernetes.io/name: __APP__
 spec:
+  serviceName: __APP__
   replicas: 1
   selector:
     matchLabels:

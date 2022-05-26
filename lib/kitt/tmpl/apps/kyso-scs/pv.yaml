@@ -11,7 +11,7 @@ spec:
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   claimRef:
     namespace: __NAMESPACE__
     name: __PVC_NAME__

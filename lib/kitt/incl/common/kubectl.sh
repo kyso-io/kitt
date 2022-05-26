@@ -247,5 +247,46 @@ deployment_summary() {
   fi
 }
 
+statefulset_restart() {
+  if [ "$#" -ne "2" ]; then
+    echo "Wrong arguments, expecting NAMESPACE & APP name"
+    exit 1
+  fi
+  _ns="$1"
+  _app="$2"
+  # Call the rollout restart command
+  kubectl rollout -n "$_ns" restart statefulset "$_app"
+  # Wait until the restart succeeds or fails
+  kubectl rollout status statefulset --timeout="$ROLLOUT_STATUS_TIMEOUT" \
+    -n "$_ns" "$_app"
+}
+
+statefulset_status() {
+  ns="$1"
+  shift 1
+  if find_namespace "$ns"; then
+    kubectl get -n "$ns" all,ingress,endpoints,secrets "$@"
+  else
+    echo "Namespace '$ns' not found!"
+  fi
+}
+
+statefulset_summary() {
+  _ns="$1"
+  _app="$2"
+  _filter="(.status|{currentReplicas})"
+  _filter="$_filter,(.spec.template.spec.containers[]|{image})"
+  _dinfo="$(
+    kubectl get statefulset -n "$_ns" -o jsonpath='{.items[0]}' 2>/dev/null |
+     jq -c "if .metadata.name==\"$_app\" then . else \"\" end | ($_filter)"
+  )" || true
+  if [ "$_dinfo" ]; then
+    echo "FOUND '$_app' on namespace '$_ns':"
+    echo "$_dinfo" | sed -e 's/"//g;s/{//;s/}//;s/:/: /;s/^/- /'
+  else
+    echo "MISSING '$_app' on namespace '$_ns'!"
+  fi
+}
+
 # ----
 # vim: ts=2:sw=2:et:ai:sts=2
