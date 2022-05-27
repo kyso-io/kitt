@@ -6,15 +6,19 @@ metadata:
   region: __CLUSTER_REGION__
   version: "__EKS_VERSION__"
 
-nodeGroups:
+managedNodeGroups:
 - name: __CLUSTER_EKS_NODEGROUP__
   instanceType: __CLUSTER_EKS_INSTANCE_TYPE__
   volumeSize: __CLUSTER_EKS_VOLUME_SIZE__
   desiredCapacity: __CLUSTER_NUM_WORKERS__
   maxSize: __CLUSTER_MAX_WORKERS__
   minSize: __CLUSTER_MIN_WORKERS__
+  labels: {role: worker}
+  tags:
+    nodegroup-role: worker
   ssh:
     allow: true
+    publicKeyPath: ~/.ssh/id_rsa.pub
   iam:
     withAddonPolicies:
       ebs: true
