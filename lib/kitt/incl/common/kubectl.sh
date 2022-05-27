@@ -12,8 +12,8 @@ set -e
 # shellcheck disable=SC2034
 INCL_KUBECTL_SH="1"
 
-# Set the ROLLOUT_STATUS_TIMEOUT to 2 minutes for now
-export ROLLOUT_STATUS_TIMEOUT="120s"
+# Set the ROLLOUT_STATUS_TIMEOUT to 5 minutes for now
+export ROLLOUT_STATUS_TIMEOUT="300s"
 
 # --------
 # Includes
