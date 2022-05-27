@@ -449,8 +449,9 @@ apps_kyso_scs_install() {
     $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
-  # Replace deployment with stateful set ... we have updated the pvc
-  # definitions before so they don't get deleted !!!
+  # Replace deployment with stateful set ... when we delete the deployment the
+  # PVC is released and if we don't remove it the statefulset will use the same
+  # one.
   kubectl_delete "$_deploy_yaml"
   kubectl_apply "$_statefulset_yaml"
   # Wait until statefulset succeds of fails
