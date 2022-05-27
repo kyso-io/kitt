@@ -74,7 +74,7 @@ aws_add_eks_efs_policy() {
       echo "Policy '$_policy_name' already exist with id '$_policy_id'"
     fi
   else
-    echo "Missing velero-policy.json template '$_tmpl'"
+    echo "Missing eks-efs-policy template '$_tmpl'"
     exit 1
   fi
 }
