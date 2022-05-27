@@ -36,6 +36,10 @@ mongo_command() {
   _deployment="$3"
   _cluster="$4"
   apps_mongodb_export_variables "$_deployment" "$_cluster"
+  if ! find_namespace "$MONGODB_NAMESPACE"; then
+    echo "MongoDB Namespace '$MONGODB_NAMESPACE' not found, can't run command"
+    return 1
+  fi
   export MONGODB_CLI_IMAGE="$MONGODB_REGISTRY/$MONGODB_REPO:$MONGODB_CLI_TAG"
   _root_database_uri="$(
     apps_mongodb_print_root_database_uri "$_deployment" "$_cluster"
