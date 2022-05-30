@@ -59,6 +59,7 @@ j2f_config_clean_directories() {
 }
 
 j2f_config_print_variables() {
+  j2f_config_export_variables
   j2f_common_print_variables
   j2f_spooler_print_variables
   j2f_systemd_print_variables
@@ -78,6 +79,7 @@ j2f_config_read_variables() {
 
 j2f_config_edit_variables() {
   if [ "$EDITOR" ]; then
+    j2f_config_check_directories
     j2f_config_export_variables
     exec "$EDITOR" "$J2F_CONFIG"
   else
