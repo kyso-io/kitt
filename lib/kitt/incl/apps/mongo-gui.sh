@@ -71,9 +71,9 @@ apps_mongo_gui_export_variables() {
   export MONGO_GUI_AUTH_YAML="$_auth_yaml"
   # Use defaults for variables missing from config files
   if [ "$DEPLOYMENT_MONGO_GUI_IMAGE" ]; then
-    MONGO_GUI_IMAGE="$DEPLOYMENT_MONGO_GUI_IMAGE" 
+    MONGO_GUI_IMAGE="$DEPLOYMENT_MONGO_GUI_IMAGE"
   else
-    MONGO_GUI_IMAGE="$DEPLOYMENT_DEFAULT_MONGO_GUI_IMAGE" 
+    MONGO_GUI_IMAGE="$DEPLOYMENT_DEFAULT_MONGO_GUI_IMAGE"
   fi
   export MONGO_GUI_IMAGE
   __apps_mongo_gui_export_variables="1"

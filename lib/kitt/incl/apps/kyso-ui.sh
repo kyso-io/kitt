@@ -19,6 +19,7 @@ INCL_APPS_KYSO_UI_SH="1"
 # CMND_DSC="kyso-ui: manage kyso-ui deployment for kyso"
 
 # Defaults
+export DEPLOYMENT_DEFAULT_KYSO_UI_ENDPOINT=""
 export DEPLOYMENT_DEFAULT_KYSO_UI_IMAGE=""
 export DEPLOYMENT_DEFAULT_KYSO_UI_REPLICAS="1"
 
@@ -60,17 +61,26 @@ apps_kyso_ui_export_variables() {
   export KYSO_UI_DEPLOY_YAML="$KYSO_UI_KUBECTL_DIR/deploy.yaml"
   export KYSO_UI_SERVICE_YAML="$KYSO_UI_KUBECTL_DIR/service.yaml"
   export KYSO_UI_INGRESS_YAML="$KYSO_UI_KUBECTL_DIR/ingress.yaml"
-  # Use defaults for variables missing from config files
-  if [ "$DEPLOYMENT_KYSO_UI_IMAGE" ]; then
-    KYSO_UI_IMAGE="$DEPLOYMENT_KYSO_UI_IMAGE" 
-  else
-    KYSO_UI_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_UI_IMAGE" 
+  # Use defaults for variables missing from config files / enviroment
+  if [ -z "$KYSO_UI_ENDPOINT" ]; then
+    if [ "$DEPLOYMENT_KYSO_UI_ENDPOINT" ]; then
+      KYSO_UI_ENDPOINT="$DEPLOYMENT_KYSO_UI_ENDPOINT"
+    else
+      KYSO_UI_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_UI_ENDPOINT"
+    fi
+  fi
+  if [ -z "$KYSO_UI_IMAGE" ]; then
+    if [ "$DEPLOYMENT_KYSO_UI_IMAGE" ]; then
+      KYSO_UI_IMAGE="$DEPLOYMENT_KYSO_UI_IMAGE"
+    else
+      KYSO_UI_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_UI_IMAGE"
+    fi
   fi
   export KYSO_UI_IMAGE
   if [ "$DEPLOYMENT_KYSO_UI_REPLICAS" ]; then
-    KYSO_UI_REPLICAS="$DEPLOYMENT_KYSO_UI_REPLICAS" 
+    KYSO_UI_REPLICAS="$DEPLOYMENT_KYSO_UI_REPLICAS"
   else
-    KYSO_UI_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_UI_REPLICAS" 
+    KYSO_UI_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_UI_REPLICAS"
   fi
   export KYSO_UI_REPLICAS
   __apps_kyso_ui_export_variables="1"

@@ -84,11 +84,13 @@ apps_kyso_api_export_variables() {
   export KYSO_API_AUTH_FILE="$_auth_file"
   _auth_yaml="$KYSO_API_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export KYSO_API_AUTH_YAML="$_auth_yaml"
-  # Use defaults for variables missing from config files
-  if [ "$DEPLOYMENT_KYSO_API_ENDPOINT" ]; then
-    KYSO_API_ENDPOINT="$DEPLOYMENT_KYSO_API_ENDPOINT"
-  else
-    KYSO_API_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_API_ENDPOINT"
+  # Use defaults for variables missing from config files / enviroment
+  if [ -z "$KYSO_API_ENDPOINT" ]; then
+    if [ "$DEPLOYMENT_KYSO_API_ENDPOINT" ]; then
+      KYSO_API_ENDPOINT="$DEPLOYMENT_KYSO_API_ENDPOINT"
+    else
+      KYSO_API_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_API_ENDPOINT"
+    fi
   fi
   export KYSO_API_ENDPOINT
   if [ -z "$KYSO_API_IMAGE" ]; then
