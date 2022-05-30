@@ -141,6 +141,11 @@ apps_kyso_ui_install() {
   _deployment="$1"
   _cluster="$2"
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
+  if [ -z "$KYSO_UI_ENDPOINT" ] && [ -z "$KYSO_UI_IMAGE" ]; then
+    echo "The UI_IMAGE & UI_ENDPOINT variables are empty."
+    echo "Export KYSO_UI_IMAGE, KYSO_UI_ENDPOINT or reconfigure"
+    exit 1
+  fi
   apps_kyso_ui_check_directories
   # Adjust variables
   _app="kyso-ui"
@@ -195,6 +200,14 @@ apps_kyso_ui_install() {
     _ui_port="$KYSO_UI_PORT"
     # Use the right service template
     _service_tmpl="$KYSO_UI_SERVICE_TMPL"
+    # Prepare deployment file
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__UI_REPLICAS__%$KYSO_UI_REPLICAS%" \
+      -e "s%__UI_IMAGE__%$KYSO_UI_IMAGE%" \
+      -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+      "$_deploy_tmpl" >"$_deploy_yaml"
   fi
   # Create certificate secrets if needed or remove them if not
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
@@ -214,14 +227,6 @@ apps_kyso_ui_install() {
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__SERVER_PORT__%$_ui_port%" \
     "$_service_tmpl" >"$_service_yaml"
-  # Prepare deployment file
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__UI_REPLICAS__%$KYSO_UI_REPLICAS%" \
-    -e "s%__UI_IMAGE__%$KYSO_UI_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
-    "$_deploy_tmpl" >"$_deploy_yaml"
   for _yaml in "$_ep_yaml" "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" \
     $_cert_yamls; do
     kubectl_apply "$_yaml"

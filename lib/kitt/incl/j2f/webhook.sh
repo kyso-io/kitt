@@ -263,7 +263,7 @@ j2f_webhook_command() {
   project_path="${gl_web_url#"$J2F_GITLAB_URL"/}"
   case "$project_path" in
   "kyso-io/kyso-api") app="kyso-api"; img_var="KYSO_API_IMAGE" ;;
-  "kyso-io/kyso-indexer") app="kyso-scs"; img_var="KYSO_SCS_INDEXER_IMAGE" ;;
+  "kyso-io/kyso-indexer") app="kyso-scs"; img_var="KYSO_INDEXER_IMAGE" ;;
   "kyso-io/kyso-ui") app="kyso-ui"; img_var="KYSO_UI_IMAGE" ;;
   *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac

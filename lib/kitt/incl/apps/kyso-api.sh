@@ -214,6 +214,11 @@ apps_kyso_api_install() {
   _deployment="$1"
   _cluster="$2"
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  if [ -z "$KYSO_API_ENDPOINT" ] && [ -z "$KYSO_API_IMAGE" ]; then
+    echo "The API_IMAGE & API_ENDPOINT variables are is empty"
+    echo "Export KYSO_API_IMAGE, KYSO_API_ENDPOINT or reconfigure"
+    exit 1
+  fi
   apps_kyso_api_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
@@ -298,6 +303,35 @@ apps_kyso_api_install() {
     _api_port="$KYSO_API_PORT"
     # Use the right service template
     _service_tmpl="$KYSO_API_SERVICE_TMPL"
+    # Prepare deployment file
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__API_REPLICAS__%$KYSO_API_REPLICAS%" \
+      -e "s%__API_IMAGE__%$KYSO_API_IMAGE%" \
+      -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+      -e "s%__ELASTIC_URL__%$_elastic_url%" \
+      "$_deploy_tmpl" >"$_deploy_yaml"
+    # Prepare secrets
+    : >"$_secret_env"
+    chmod 0600 "$_secret_env"
+    _mongodb_user_database_uri="$(
+      apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
+    )"
+    sed \
+      -e "s%__POPULATE_TEST_DATA__%$KYSO_API_POPULATE_TEST_DATA%" \
+      -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
+      -e "s%__POPULATE_MAIL_PREFIX__%$KYSO_API_POPULATE_MAIL_PREFIX%" \
+      "$_env_tmpl" |
+      stdout_to_file "$_secret_env"
+    : >"$_secret_yaml"
+    chmod 0600 "$_secret_yaml"
+    tmp_dir="$(mktemp -d)"
+    file_to_stdout "$_secret_env" >"$tmp_dir/env"
+    kubectl create secret generic "$_app-secrets" --dry-run=client -o yaml \
+      --from-file=env="$tmp_dir/env" --namespace="$_ns" |
+      stdout_to_file "$_secret_yaml"
+    rm -rf "$tmp_dir"
   fi
   # Create htpasswd & docs ingress if needed or remove the yaml files if present
   if [ "$_auth_name" ]; then
@@ -328,35 +362,6 @@ apps_kyso_api_install() {
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__SERVER_PORT__%$_api_port%" \
     "$_service_tmpl" >"$_service_yaml"
-  # Prepare secrets
-  : >"$_secret_env"
-  chmod 0600 "$_secret_env"
-  _mongodb_user_database_uri="$(
-    apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
-  )"
-  sed \
-    -e "s%__POPULATE_TEST_DATA__%$KYSO_API_POPULATE_TEST_DATA%" \
-    -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
-    -e "s%__POPULATE_MAIL_PREFIX__%$KYSO_API_POPULATE_MAIL_PREFIX%" \
-    "$_env_tmpl" |
-    stdout_to_file "$_secret_env"
-  : >"$_secret_yaml"
-  chmod 0600 "$_secret_yaml"
-  tmp_dir="$(mktemp -d)"
-  file_to_stdout "$_secret_env" >"$tmp_dir/env"
-  kubectl create secret generic "$_app-secrets" --dry-run=client -o yaml \
-    --from-file=env="$tmp_dir/env" --namespace="$_ns" |
-    stdout_to_file "$_secret_yaml"
-  rm -rf "$tmp_dir"
-  # Prepare deployment file
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__API_REPLICAS__%$KYSO_API_REPLICAS%" \
-    -e "s%__API_IMAGE__%$KYSO_API_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
-    -e "s%__ELASTIC_URL__%$_elastic_url%" \
-    "$_deploy_tmpl" >"$_deploy_yaml"
   for _yaml in "$_ep_yaml" "$_secret_yaml" "$_auth_yaml" "$_service_yaml" \
     "$_deploy_yaml" "$_ingress_yaml" "$_ingress_docs_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
