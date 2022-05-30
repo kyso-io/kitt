@@ -52,10 +52,6 @@ extsvc_export_variables() {
   if [ "$_extsvc" ]; then
     export EXTSVC_NAME="$_extsvc"
   fi
-  if [ -z "$EXTSVC_NAME" ]; then
-    echo "Missing service name, aborting!!!"
-    exit 1
-  fi
   # Load cluster values
   cluster_export_variables "$_cluster"
   # Directories
@@ -284,6 +280,10 @@ extsvc_install() {
   _extsvc="$1"
   _cluster="$2"
   extsvc_export_variables "$_extsvc" "$_cluster"
+  if [ -z "$EXTSVC_NAME" ]; then
+    echo "Missing service name, aborting!!!"
+    exit 1
+  fi
   # Variables
   _ns="$EXTSVC_NAMESPACE"
   # Files 

@@ -63,8 +63,9 @@ done
 _svcname="$2"
 _cluster="$3"
 
+extsvc_export_variables "$_cluster"
+
 if [ "$_command" ]; then
-  extsvc_export_variables "$_cluster"
   extsvc_command "$_command" "$_svcname" "$_cluster"
 else
   usage 0
