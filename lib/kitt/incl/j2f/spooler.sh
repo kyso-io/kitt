@@ -70,7 +70,7 @@ j2f_spooler_command() {
   j2f_spooler_export_variables
   echo "Processing existing files under '$_base_dir'"
   find "$_base_dir" -type f | sort | while read -r _filename; do
-    queue_spooler_json_job "$_filename"
+    j2f_spooler_queue_job "$_filename"
   done
   # Use inotifywatch to process new files
   echo "Watching for new files under '$_base_dir'"
