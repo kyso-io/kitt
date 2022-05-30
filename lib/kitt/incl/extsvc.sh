@@ -354,7 +354,7 @@ extsvc_install() {
   fi
   # Create tls secret if needed (the call will fall if cert files are missing)
   if [ "$_cert_name" ]; then
-    create_tls_cert_yaml "$_ns" "$_cert_name" "$_cert_crt" "$_cert_key"
+    create_tls_cert_yaml "$_ns" "$_cert_name" "$_cert_crt" "$_cert_key" \
       "$_cert_yaml"
     # sed commands for the _ingress_yaml file
     cert_sed="s%__CERT_NAME__%$_cert_name%"
