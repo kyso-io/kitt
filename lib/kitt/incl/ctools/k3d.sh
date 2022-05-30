@@ -354,6 +354,7 @@ ctool_k3d_command() {
     reg-install) ctool_k3d_reg_install ;;
     reg-reinst) ctool_k3d_reg_reinstall ;;
     reg-remove) ctool_k3d_reg_remove ;;
+    remove) ctool_k3d_remove "$_cluster" ;;
     start) ctool_k3d_cluster_command "start" "$_cluster";;
     status) ctool_k3d_cluster_command "list" "$_cluster" 2>/dev/null ||
       echo "Cluster '$CLUSTER_NAME' not found!" ;;
