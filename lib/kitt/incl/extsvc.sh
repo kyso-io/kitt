@@ -62,7 +62,7 @@ extsvc_export_variables() {
   export EXTSVC_KUBECTL_DIR="$EXTSVC_BASE_KUBECTL_DIR/$_extsvc"
   export EXTSVC_SECRETS_DIR="$EXTSVC_BASE_SECRETS_DIR/$_extsvc"
   # Templates
-  export EXTSVC_INGRESS_TMPL="$EXTSVC_TMPL_DIR/ingress.yml"
+  export EXTSVC_INGRESS_TMPL="$EXTSVC_TMPL_DIR/ingress.yaml"
   export EXTSVC_CONFIG="$EXTSVC_CONFIG_DIR/config"
   # Files
   export EXTSVC_CONFIG="$CLUST_EXTSVC_DIR/$EXTSVC_NAME/config"
