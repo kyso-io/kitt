@@ -1,0 +1,44 @@
+#!/bin/sh
+# ----
+# File:        git
+# Description: Command to run a git command on the base of the kitt checkout.
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="git: run git command on the kitt base dir"
+
+# ---------
+# Functions
+# ---------
+
+# Usage
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $APP_BASE_NAME $(basename "$0") GIT_ARGS
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+# Check args
+case "$#" in
+0) usage 0 ;;
+*) cd "$BASE_DIR" && exec git "$@" ;;
+esac
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

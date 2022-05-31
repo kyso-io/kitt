@@ -68,8 +68,9 @@ print_basedir() {
 setup_app_dirs() {
   # Compute base directory
   BASE_DIR="$(print_basedir)"
+  export BASE_DIR
   # Set paths for the directories
-  LIB_DIR="$BASE_DIR/lib/$APP_NAME"
+  export LIB_DIR="$BASE_DIR/lib/$APP_NAME"
   export CMND_DIR="$LIB_DIR/cmnd"
   export INCL_DIR="$LIB_DIR/incl"
   export TMPL_DIR="$LIB_DIR/tmpl"
