@@ -309,7 +309,6 @@ apps_kyso_api_install() {
     sed \
       -e "s%__APP__%$_app%" \
       -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__API_MAX_BODY_SIZE__%$KYSO_API_MAX_BODY_SIZE%" \
       -e "s%__API_REPLICAS__%$KYSO_API_REPLICAS%" \
       -e "s%__API_IMAGE__%$KYSO_API_IMAGE%" \
       -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
@@ -358,7 +357,7 @@ apps_kyso_api_install() {
   fi
   # Create ingress definition
   create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
-    "" ""
+    "" "$KYSO_API_MAX_BODY_SIZE"
   # Prepare service_yaml
   sed \
     -e "s%__APP__%$_app%" \
