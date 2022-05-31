@@ -30,7 +30,7 @@ export APP_DEFAULT_CLUSTER_EKS_MAX_WORKERS="9"
 export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS="3"
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
 export APP_DEFAULT_CLUSTER_EKS_VERSION="1.22"
-export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
+export APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
 
 # --------
 # Includes
@@ -85,6 +85,9 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_EFS_FILESYSTEMID" ] ||
     CLUSTER_EFS_FILESYSTEMID="${APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID}"
   export CLUSTER_EFS_FILESYSTEMID
+  [ "$CLUSTER_FORCE_SSL_REDIRECT" ] ||
+    CLUSTER_FORCE_SSL_REDIRECT="${APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT}"
+  export CLUSTER_FORCE_SSL_REDIRECT
   # Directories
   export EKS_TMPL_DIR="$TMPL_DIR/eks"
   # Templates
@@ -130,6 +133,8 @@ ctool_eks_read_variables() {
   CLUSTER_NUM_WORKERS=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
   CLUSTER_EFS_FILESYSTEMID=${READ_VALUE}
+  read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
+  CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Add pull secrets to namespaces" "${CLUSTER_PULL_SECRETS_IN_NS}"
   CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
   read_bool "Use basic auth" "${CLUSTER_USE_BASIC_AUTH}"
@@ -175,6 +180,8 @@ MAX_WORKERS=$CLUSTER_MAX_WORKERS
 NUM_WORKERS=$CLUSTER_NUM_WORKERS
 # EFS filesystem to use for dynamic volumes
 EFS_FILESYSTEMID=$CLUSTER_EFS_FILESYSTEMID
+# Force SSL redirect on ingress
+FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
 # Enable to add credentials to namespaces to pull images from a private registry
 PULL_SECRETS_IN_NS=$CLUSTER_PULL_SECRETS_IN_NS
 # Enable basic auth for sensible services (disable only on dev deployments)

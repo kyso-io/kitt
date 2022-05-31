@@ -27,6 +27,7 @@ export APP_DEFAULT_CLUSTER_API_PORT="6443"
 export APP_DEFAULT_CLUSTER_LB_HOST_IP="127.0.0.1"
 export APP_DEFAULT_CLUSTER_LB_HTTP_PORT="80"
 export APP_DEFAULT_CLUSTER_LB_HTTPS_PORT="443"
+export APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="true"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY="true"
 export APP_DEFAULT_CLUSTER_USE_REMOTE_REGISTRY="true"
@@ -76,6 +77,9 @@ ctool_k3d_export_variables() {
   [ "$CLUSTER_LB_HTTPS_PORT" ] ||
     CLUSTER_LB_HTTPS_PORT="${APP_DEFAULT_CLUSTER_LB_HTTPS_PORT}"
   export CLUSTER_LB_HTTPS_PORT
+  [ "$CLUSTER_FORCE_SSL_REDIRECT" ] ||
+    CLUSTER_FORCE_SSL_REDIRECT="${APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT}"
+  export CLUSTER_FORCE_SSL_REDIRECT
   [ "$CLUSTER_USE_LOCAL_REGISTRY" ] ||
     CLUSTER_USE_LOCAL_REGISTRY="${APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY}"
   export CLUSTER_USE_LOCAL_REGISTRY
@@ -123,6 +127,8 @@ ctool_k3d_read_variables() {
   CLUSTER_LB_HTTP_PORT=${READ_VALUE}
   read_value "LoadBalancer HTTPS Port" "${CLUSTER_LB_HTTPS_PORT}"
   CLUSTER_LB_HTTPS_PORT=${READ_VALUE}
+  read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
+  CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Use local storage" "${CLUSTER_USE_LOCAL_STORAGE}"
   CLUSTER_USE_LOCAL_STORAGE=${READ_VALUE}
   read_bool "Use local registry" "${CLUSTER_USE_LOCAL_REGISTRY}"
@@ -174,6 +180,8 @@ LB_HOST_IP=$CLUSTER_LB_HOST_IP
 LB_HTTP_PORT=$CLUSTER_LB_HTTP_PORT
 # HTTPS Port (use the default unless you have a conflict)
 LB_HTTPS_PORT=$CLUSTER_LB_HTTPS_PORT
+# Force SSL redirect on ingress
+FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
 # Configure k3d to use a couple of local directories for storage and volumes,
 # usually only makes sense on linux hosts & allows us to use velero to backup
 # volumes (we use 'local-storage' class and create directories on the host to
