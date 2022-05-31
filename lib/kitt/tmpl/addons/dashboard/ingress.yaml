@@ -8,7 +8,7 @@ metadata:
     nginx.ingress.kubernetes.io/auth-secret: __AUTH_SECRET__
     nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "True"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
 spec:
   ingressClassName: nginx
   rules:
