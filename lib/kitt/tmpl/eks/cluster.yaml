@@ -6,6 +6,8 @@ metadata:
   region: __CLUSTER_REGION__
   version: "__EKS_VERSION__"
 
+availabilityZones: [__CLUSTER_AVAILABILITY_ZONES__]
+
 managedNodeGroups:
 - name: __CLUSTER_EKS_NODEGROUP__
   instanceType: __CLUSTER_EKS_INSTANCE_TYPE__
