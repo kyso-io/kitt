@@ -437,7 +437,7 @@ apps_kyso_scs_install() {
   # Prepare statefulset file
   _kyso_api_host="kyso-api-svc.$KYSO_API_NAMESPACE.svc.cluster.local"
   if [ "$KYSO_SCS_API_AUTH_EP" ]; then
-    _auth_request_uri="http://$_kyso_api_host/api/v1/$SCS_API_AUTH_EP"
+    _auth_request_uri="http://$_kyso_api_host/api/v1/$KYSO_SCS_API_AUTH_EP"
   else
     _auth_request_uri=""
   fi
