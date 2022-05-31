@@ -540,6 +540,20 @@ apps_kyso_scs_summary() {
   statefulset_summary "$_ns" "$_app"
 }
 
+apps_kyso_scs_uris() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  if [ -f "$KYSO_SCS_USERS_TAR" ]; then
+    _sftp_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+    _sftp_port="22"
+    _user_and_pass="$(
+      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt
+    )"
+    echo "sftp://$_user_and_pass@$_sftp_host:$_sftp_port"
+  fi
+}
+
 apps_kyso_scs_command() {
   _command="$1"
   _deployment="$2"
@@ -551,6 +565,7 @@ apps_kyso_scs_command() {
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
+  uris) apps_kyso_scs_uris "$_deployment" "$_cluster" ;;
   *)
     echo "Unknown kyso-scs subcommand '$1'"
     exit 1
@@ -559,7 +574,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "logs install remove restart status summary"
+  echo "logs install remove restart status summary uris"
 }
 
 # ----
