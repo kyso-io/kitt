@@ -13,6 +13,7 @@ managedNodeGroups:
   desiredCapacity: __CLUSTER_NUM_WORKERS__
   maxSize: __CLUSTER_MAX_WORKERS__
   minSize: __CLUSTER_MIN_WORKERS__
+  availabilityZones: [__CLUSTER_AVAILABILITY_ZONES__]
   labels: {role: worker}
   tags:
     nodegroup-role: worker
