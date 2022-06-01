@@ -365,6 +365,7 @@ EOF
         -F channels="${J2F_SLACK_CHANNEL}" \
         -F title="Deployment log for $ref_type '$gl_ref', commit '$gl_sha'" \
         -F filename="deployment-$ref_type-$gl_ref-$gl_sha.log" \
+        -F filetype="text" \
         -F file=@"$J2F_WEBHOOK_LOGFILE_PATH" >/dev/null
     fi
   else
@@ -393,6 +394,7 @@ EOF
         -F channels="${J2F_SLACK_CHANNEL}" \
         -F title="Deployment log for $ref_type '$gl_ref', commit '$gl_sha'" \
         -F filename="deployment-$ref_type-$gl_ref-$gl_sha.log" \
+        -F filetype="text" \
         -F file=@"$J2F_WEBHOOK_LOGFILE_PATH" >/dev/null
     fi
   fi
