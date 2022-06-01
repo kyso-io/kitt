@@ -255,7 +255,7 @@ apps_kyso_ui_reinstall() {
   _app="kyso-ui"
   _ns="$KYSO_UI_NAMESPACE"
   if find_namespace "$_ns"; then
-    _cimages="$(deployment_container_images)"
+    _cimages="$(deployment_container_images "$_ns" "$_app")"
     _cname="kyso-ui"
     KYSO_UI_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_cname //p")"
     if [ "$KYSO_UI_IMAGE" ]; then

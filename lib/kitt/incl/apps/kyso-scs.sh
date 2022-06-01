@@ -478,7 +478,7 @@ apps_kyso_scs_reinstall() {
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   if find_namespace "$_ns"; then
-    _cimages="$(statefulset_container_images)"
+    _cimages="$(statefulset_container_images "$_ns" "$_app")"
     _indexer_cname="kyso-indexer"
     KYSO_INDEXER_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_indexer_cname //p")"
     _myssh_cname="myecureshell"

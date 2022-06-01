@@ -217,7 +217,7 @@ apps_mongo_gui_reinstall() {
   _app="mongo-gui"
   _ns="$MONGO_GUI_NAMESPACE"
   if find_namespace "$_ns"; then
-    _cimages="$(deployment_container_images)"
+    _cimages="$(deployment_container_images "$_ns" "$_app")"
     _cname="mongo-gui"
     MONGO_GUI_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_cname //p")"
     if [ "$MONGO_GUI_IMAGE" ]; then

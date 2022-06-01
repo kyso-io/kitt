@@ -384,7 +384,7 @@ apps_kyso_api_reinstall() {
   _app="kyso-api"
   _ns="$KYSO_API_NAMESPACE"
   if find_namespace "$_ns"; then
-    _cimages="$(deployment_container_images)"
+    _cimages="$(deployment_container_images "$_ns" "$_app")"
     _cname="kyso-api"
     KYSO_API_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_cname //p")"
     if [ "$KYSO_API_IMAGE" ]; then
