@@ -1,0 +1,82 @@
+#!/bin/sh
+# ----
+# File:        scs
+# Description: Command to dump or restore the scs filesystem using tarfiles
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="scs: dump or restore the scs filesystem using tarfiles"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/scs.sh
+  [ "$INCL_SCS_SH" = "1" ] || . "$INCL_DIR/scs.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  _kit="$APP_BASE_NAME"
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $_kit $(basename "$0") SUBCOMMAND FILE [DEPLOYMENT_NAME [CLUSTER_NAME]]
+
+Where SUBCOMMAND is one of:
+
+$(scs_command_list | sed -e "s/^/- /")
+
+If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
+
+- CLUSTER_NAME = '$CLUSTER_NAME'
+- DEPLOYMENT_NAME = '$DEPLOYMENT_NAME'
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+_command=""
+while read -r _c; do
+  if [ "$1" = "${_c%:*}" ]; then
+    _command="$1"
+    break
+  fi
+done <<EOF
+$(scs_command_list)
+EOF
+
+_arg="$2"
+_deployment="$3"
+_cluster="$4"
+
+apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+
+if [ "$_command" ]; then
+  scs_command "$@"
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2
