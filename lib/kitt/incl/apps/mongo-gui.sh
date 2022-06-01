@@ -210,6 +210,27 @@ apps_mongo_gui_install() {
     -n "$_ns" "$_app"
 }
 
+apps_mongo_gui_reinstall() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _app="mongo-gui"
+  _ns="$MONGO_GUI_NAMESPACE"
+  if find_namespace "$_ns"; then
+    _cimages="$(deployment_container_images)"
+    _cname="mongo-gui"
+    MONGO_GUI_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_cname //p")"
+    if [ "$MONGO_GUI_IMAGE" ]; then
+      export MONGO_GUI_IMAGE
+      apps_mongo_gui_install "$_deployment" "$_cluster"
+    else
+      echo "Image for '$_app' on '$_ns' not found!"
+    fi
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_mongo_gui_remove() {
   _deployment="$1"
   _cluster="$2"
@@ -297,6 +318,7 @@ apps_mongo_gui_command() {
   case "$_command" in
     logs) apps_mongo_gui_logs "$_deployment" "$_cluster";;
     install) apps_mongo_gui_install "$_deployment" "$_cluster";;
+    reinstall) apps_mongo_gui_reinstall "$_deployment" "$_cluster";;
     remove) apps_mongo_gui_remove "$_deployment" "$_cluster";;
     restart) apps_mongo_gui_restart "$_deployment" "$_cluster";;
     status) apps_mongo_gui_status "$_deployment" "$_cluster";;
@@ -307,7 +329,7 @@ apps_mongo_gui_command() {
 }
 
 apps_mongo_gui_command_list() {
-  echo "logs install remove restart status summary uris"
+  echo "logs install reinstall remove restart status summary uris"
 }
 
 # ----

@@ -248,6 +248,27 @@ apps_kyso_ui_install() {
   fi
 }
 
+apps_kyso_ui_reinstall() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_ui_export_variables "$_deployment" "$_cluster"
+  _app="kyso-ui"
+  _ns="$KYSO_UI_NAMESPACE"
+  if find_namespace "$_ns"; then
+    _cimages="$(deployment_container_images)"
+    _cname="kyso-ui"
+    KYSO_UI_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_cname //p")"
+    if [ "$KYSO_UI_IMAGE" ]; then
+      export KYSO_UI_IMAGE
+      apps_kyso_ui_install "$_deployment" "$_cluster"
+    else
+      echo "Image for '$_app' on '$_ns' not found!"
+    fi
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_kyso_ui_remove() {
   _deployment="$1"
   _cluster="$2"
@@ -326,8 +347,9 @@ apps_kyso_ui_command() {
   case "$_command" in
     logs) apps_kyso_ui_logs "$_deployment" "$_cluster";;
     install) apps_kyso_ui_install "$_deployment" "$_cluster";;
-    restart) apps_kyso_ui_restart "$_deployment" "$_cluster";;
+    reinstall) apps_kyso_ui_reinstall "$_deployment" "$_cluster";;
     remove) apps_kyso_ui_remove "$_deployment" "$_cluster";;
+    restart) apps_kyso_ui_restart "$_deployment" "$_cluster";;
     status) apps_kyso_ui_status "$_deployment" "$_cluster";;
     summary) apps_kyso_ui_summary "$_deployment" "$_cluster";;
     uris) apps_kyso_ui_uris "$_deployment" "$_cluster";;
@@ -336,7 +358,7 @@ apps_kyso_ui_command() {
 }
 
 apps_kyso_ui_command_list() {
-  echo "logs install remove restart status summary uris"
+  echo "logs install reinstall remove restart status summary uris"
 }
 
 # ----

@@ -471,6 +471,34 @@ apps_kyso_scs_install() {
   apps_kyso_scs_update_api_settings
 }
 
+apps_kyso_scs_reinstall() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _app="kyso-scs"
+  _ns="$KYSO_SCS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    _cimages="$(statefulset_container_images)"
+    _indexer_cname="kyso-indexer"
+    KYSO_INDEXER_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_indexer_cname //p")"
+    _myssh_cname="myecureshell"
+    KYSO_SCS_MYSSH_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_myssh_cname //p")"
+    _nginx_cname="nginx"
+    KYSO_SCS_NGINX_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_nginx_cname //p")"
+    if [ "$KYSO_INDEXER_IMAGE" ] && [ "$KYSO_SCS_MYSSH_IMAGE" ] &&
+      [ "$KYSO_SCS_NGINX_IMAGE" ]; then
+      export KYSO_INDEXER_IMAGE
+      export KYSO_SCS_MYSSH_IMAGE
+      export KYSO_SCS_NGINX_IMAGE
+      apps_kyso_scs_install "$_deployment" "$_cluster"
+    else
+      echo "Images for '$_app' on '$_ns' missing!"
+    fi
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
 apps_kyso_scs_remove() {
   _deployment="$1"
   _cluster="$2"
@@ -547,8 +575,9 @@ apps_kyso_scs_command() {
   case "$_command" in
   logs) apps_kyso_scs_logs "$_deployment" "$_cluster" ;;
   install) apps_kyso_scs_install "$_deployment" "$_cluster" ;;
-  restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
+  reinstall) apps_kyso_scs_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
+  restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
   *)
@@ -559,7 +588,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "logs install remove restart status summary"
+  echo "logs install reinstall remove restart status summary"
 }
 
 # ----

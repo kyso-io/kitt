@@ -247,6 +247,19 @@ deployment_summary() {
   fi
 }
 
+deployment_container_images(){
+  _ns="$1"
+  _app="$2"
+  _filter="(.spec.template.spec.containers[]|@text \"\(.name) \(.image)\")"
+  _images="$(
+    kubectl get deployment -n "$_ns" -o jsonpath='{.items[0]}' 2>/dev/null |
+     jq -r "if .metadata.name==\"$_app\" then . else \"\" end | ($_filter)"
+  )" || true
+  if [ "$_images" ]; then
+    echo "$_images"
+  fi
+}
+
 statefulset_restart() {
   if [ "$#" -ne "2" ]; then
     echo "Wrong arguments, expecting NAMESPACE & APP name"
@@ -285,6 +298,19 @@ statefulset_summary() {
     echo "$_dinfo" | sed -e 's/"//g;s/{//;s/}//;s/:/: /;s/^/- /'
   else
     echo "MISSING '$_app' on namespace '$_ns'!"
+  fi
+}
+
+statefulset_container_images(){
+  _ns="$1"
+  _app="$2"
+  _filter="(.spec.template.spec.containers[]|@text \"\(.name) \(.image)\")"
+  _images="$(
+    kubectl get statefulset -n "$_ns" -o jsonpath='{.items[0]}' 2>/dev/null |
+     jq -r "if .metadata.name==\"$_app\" then . else \"\" end | ($_filter)"
+  )" || true
+  if [ "$_images" ]; then
+    echo "$_images"
   fi
 }
 
