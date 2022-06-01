@@ -199,7 +199,7 @@ apps_mongo_gui_install() {
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__MONGO_GUI_IMAGE__%$MONGO_GUI_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
   for _yaml in "$_secret_yaml" "$_auth_yaml" "$_svc_yaml" "$_deploy_yaml" \
     "$_ingress_yaml" $_cert_yamls; do

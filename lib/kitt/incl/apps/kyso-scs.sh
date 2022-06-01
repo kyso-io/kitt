@@ -448,7 +448,7 @@ apps_kyso_scs_install() {
     -e "s%__SCS_MYSSH_IMAGE__%$KYSO_SCS_MYSSH_IMAGE%" \
     -e "s%__SCS_NGINX_IMAGE__%$KYSO_SCS_NGINX_IMAGE%" \
     -e "s%__INDEXER_IMAGE__%$KYSO_INDEXER_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     -e "s%__MYSSH_SECRET__%$KYSO_SCS_SECRETS_NAME%" \
     -e "s%__AUTH_REQUEST_URI__%$_auth_request_uri%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \

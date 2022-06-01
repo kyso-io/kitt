@@ -216,7 +216,7 @@ apps_kyso_ui_install() {
       -e "s%__NAMESPACE__%$_ns%" \
       -e "s%__UI_REPLICAS__%$KYSO_UI_REPLICAS%" \
       -e "s%__UI_IMAGE__%$KYSO_UI_IMAGE%" \
-      -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+      -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
       "$_deploy_tmpl" >"$_deploy_yaml"
   fi
   # Create certificate secrets if needed or remove them if not

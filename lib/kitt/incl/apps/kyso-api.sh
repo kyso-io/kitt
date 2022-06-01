@@ -311,7 +311,7 @@ apps_kyso_api_install() {
       -e "s%__NAMESPACE__%$_ns%" \
       -e "s%__API_REPLICAS__%$KYSO_API_REPLICAS%" \
       -e "s%__API_IMAGE__%$KYSO_API_IMAGE%" \
-      -e "s%__IMAGE_PULL_POLICY__%$IMAGE_PULL_POLICY%" \
+      -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
       -e "s%__ELASTIC_URL__%$_elastic_url%" \
       "$_deploy_tmpl" >"$_deploy_yaml"
     # Prepare secrets
