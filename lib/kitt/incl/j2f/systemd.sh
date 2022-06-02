@@ -151,6 +151,7 @@ Type=simple
 User=$J2F_USER
 Group=$J2F_GROUP
 ExecStart=$_command
+WorkingDirectory=~
 EOF
   # Restart and enable services
   sudo systemctl daemon-reload
