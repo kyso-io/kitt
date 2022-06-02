@@ -47,6 +47,8 @@ ctool_ext_check_directories() {
 ctool_ext_read_variables() {
   read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
   CLUSTER_DOMAIN=${READ_VALUE}
+  read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
+  CLUSTER_DATA_IN_GIT=${READ_VALUE}
   read_bool "Add pull secrets to namespaces" "${CLUSTER_PULL_SECRETS_IN_NS}"
   CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
   read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
@@ -74,6 +76,8 @@ KIND=$CLUSTER_KIND
 DOMAIN=$CLUSTER_DOMAIN
 # Force SSL redirect on ingress
 FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
+# Keep cluster data in git or not
+CLUSTER_DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
 # Enable to add credentials to namespaces to pull images from a private registry
 PULL_SECRETS_IN_NS=$CLUSTER_PULL_SECRETS_IN_NS
 # Enable basic auth for sensible services (disable only on dev deployments)

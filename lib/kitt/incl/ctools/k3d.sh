@@ -127,6 +127,8 @@ ctool_k3d_read_variables() {
   CLUSTER_LB_HTTP_PORT=${READ_VALUE}
   read_value "LoadBalancer HTTPS Port" "${CLUSTER_LB_HTTPS_PORT}"
   CLUSTER_LB_HTTPS_PORT=${READ_VALUE}
+  read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
+  CLUSTER_DATA_IN_GIT=${READ_VALUE}
   read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
   CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Use local storage" "${CLUSTER_USE_LOCAL_STORAGE}"
@@ -182,6 +184,8 @@ LB_HTTP_PORT=$CLUSTER_LB_HTTP_PORT
 LB_HTTPS_PORT=$CLUSTER_LB_HTTPS_PORT
 # Force SSL redirect on ingress
 FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
+# Keep cluster data in git or not
+CLUSTER_DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
 # Configure k3d to use a couple of local directories for storage and volumes,
 # usually only makes sense on linux hosts & allows us to use velero to backup
 # volumes (we use 'local-storage' class and create directories on the host to
