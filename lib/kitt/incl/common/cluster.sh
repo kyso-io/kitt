@@ -106,6 +106,8 @@ cluster_check_directories() {
   if [ ! -d "$CLUSTER_DIR/.git" ]; then
     if [ ! -f "$CLUSTER_DIR/.gitignore" ]; then
       cat >"$CLUSTER_DIR/.gitignore" <<EOF
+/storage
+/volumes
 EOF
     fi
     (
