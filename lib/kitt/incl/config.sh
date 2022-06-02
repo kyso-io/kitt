@@ -43,6 +43,9 @@ export APP_DEFAULT_CLUSTER_LOCAL_DOMAIN
 export APP_DEFAULT_DEPLOYMENT_NAME
 
 # Boolean values for cluster
+[ "$APP_DEFAULT_CLUSTER_DATA_IN_GIT" ] || APP_DEFAULT_CLUSTER_DATA_IN_GIT="true"
+export APP_DEFAULT_CLUSTER_DATA_IN_GIT
+
 [ "$APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE" ] ||
   APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE
@@ -116,6 +119,8 @@ config_app_read_variables() {
   read_value "Default cluster local domain" \
     "${APP_DEFAULT_CLUSTER_LOCAL_DOMAIN}"
   APP_DEFAULT_CLUSTER_LOCAL_DOMAIN=${READ_VALUE}
+  read_bool "Keep cluster data in git" "${APP_DEFAULT_CLUSTER_DATA_IN_GIT}"
+  APP_DEFAULT_CLUSTER_DATA_IN_GIT=${READ_VALUE}
   read_bool "Cluster adds pull secrets to namespaces" \
     "${APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS}"
   APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
@@ -148,6 +153,8 @@ DEFAULT_CLUSTER_NAME=$APP_DEFAULT_CLUSTER_NAME
 DEFAULT_CLUSTER_DOMAIN=$APP_DEFAULT_CLUSTER_DOMAIN
 # Default local domain used with the k3d registry, usually points to 127.0.0.1
 DEFAULT_CLUSTER_LOCAL_DOMAIN=$APP_DEFAULT_CLUSTER_LOCAL_DOMAIN
+# Keep cluster data in git or not
+DEFAULT_CLUSTER_DATA_IN_GIT=$APP_DEFAULT_CLUSTER_DATA_IN_GIT
 # Add credentials on all namespaces to get images from a private registry
 DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=$APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS
 # Enable basic auth for sensible services (disable only on dev deployments)

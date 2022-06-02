@@ -77,13 +77,17 @@ EOF
   fi
   # Adjust the rest of the variables
   if [ -z "$CLUSTER_DOMAIN" ]; then
-    CLUSTER_DOMAIN="$APP_DEFAULT_CLUSTER_DOMAIN"
+    CLUSTER_DOMAIN="${APP_DEFAULT_CLUSTER_DOMAIN}"
   fi
   export CLUSTER_DOMAIN
   if [ -z "$CLUSTER_PULL_SECRETS_IN_NS" ]; then
     CLUSTER_PULL_SECRETS_IN_NS="${APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS}"
   fi
   export CLUSTER_PULL_SECRETS_IN_NS
+  if [ -z "$CLUSTER_DATA_IN_GIT" ]; then
+    CLUSTER_DATA_IN_GIT="${APP_DEFAULT_CLUSTER_DATA_IN_GIT}"
+  fi
+  export CLUSTER_DATA_IN_GIT
   if [ -z "$CLUSTER_PULL_SECRETS_NAME" ]; then
     CLUSTER_PULL_SECRETS_NAME="${APP_DEFAULT_CLUSTER_PULL_SECRETS_NAME}"
   fi
@@ -103,7 +107,7 @@ cluster_check_directories() {
   for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
-  if [ ! -d "$CLUSTER_DIR/.git" ]; then
+  if is_selected "$CLUSTER_DATA_IN_GIT" && [ ! -d "$CLUSTER_DIR/.git" ]; then
     if [ ! -f "$CLUSTER_DIR/.gitignore" ]; then
       cat >"$CLUSTER_DIR/.gitignore" <<EOF
 /storage
