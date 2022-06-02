@@ -112,7 +112,7 @@ EOF
       cd "$CLUSTER_DIR"
       git init -b main .
       git add .
-      git commit -m 'Initial commit'
+      git commit -m 'Initial commit' --quiet
     )
   fi
 }
