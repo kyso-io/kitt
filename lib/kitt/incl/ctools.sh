@@ -59,6 +59,7 @@ ctool_command() {
   k3d) ctool_k3d_command "$_command" "$_cluster" ;;
   remove) ctool_remove_command "$_command" "$_cluster" ;;
   esac
+  cluster_git_update
 }
 
 ctool_list() {

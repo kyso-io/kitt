@@ -123,6 +123,19 @@ EOF
   fi
 }
 
+cluster_git_update() {
+  if is_selected "$CLUSTER_DATA_IN_GIT"; then
+    (
+      cd "$CLUSTER_DIR"
+      # If the status command shows something there are changes to commit
+      if [ "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "$APP_CALL_PATH $APP_CALL_ARGS" --quiet
+      fi
+    )
+  fi
+}
+
 cluster_remove_directories() {
   for _d in "$CLUST_EKS_DIR" "$CLUST_EXTSVC_DIR" "$CLUST_HELM_DIR" \
     "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR"; do

@@ -72,6 +72,7 @@ scs_command() {
       return 1
     fi
   fi
+  # cluster_git_update
 }
 
 scs_command_list() {

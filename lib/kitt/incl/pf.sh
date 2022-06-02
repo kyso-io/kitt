@@ -406,6 +406,7 @@ pf_command() {
     ;;
   *) echo "Unknown pf subcommand '$_cmnd'"; exit 1 ;;
   esac
+  cluster_git_update
 }
 
 pf_command_list() {

@@ -61,6 +61,7 @@ j2f_command() {
   systemd) j2f_systemd_command "$@" ;;
   webhook) j2f_webhook_command "$@" ;;
   esac
+  cluster_git_update
 }
 
 j2f_command_list() {

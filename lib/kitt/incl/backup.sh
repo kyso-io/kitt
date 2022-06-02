@@ -125,6 +125,7 @@ backup_command() {
     fi
     ;;
   esac
+  # cluster_git_update
 }
 
 backup_command_list() {

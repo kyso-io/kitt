@@ -114,6 +114,7 @@ EOF
 # ----
 
 export APP_CALL_PATH="$0"
+export APP_CALL_ARGS="$*"
 APP_BASE_NAME="$(basename "$APP_CALL_PATH")"
 export APP_BASE_NAME
 APP_REAL_PATH="$(readlinkf_posix "$APP_CALL_PATH")"

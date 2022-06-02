@@ -437,6 +437,7 @@ extsvc_command() {
     remove) extsvc_remove "$_extsvc" "$_cluster" ;;
     *) echo "Unknown subcommand '$1'"; exit 1 ;;
   esac
+  cluster_git_update
 }
 
 extsvc_command_list() {
