@@ -112,7 +112,7 @@ EOF
     fi
     (
       cd "$CLUSTER_DIR"
-      git init -b main .
+      git init -b main --quiet .
       git add .
       git commit -m 'Initial commit' --quiet
     )
