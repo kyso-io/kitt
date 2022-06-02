@@ -103,6 +103,18 @@ cluster_check_directories() {
   for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
+  if [ ! -d "$CLUSTER_DIR/.git" ]; then
+    if [ ! -f "$CLUSTER_DIR/.gitignore" ]; then
+      cat >"$CLUSTER_DIR/.gitignore" <<EOF
+EOF
+    fi
+    (
+      cd "$CLUSTER_DIR"
+      git init -b main .
+      git add .
+      git commit -m 'Initial commit'
+    )
+  fi
 }
 
 cluster_remove_directories() {
