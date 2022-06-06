@@ -233,7 +233,9 @@ deployment_status() {
 deployment_summary() {
   _ns="$1"
   _app="$2"
-  _filter="(.status|{availableReplicas})"
+  _filter="(.status|{replicas})"
+  _filter="$_filter,(.status|{availableReplicas})"
+  _filter="$_filter,(.status|{readyReplicas})"
   _filter="$_filter,(.spec.template.spec.containers[]|{image})"
   _dinfo="$(
     kubectl get deployment -n "$_ns" -o jsonpath='{.items[0]}' 2>/dev/null |
@@ -287,18 +289,25 @@ statefulset_status() {
 statefulset_summary() {
   _ns="$1"
   _app="$2"
-  _filter="(.status|{currentReplicas})"
+  _ns_info="$3"
+  _filter="(.status|{replicas})"
+  _filter="$_filter,(.status|{currentReplicas})"
+  _filter="$_filter,(.status|{readyReplicas})"
   _filter="$_filter,(.spec.template.spec.containers[]|{image})"
   _dinfo="$(
     kubectl get statefulset -n "$_ns" -o jsonpath='{.items[0]}' 2>/dev/null |
      jq -c "if .metadata.name==\"$_app\" then . else \"\" end | ($_filter)"
   )" || true
   if [ "$_dinfo" ]; then
-    echo "FOUND '$_app' on namespace '$_ns':"
+    [ "$_ns_info" = "quiet" ] || echo "FOUND '$_app' on namespace '$_ns':"
     echo "$_dinfo" | sed -e 's/"//g;s/{//;s/}//;s/:/: /;s/^/- /'
   else
-    echo "MISSING '$_app' on namespace '$_ns'!"
+    [ "$_ns_info" = "quiet" ] || echo "MISSING '$_app' on namespace '$_ns'!"
   fi
+}
+
+statefulset_helm_summary() {
+  statefulset_summary "$1" "$2" "quiet"
 }
 
 statefulset_container_images(){
