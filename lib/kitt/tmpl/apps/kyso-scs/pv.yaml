@@ -11,11 +11,12 @@ spec:
   volumeMode: Filesystem
   accessModes:
   - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   claimRef:
     namespace: __NAMESPACE__
     name: __PVC_NAME__
   storageClassName: "__STORAGE_CLASS__"
+# BEG: local-storage
   local:
     path: /volumes/__PV_NAME__
   nodeAffinity:
@@ -26,3 +27,4 @@ spec:
           operator: In
           values:
           - k3s
+# END: local-storage
