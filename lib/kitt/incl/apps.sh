@@ -92,7 +92,10 @@ apps_command() {
     apps_mongo_gui_command "$_command" "$_deployment" "$_cluster"
     ;;
   esac
-  cluster_git_update
+  case "$_command" in
+    status|summary) ;;
+    *) cluster_git_update ;;
+  esac
 }
 
 apps_list() {

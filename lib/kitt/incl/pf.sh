@@ -406,7 +406,10 @@ pf_command() {
     ;;
   *) echo "Unknown pf subcommand '$_cmnd'"; exit 1 ;;
   esac
-  cluster_git_update
+  case "$_cmnd" in
+    info|status) ;;
+    *) cluster_git_update ;;
+  esac
 }
 
 pf_command_list() {

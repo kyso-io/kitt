@@ -31,7 +31,7 @@ fi
 # ---------
 
 scs_command() {
-  _cmnd="$1"
+  _command="$1"
   _arg="$2"
   _deployment="$3"
   _cluster="$4"
@@ -42,7 +42,7 @@ scs_command() {
   fi
   _cmnd=""
   _file=""
-  case "$1" in
+  case "$_command" in
   dump)
     if [ "$_arg" ]; then
       _cmnd="cd /sftp/data && tar cf - ./"
@@ -72,7 +72,10 @@ scs_command() {
       return 1
     fi
   fi
-  # cluster_git_update
+#  case "$_command" in
+#    status|summary) ;;
+#    *) cluster_git_update ;;
+#  esac
 }
 
 scs_command_list() {

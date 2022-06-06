@@ -92,7 +92,10 @@ addon_command() {
   promtail) addon_promtail_command "$_command" ;;
   velero) addon_velero_command "$_command" ;;
   esac
-  cluster_git_update
+  case "$_command" in
+    status|summary) ;;
+    *) cluster_git_update ;;
+  esac
 }
 
 addon_list() {

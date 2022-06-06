@@ -125,7 +125,10 @@ backup_command() {
     fi
     ;;
   esac
-  # cluster_git_update
+#  case "$_command" in
+#    status|summary) ;;
+#    *) cluster_git_update ;;
+#  esac
 }
 
 backup_command_list() {

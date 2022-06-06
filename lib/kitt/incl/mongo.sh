@@ -129,7 +129,10 @@ mongo_command() {
     fi
     kubectl delete -n "$MONGODB_NAMESPACE" "pod/$container_name" --now 1>&2
   fi
-  # cluster_git_update
+#  case "$_command" in
+#    status|summary) ;;
+#    *) cluster_git_update ;;
+#  esac
 }
 
 mongo_command_list() {
