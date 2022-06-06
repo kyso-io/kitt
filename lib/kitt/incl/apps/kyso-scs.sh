@@ -24,6 +24,7 @@ export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_IMAGE="$_myssh_image"
 _nginx_image="registry.kyso.io/docker/nginx-scs:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_NGINX_IMAGE="$_nginx_image"
 export DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE=""
+export DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE="8Gi"
@@ -115,6 +116,12 @@ apps_kyso_scs_export_variables() {
     fi
   fi
   export KYSO_INDEXER_IMAGE
+  if [ "$DEPLOYMENT_KYSO_SCS_REPLICAS" ]; then
+    KYSO_SCS_REPLICAS="$DEPLOYMENT_KYSO_SCS_REPLICAS"
+  else
+    KYSO_SCS_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS"
+  fi
+  export KYSO_SCS_REPLICAS
   if [ "$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS" ]; then
     KYSO_SCS_STORAGE_CLASS="$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS"
   else
@@ -275,6 +282,8 @@ apps_kyso_scs_read_variables() {
     "Indexer Image URI (i.e. '$_ex_img' or export KYSO_INDEXER_IMAGE env var)" \
     "${KYSO_INDEXER_IMAGE}"
   KYSO_INDEXER_IMAGE=${READ_VALUE}
+  read_value "SCS Replicas" "${KYSO_SCS_REPLICAS}"
+  KYSO_SCS_REPLICAS=${READ_VALUE}
   read_value "Kyso SCS Storage Class ('local-storage' needs PV, 'efs-sc' eks)" \
     "${KYSO_SCS_STORAGE_CLASS}"
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
@@ -301,6 +310,8 @@ KYSO_SCS_NGINX_IMAGE=$KYSO_SCS_NGINX_IMAGE
 # If left empty the KYSO_INDEXER_IMAGE environment variable has to be set each
 # time the kyso-scs service is installed
 KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
+# Number of pods to run in parallel (for more than 1 the volumes must be EFS)
+KYSO_SCS_REPLICAS=$KYSO_SCS_REPLICAS
 # Kyso SCS Storage Class ('local-storage' requires existing PV, 'efs-sc' eks)
 KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 # Kyso SCS Volume Size (if the storage is local or NFS the value is ignored)
@@ -332,6 +343,19 @@ apps_kyso_scs_install() {
     exit 1
   fi
   apps_kyso_scs_check_directories
+  # Initial tests
+  if ! find_namespace "$KYSO_API_NAMESPACE"; then
+    read_bool "kyso-api namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
+  if ! find_namespace "$ELASTICSEARCH_NAMESPACE"; then
+    read_bool "elasticsearch namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   _secret_yaml="$KYSO_SCS_SECRET_YAML"
@@ -449,6 +473,7 @@ apps_kyso_scs_install() {
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__BACKUP_ACTION__%$_backup_action%" \
+    -e "s%__REPLICAS__%$KYSO_SCS_REPLICAS%" \
     -e "s%__SCS_MYSSH_IMAGE__%$KYSO_SCS_MYSSH_IMAGE%" \
     -e "s%__SCS_NGINX_IMAGE__%$KYSO_SCS_NGINX_IMAGE%" \
     -e "s%__INDEXER_IMAGE__%$KYSO_INDEXER_IMAGE%" \
