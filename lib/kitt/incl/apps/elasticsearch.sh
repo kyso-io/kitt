@@ -158,7 +158,7 @@ apps_elasticsearch_read_variables() {
   read_value "Elasticsearch java opts (i.e. -Xmx128m -Xms128m)" \
     "${ELASTICSEARCH_JAVAOPTS}"
   ELASTICSEARCH_JAVAOPTS=${READ_VALUE}
-  read_value "Elasticsearch cpu request (i.e. 1000m)" \
+  read_value "Elasticsearch cpu request (i.e. 100m)" \
     "${ELASTICSEARCH_CPU_REQUESTS}"
   ELASTICSEARCH_CPU_REQUESTS=${READ_VALUE}
   read_value "Elasticsearch mem request (i.e. 500m)" \
