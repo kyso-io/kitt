@@ -26,9 +26,9 @@ export DEPLOYMENT_DEFAULT_ELASTICSEARCH_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_SIZE="30Gi"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_PF_PORT=""
-export DEPLOYMENT_DEFAULT_ELASTICSEARCH_JAVAOPTS="-Xmx128m -Xms128m"
-export DEPLOYMENT_DEFAULT_ELASTICSEARCH_CPU_REQUESTS="100m"
-export DEPLOYMENT_DEFAULT_ELASTICSEARCH_MEM_REQUESTS="512M"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_JAVAOPTS=""
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_CPU_REQUESTS="1000m"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_MEM_REQUESTS="2Gi"
 
 # Fixed values
 export ELASTICSEARCH_REPO_NAME="elastic"
@@ -155,13 +155,13 @@ apps_elasticsearch_read_variables() {
   ELASTICSEARCH_REPLICAS=${READ_VALUE}
   read_value "Elasticsearch image (without tag)" "$ELASTICSEARCH_IMAGE"
   ELASTICSEARCH_IMAGE=${READ_VALUE}
-  read_value "Elasticsearch java opts (chart defaults to empty)" \
+  read_value "Elasticsearch java opts (i.e. -Xmx128m -Xms128m)" \
     "${ELASTICSEARCH_JAVAOPTS}"
   ELASTICSEARCH_JAVAOPTS=${READ_VALUE}
-  read_value "Elasticsearch cpu request (chart defaults to 1000m)" \
+  read_value "Elasticsearch cpu request (i.e. 1000m)" \
     "${ELASTICSEARCH_CPU_REQUESTS}"
   ELASTICSEARCH_CPU_REQUESTS=${READ_VALUE}
-  read_value "Elasticsearch mem request (chart defaults to 2Gi)" \
+  read_value "Elasticsearch mem request (i.e. 500m)" \
     "${ELASTICSEARCH_MEM_REQUESTS}"
   ELASTICSEARCH_MEM_REQUESTS=${READ_VALUE}
   read_value "Elasticsearch storageClass" "${ELASTICSEARCH_STORAGE_CLASS}"
