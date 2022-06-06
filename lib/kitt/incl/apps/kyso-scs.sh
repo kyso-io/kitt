@@ -580,12 +580,20 @@ apps_kyso_scs_rmvols() {
   _cluster="$2"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_SCS_NAMESPACE"
-  _pv_name="$_ns-pv"
+  _pv_name="$_ns"
   if find_namespace "$_ns"; then
     echo "Namespace '$_ns' found, not removing volumes!"
   else
-    find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
-      -name "$_pv_name" -exec sudo rm -rf {} \;
+    _dirs="$(
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$_pv_name" -printf "- %f\n"
+    )"
+    if [ "$_dirs" ]; then
+      echo "Removing directories:"
+      echo "$_dirs"
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$_pv_name" -exec sudo rm -rf {} \;
+    fi
   fi
 }
 

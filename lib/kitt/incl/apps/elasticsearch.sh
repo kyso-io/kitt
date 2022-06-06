@@ -333,8 +333,16 @@ apps_elasticsearch_rmvols() {
   if find_namespace "$_ns"; then
     echo "Namespace '$_ns' found, not removing volumes!"
   else
-    find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
-      -name "$ELASTICSEARCH_PV_PREFIX-*" -exec sudo rm -rf {} \;
+    _dirs="$(
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$ELASTICSEARCH_PV_PREFIX-*" -printf "- %f\n"
+    )"
+    if [ "$_dirs" ]; then
+      echo "Removing directories:"
+      echo "$_dirs"
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$ELASTICSEARCH_PV_PREFIX-*" -exec sudo rm -rf {} \;
+    fi
   fi
 }
 
