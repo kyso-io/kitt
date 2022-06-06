@@ -6,6 +6,12 @@ image:
   repository: "__MONGODB_REPO__"
   # tag: not set, we expect the one from the chart to be available
 architecture: __MONGODB_ARCHITECTURE__
+# Number of replicas for replicaset mode
+replicaCount: __MONGODB_REPLICAS__
+# Use statefulSet if running in standalone mode
+useStatefulSet: true
+arbiter:
+  enabled: __ARBITER_ENABLED__
 metrics:
   enabled: __ENABLE_METRICS__
   image:
@@ -23,6 +29,7 @@ metrics:
     additionalLabels:
       release: __KUBE_STACK_RELEASE__
 auth:
+  replicaSetKey: "__MONGODB_REPLICA_SET_KEY__"
   rootPassword: "__MONGODB_ROOT_PASS__"
   databases:
   - __MONGODB_DB_NAME__
@@ -31,5 +38,4 @@ auth:
   passwords:
   - "__MONGODB_DB_PASS__"
 persistence:
-  existingClaim: "__PVC_NAME__"
   storageClass: "__STORAGE_CLASS__"
