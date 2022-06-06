@@ -104,7 +104,8 @@ EOF
 }
 
 cluster_check_directories() {
-  for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR"; do
+  for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR" \
+    "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
   if is_selected "$CLUSTER_DATA_IN_GIT" && [ ! -d "$CLUSTER_DIR/.git" ]; then
