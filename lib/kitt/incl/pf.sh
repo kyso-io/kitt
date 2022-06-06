@@ -209,7 +209,7 @@ EOF
 pf_start_mongodb() {
   _name="mongodb"
   _ns="$MONGODB_NAMESPACE"
-  _svc="svc/$MONGODB_RELEASE"
+  _svc="svc/$MONGODB_RELEASE-headless"
   _addr="$DEPLOYMENT_PF_ADDR"
   _pf_port="$MONGODB_PF_PORT"
   _svc_port="mongodb"
