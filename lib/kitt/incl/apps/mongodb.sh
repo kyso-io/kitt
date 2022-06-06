@@ -337,25 +337,29 @@ apps_mongodb_install() {
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
     _storage_sed="$_storage_class_sed"
+    # Create PVs
+    :>"$_pv_yaml"
+    for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
+      _pv_name="$MONGODB_PV_PREFIX-$i"
+      sed \
+        -e "s%__APP__%$_app%" \
+        -e "s%__NAMESPACE__%$_ns%" \
+        -e "s%__PV_NAME__%$_pv_name%" \
+        -e "s%__PVC_NAME__%$_pvc_name%" \
+        -e "s%__STORAGE_SIZE__%$_storage_size%" \
+        -e "$_storage_sed" \
+        "$_pv_tmpl" >>"$_pv_yaml"
+      echo "---" >>"$_pv_yaml"
+    done
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
+    kubectl_delete "$_pv_yaml" || true
   fi
-  # Create PVs & PVCs
-  :>"$_pv_yaml"
+  # Create PVCs
   :>"$_pvc_yaml"
   for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
-    _pv_name="$MONGODB_PV_PREFIX-$i"
     _pvc_name="$MONGODB_PV_PREFIX-$i"
-    sed \
-      -e "s%__APP__%$_app%" \
-      -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__PV_NAME__%$_pv_name%" \
-      -e "s%__PVC_NAME__%$_pvc_name%" \
-      -e "s%__STORAGE_SIZE__%$_storage_size%" \
-      -e "$_storage_sed" \
-      "$_pv_tmpl" >>"$_pv_yaml"
-    echo "---" >>"$_pv_yaml"
     sed \
       -e "s%__APP__%$_app%" \
       -e "s%__NAMESPACE__%$_ns%" \

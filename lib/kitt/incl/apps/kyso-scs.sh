@@ -419,22 +419,23 @@ apps_kyso_scs_install() {
     test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
       mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     _storage_sed="$_storage_class_sed"
+    :>"$_pv_yaml"
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PV_NAME__%$_pv_name%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      -e "$_storage_sed" \
+      "$_pv_tmpl" >>"$_pv_yaml"
+    echo "---" >>"$_pv_yaml"
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
+    kubectl_delete "$_pv_yaml" || true
   fi
   # Create PV & PVC
-  :>"$_pv_yaml"
   :>"$_pvc_yaml"
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__PV_NAME__%$_pv_name%" \
-    -e "s%__PVC_NAME__%$_pvc_name%" \
-    -e "s%__STORAGE_SIZE__%$_storage_size%" \
-    -e "$_storage_sed" \
-    "$_pv_tmpl" >>"$_pv_yaml"
-  echo "---" >>"$_pv_yaml"
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
