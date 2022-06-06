@@ -79,7 +79,7 @@ addon_efs_createfs() {
   _orig_efs_filesystemid="$CLUSTER_EFS_FILESYSTEMID"
   aws_add_eks_efs_filesystem "$CLUSTER_NAME"
   if [ "$_orig_efs_filesystemid" = "$CLUSTER_EFS_FILESYSTEMID" ]; then
-    echo "The filesystem '$CLUSTER_EFS_FILESYSTEMID' already existed!"
+    echo "The filesystem '$CLUSTER_EFS_FILESYSTEMID' already exists!"
   else
     echo "The new filesystem id is '$CLUSTER_EFS_FILESYSTEMID'"
     if [ -f "$CLUSTER_CONFIG" ]; then

@@ -102,7 +102,7 @@ aws_add_eks_efs_filesystem() {
   _region="$DEFAULT_EKS_EFS_REGION"
   _sg_name="$DEFAULT_EKS_EFS_SG_NAME"
   _sg_desc="$DEFAULT_EKS_EFS_SG_DESC"
-  _efs_name="$DEFAULT_EKS_EFS_NAME" 
+  _efs_name="$DEFAULT_EKS_EFS_NAME-$_cluster"
   _efs_eks_ingress_rule="$DEFAULT_EKS_EFS_INGRESS_RULE"
   # Get values
   _vpc_id="$(
