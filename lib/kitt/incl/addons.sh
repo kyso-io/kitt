@@ -26,6 +26,11 @@ if [ -d "$INCL_DIR" ]; then
     [ "$INCL_ADDONS_DASHBOARD_SH" = "1" ] || . "$INCL_DIR/addons/dashboard.sh"
     ADDON_LIST="$ADDON_LIST dashboard"
   fi
+  # shellcheck source=./addons/ebs.sh
+  if [ -f "$INCL_DIR/addons/ebs.sh" ]; then
+    [ "$INCL_ADDONS_EBS_SH" = "1" ] || . "$INCL_DIR/addons/ebs.sh"
+    ADDON_LIST="$ADDON_LIST ebs"
+  fi
   # shellcheck source=./addons/efs.sh
   if [ -f "$INCL_DIR/addons/efs.sh" ]; then
     [ "$INCL_ADDONS_EFS_SH" = "1" ] || . "$INCL_DIR/addons/efs.sh"
@@ -84,6 +89,7 @@ addon_command() {
   check_addon_directories
   case "$_addon" in
   dashboard) addon_dashboard_command "$_command" ;;
+  ebs) addon_ebs_command "$_command" ;;
   efs) addon_efs_command "$_command" ;;
   ingress) addon_ingress_command "$_command" ;;
   loki) addon_loki_command "$_command" ;;
@@ -100,7 +106,7 @@ addon_command() {
 
 addon_list() {
   [ "$1" ] && _order="$1" ||
-    _order="ingress dashboard efs prometheus loki promtail minio velero"
+    _order="ingress dashboard ebs efs prometheus loki promtail minio velero"
   for _a in $_order; do
     if echo "$ADDON_LIST" | grep -q -w "$_a"; then
       echo "$_a"
@@ -112,6 +118,7 @@ addon_command_list() {
   _addon="$1"
   case "$_addon" in
   dashboard) addon_dashboard_command_list ;;
+  ebs) addon_ebs_command_list ;;
   efs) addon_efs_command_list ;;
   ingress) addon_ingress_command_list ;;
   loki) addon_loki_command_list ;;
@@ -129,9 +136,13 @@ addon_sets() {
 addon_set_list() {
   case "$1" in
   all) addon_list;;
-  eks-all) addon_list "ingress dashboard efs prometheus loki promtail velero" ;;
+  eks-all)
+    addon_list "ingress dashboard ebs efs prometheus loki promtail velero"
+    ;;
   eks-backups) addon_list "velero" ;;
-  k3d-all) addon_list "ingress dashboard prometheus loki promtail minio velero" ;;
+  k3d-all)
+    addon_list "ingress dashboard prometheus loki promtail minio velero"
+    ;;
   k3d-backups) addon_list "minio velero" ;;
   monitoring) addon_list "prometheus loki promtail" ;;
   esac
