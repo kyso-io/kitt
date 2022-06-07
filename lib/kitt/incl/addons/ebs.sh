@@ -90,8 +90,6 @@ addon_ebs_install() {
   check_helm_repo "$_repo_name" "$_repo_url"
   # Add EKS_EFS Policy
   aws_add_eks_ebs_policy "$EBS_EKS_EBS_POLICY_TMPL"
-  # Add role and attach it to the previous Policy
-  aws_add_eks_ebs_service_account "$CLUSTER_NAME"
   # Copy values tmpl to values.yaml
   cp "$_values_tmpl" "$_values_yaml"
   # Update or install chart

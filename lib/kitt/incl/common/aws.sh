@@ -131,24 +131,6 @@ aws_add_eks_efs_policy() {
   fi
 }
 
-aws_add_eks_efs_service_account() {
-  _cluster="$1"
-  _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
-  _policy="$DEFAULT_EKS_EFS_POLICY_NAME"
-  _region="$DEFAULT_EKS_EFS_REGION"
-  # Make sure we have an iam-oidc-provider available
-  eksctl utils associate-iam-oidc-provider --region="$_region" \
-    --cluster="$_cluster" --approve
-  # Create the service account
-  eksctl create iamserviceaccount \
-    --cluster "$_cluster" \
-    --namespace kube-system \
-    --name efs-csi-controller-sa \
-    --attach-policy-arn "arn:aws:iam::$_account_id:policy/$_policy" \
-    --approve \
-    --region "$_region"
-}
-
 aws_add_eks_efs_filesystem() {
   _cluster="$1"
   _region="$DEFAULT_EKS_EFS_REGION"
