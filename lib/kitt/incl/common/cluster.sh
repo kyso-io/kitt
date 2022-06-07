@@ -62,6 +62,10 @@ EOF
   # Try to switch to the right kubectl context
   case "$CLUSTER_KIND" in
   k3d) export KUBECTL_CONTEXT="k3d-$CLUSTER_NAME" ;;
+  eks)
+    KUBECTL_CONTEXT="$(kubectx | grep "@$CLUSTER_NAME\.")"
+    export KUBECTL_CONTEXT
+    ;;
   *) export KUBECTL_CONTEXT="$CLUSTER_NAME" ;;
   esac
   kubectx "$KUBECTL_CONTEXT" >/dev/null 2>/dev/null || true
