@@ -41,10 +41,13 @@ scs_reindex() {
       -d '{"email":"lo+rey@dev.kyso.io","password":"n0tiene","provider":"kyso"}'
   )"
   _token="$(echo "$_auth_json" | jq -r '.data')"
-  curl -s -X 'GET' \
-    "${_api_base}/search/reindex?pathToIndex=%2Fsftp%2Fdata%2Fscs" \
-    -H 'accept: application/json' \
-    -H "Authorization: Bearer $_token"
+  _output="$(
+    curl -s -X 'GET' \
+      "${_api_base}/search/reindex?pathToIndex=%2Fsftp%2Fdata%2Fscs" \
+      -H 'accept: application/json' \
+      -H "Authorization: Bearer $_token"
+  )"
+  echo "reindex call output: '$_output'"
 }
 
 scs_command() {
