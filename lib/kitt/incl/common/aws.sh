@@ -58,8 +58,8 @@ aws_add_eks_ebs_policy() {
         --policy-arn "arn:aws:iam::$_account_id:policy/$_policy_name" \
         --query 'Policy.PolicyId' \
         --output text
-    )"
-    if [ "$_policy_id" = "None" ]; then
+    )" || true
+    if [ "$_policy_id" = "None" ] || [ -z "$_policy_id" ]; then
       old_dir="$(pwd)"
       tmp_dir="$(mktemp -d)"
       cp "$_tmpl" "$tmp_dir/iam-policy-example.json"
