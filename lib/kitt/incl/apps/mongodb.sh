@@ -74,8 +74,6 @@ apps_mongodb_export_variables() {
   export MONGODB_PV_TMPL="$MONGODB_TMPL_DIR/pv.yaml"
   # Files
   export MONGODB_HELM_VALUES_YAML="$MONGODB_HELM_DIR/values${SOPS_EXT}.yaml"
-  export MONGODB_PVC_YAML="$MONGODB_KUBECTL_DIR/pvc.yaml"
-  export MONGODB_PV_YAML="$MONGODB_KUBECTL_DIR/pv.yaml"
   export MONGODB_REPLICA_SET_KEY_FILE="$MONGODB_SECRETS_DIR/rsk${SOPS_EXT}.txt"
   export MONGODB_ROOT_PASS_FILE="$MONGODB_SECRETS_DIR/root-pass${SOPS_EXT}.txt"
   export MONGODB_USER_PASS_FILE="$MONGODB_SECRETS_DIR/user-pass${SOPS_EXT}.txt"
@@ -338,9 +336,9 @@ apps_mongodb_install() {
     done
     _storage_sed="$_storage_class_sed"
     # Create PVs
-    :>"$_pv_yaml"
     for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
       _pv_name="$MONGODB_PV_PREFIX-$i"
+      _pv_yaml="$MONGODB_KUBECTL_DIR/pv-$i.yaml"
       sed \
         -e "s%__APP__%$_app%" \
         -e "s%__NAMESPACE__%$_ns%" \
@@ -348,29 +346,27 @@ apps_mongodb_install() {
         -e "s%__PVC_NAME__%$_pvc_name%" \
         -e "s%__STORAGE_SIZE__%$_storage_size%" \
         -e "$_storage_sed" \
-        "$_pv_tmpl" >>"$_pv_yaml"
-      echo "---" >>"$_pv_yaml"
+        "$_pv_tmpl" >"$_pv_yaml"
+      kubectl_apply "$_pv_yaml"
     done
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
-    kubectl_delete "$_pv_yaml" || true
+    find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml' \
+      -exec kubectl_delete {} \;
   fi
   # Create PVCs
-  :>"$_pvc_yaml"
   for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
     _pvc_name="$MONGODB_PV_PREFIX-$i"
+    _pvc_yaml="$MONGODB_KUBECTL_DIR/pvc-$i.yaml"
     sed \
       -e "s%__APP__%$_app%" \
       -e "s%__NAMESPACE__%$_ns%" \
       -e "s%__PVC_NAME__%$_pvc_name%" \
       -e "s%__STORAGE_SIZE__%$_storage_size%" \
       -e "$_storage_sed" \
-      "$_pvc_tmpl" >>"$_pvc_yaml"
-    echo "---" >>"$_pvc_yaml"
-  done
-  for _yaml in "$_pv_yaml" "$_pvc_yaml"; do
-    kubectl_apply "$_yaml"
+      "$_pvc_tmpl" >"$_pvc_yaml"
+    kubectl_apply "$_pvc_yaml"
   done
   # Install or upgrade chart
   helm_upgrade "$_ns" "$_helm_values_yaml" "$_release" "$_chart" "$_version"
@@ -394,6 +390,24 @@ apps_mongodb_install() {
   # Wait for service to be available
   kubectl rollout status statefulset --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "$_release"
+  # Remove old PVCs
+  i=1
+  for _yaml in $(
+    find "$MONGODB_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n); do
+    if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
+      kubectl_delete "$_yaml" || true
+    fi
+    i="$((i+1))"
+  done
+  # Remove old PVs
+  i=1
+  for _yaml in $(
+    find "$MONGODB_KUBECTL_DIR" -name "pv-*.yaml" | sort -n); do
+    if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
+      kubectl_delete "$_yaml" || true
+    fi
+    i="$((i+1))"
+  done
 }
 
 apps_mongodb_remove() {
@@ -403,8 +417,6 @@ apps_mongodb_remove() {
   _app="mongodb"
   _ns="$MONGODB_NAMESPACE"
   _values_yaml="$MONGODB_HELM_VALUES_YAML"
-  _pvc_yaml="$MONGODB_PVC_YAML"
-  _pv_yaml="$MONGODB_PV_YAML"
   _release="$MONGODB_RELEASE"
   apps_mongodb_export_variables
   if find_namespace "$_ns"; then
@@ -414,9 +426,12 @@ apps_mongodb_remove() {
     if [ -f "$_values_yaml" ]; then
       rm -f "$_values_yaml"
     fi
-    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
-      kubectl_delete "$_yaml" || true
-    done
+    # Remove PVCs
+    find "$MONGODB_KUBECTL_DIR" -name 'pvc-*.yaml' \
+      -exec kubectl_delete {} \;
+    # Remove PVs
+    find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml' \
+      -exec kubectl_delete {} \;
     # Delete namespace if there are no charts deployed
     if [ -z "$(helm list -n "$_ns" -q)" ]; then
       delete_namespace "$_ns"
