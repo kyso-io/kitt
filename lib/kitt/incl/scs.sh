@@ -35,13 +35,14 @@ scs_reindex() {
   _hostname="$(echo "$DEPLOYMENT_HOSTNAMES" | head -1)"
   _api_base="https://${_hostname}/api/v1"
   _auth_json="$(
-    curl -X 'POST' "${_api_base}/auth/login" \
+    curl -s -X 'POST' "${_api_base}/auth/login" \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
       -d '{"email":"lo+rey@dev.kyso.io","password":"n0tiene","provider":"kyso"}'
   )"
-  _token="$(echo "$_auth_json" | jq -c '.data')"
-  curl -X 'GET' "${_api_base}/search/reindex?pathToIndex=%2Fsftp%2Fdata%2Fscs" \
+  _token="$(echo "$_auth_json" | jq -r '.data')"
+  curl -s -X 'GET' \
+    "${_api_base}/search/reindex?pathToIndex=%2Fsftp%2Fdata%2Fscs" \
     -H 'accept: application/json' \
     -H "Authorization: Bearer $_token"
 }
@@ -66,7 +67,7 @@ scs_command() {
       _file="$_arg"
     fi
     ;;
-  reindex) scs_reindex ;;
+  reindex) scs_reindex; exit 0 ;;
   restore)
     if [ "$_arg" ]; then
       _cmnd="cd /sftp/data && tar xf -"
