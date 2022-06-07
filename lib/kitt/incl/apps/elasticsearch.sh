@@ -73,8 +73,6 @@ apps_elasticsearch_export_variables() {
   # Files
   _values_yaml="$ELASTICSEARCH_HELM_DIR/values${SOPS_EXT}.yaml"
   export ELASTICSEARCH_HELM_VALUES_YAML="$_values_yaml"
-  export ELASTICSEARCH_PVC_YAML="$ELASTICSEARCH_KUBECTL_DIR/pvc.yaml"
-  export ELASTICSEARCH_PV_YAML="$ELASTICSEARCH_KUBECTL_DIR/pv.yaml"
   export ELASTICSEARCH_PF_OUT="$ELASTICSEARCH_PF_DIR/kubectl.out"
   export ELASTICSEARCH_PF_PID="$ELASTICSEARCH_PF_DIR/kubectl.pid"
   # Use defaults for variables missing from config files
@@ -255,10 +253,10 @@ apps_elasticsearch_install() {
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
     _storage_sed="$_storage_class_sed"
-    # Create PV
-    :>"$_pv_yaml"
+    # Create PVs
     for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
       _pv_name="$ELASTICSEARCH_PV_PREFIX-$i"
+      _pv_yaml="$ELASTICSEARCH_KUBECTL_DIR/pv-$i.yaml"
       sed \
         -e "s%__APP__%$_app%" \
         -e "s%__NAMESPACE__%$_ns%" \
@@ -266,35 +264,51 @@ apps_elasticsearch_install() {
         -e "s%__PVC_NAME__%$_pvc_name%" \
         -e "s%__STORAGE_SIZE__%$_storage_size%" \
         -e "$_storage_sed" \
-        "$_pv_tmpl" >>"$_pv_yaml"
-      echo "---" >>"$_pv_yaml"
+        "$_pv_tmpl" >"$_pv_yaml"
+      kubectl_apply "$_pv_yaml"
     done
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
-    kubectl_delete "$_pv_yaml" || true
+    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pv-*.yaml' \
+      -exec kubectl_delete {} \;
   fi
   # Create PVCs
-  :>"$_pvc_yaml"
   for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
     _pvc_name="$ELASTICSEARCH_PV_PREFIX-$i"
+    _pvc_yaml="$ELASTICSEARCH_KUBECTL_DIR/pvc-$i.yaml"
     sed \
       -e "s%__APP__%$_app%" \
       -e "s%__NAMESPACE__%$_ns%" \
       -e "s%__PVC_NAME__%$_pvc_name%" \
       -e "s%__STORAGE_SIZE__%$_storage_size%" \
       -e "$_storage_sed" \
-      "$_pvc_tmpl" >>"$_pvc_yaml"
-    echo "---" >>"$_pvc_yaml"
-  done
-  for _yaml in "$_pv_yaml" "$_pvc_yaml"; do
-    kubectl_apply "$_yaml"
+      "$_pvc_tmpl" >"$_pvc_yaml"
+      kubectl_apply "$_pvc_yaml"
   done
   # Install or upgrade chart
   helm_upgrade "$_ns" "$_helm_values_yaml" "$_release" "$_chart" "$_version"
   # Wait for service to be available
   kubectl rollout status --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "statefulset/elasticsearch-master"
+  # Remove old PVCs
+  i=1
+  for _yaml in $(
+    find "$ELASTICSEARCH_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n); do
+    if [ "$i" -gt "$ELASTICSEARCH_REPLICAS" ]; then
+      kubectl_delete "$_yaml" || true
+    fi
+    i="$((i+1))"
+  done
+  # Remove old PVs
+  i=1
+  for _yaml in $(
+    find "$ELASTICSEARCH_KUBECTL_DIR" -name "pv-*.yaml" | sort -n); do
+    if [ "$i" -gt "$ELASTICSEARCH_REPLICAS" ]; then
+      kubectl_delete "$_yaml" || true
+    fi
+    i="$((i+1))"
+  done
 }
 
 apps_elasticsearch_remove() {
@@ -304,9 +318,6 @@ apps_elasticsearch_remove() {
   _app="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
   _values_yaml="$ELASTICSEARCH_HELM_VALUES_YAML"
-  _pvc_yaml="$ELASTICSEARCH_PVC_YAML"
-  _pv_tmpl="$ELASTICSEARCH_PV_TMPL"
-  _pv_yaml="$ELASTICSEARCH_PV_YAML"
   _release="$ELASTICSEARCH_RELEASE"
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
@@ -315,9 +326,12 @@ apps_elasticsearch_remove() {
     if [ -f "$_values_yaml" ]; then
       rm -f "$_values_yaml"
     fi
-    for _yaml in "$_pvc_yaml" "$_pv_yaml"; do
-      kubectl_delete "$_yaml" || true
-    done
+    # Remove PVCs
+    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pvc-*.yaml' \
+      -exec kubectl_delete {} \;
+    # Remove PVs
+    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pv-*.yaml' \
+      -exec kubectl_delete {} \;
     # Delete namespace if there are no charts deployed
     if [ -z "$(helm list -n "$_ns" -q)" ]; then
       delete_namespace "$_ns"
