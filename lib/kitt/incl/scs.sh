@@ -66,7 +66,7 @@ scs_command() {
   else
     if [ -f "$_file" ]; then
       kubectl exec -n "$KYSO_SCS_NAMESPACE" "$_pod_name" -c "$_container_name" \
-        -- /bin/sh -c "$_cmnd" <"$_file"
+        -i -- /bin/sh -c "$_cmnd" <"$_file"
     else
       echo "Missing tar file '$_file', aborting"
       return 1
