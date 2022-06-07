@@ -231,9 +231,9 @@ apps_mongodb_print_user_database_uri() {
   _db_pass="$(file_to_stdout "$MONGODB_USER_PASS_FILE")"
   _db_name="$MONGODB_DB_NAME"
   if [ "$3" ]; then
-    _db_host="$3"
+    _db_hosts="$3"
   elif [ "$MONGODB_ARCHITECTURE" = "standalone" ]; then
-    _db_host="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+    _db_hosts="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
   else
     _suffix="$MONGODB_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
     _db_hosts="$MONGODB_RELEASE-0.$_suffix"
