@@ -77,9 +77,6 @@ ctool_k3d_export_variables() {
   [ "$CLUSTER_LB_HTTPS_PORT" ] ||
     CLUSTER_LB_HTTPS_PORT="${APP_DEFAULT_CLUSTER_LB_HTTPS_PORT}"
   export CLUSTER_LB_HTTPS_PORT
-  [ "$CLUSTER_FORCE_SSL_REDIRECT" ] ||
-    CLUSTER_FORCE_SSL_REDIRECT="${APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT}"
-  export CLUSTER_FORCE_SSL_REDIRECT
   [ "$CLUSTER_USE_LOCAL_REGISTRY" ] ||
     CLUSTER_USE_LOCAL_REGISTRY="${APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY}"
   export CLUSTER_USE_LOCAL_REGISTRY
@@ -129,6 +126,8 @@ ctool_k3d_read_variables() {
   CLUSTER_LB_HTTPS_PORT=${READ_VALUE}
   read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
   CLUSTER_DATA_IN_GIT=${READ_VALUE}
+  read_value "Cluster Ingress Replicas" "${CLUSTER_INGRESS_REPLICAS}"
+  CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
   read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
   CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Use local storage" "${CLUSTER_USE_LOCAL_STORAGE}"
@@ -182,10 +181,12 @@ LB_HOST_IP=$CLUSTER_LB_HOST_IP
 LB_HTTP_PORT=$CLUSTER_LB_HTTP_PORT
 # HTTPS Port (use the default unless you have a conflict)
 LB_HTTPS_PORT=$CLUSTER_LB_HTTPS_PORT
+# Number of ingress replicas
+INGRESS_REPLICAS=$CLUSTER_INGRESS_REPLICAS
 # Force SSL redirect on ingress
 FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
 # Keep cluster data in git or not
-CLUSTER_DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
+DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
 # Configure k3d to use a couple of local directories for storage and volumes,
 # usually only makes sense on linux hosts & allows us to use velero to backup
 # volumes (we use 'local-storage' class and create directories on the host to

@@ -95,6 +95,7 @@ addon_ingress_install() {
   _cert_name="$INGRESS_CERT_NAME"
   _cert_yaml="$INGRESS_CERT_YAML"
   _ns="$INGRESS_NAMESPACE"
+  _replicas="$CLUSTER_INGRESS_REPLICAS"
   _repo_name="$INGRESS_HELM_REPO_NAME"
   _repo_url="$INGRESS_HELM_REPO_URL"
   _values_tmpl="$INGRESS_HELM_VALUES_TMPL"
@@ -115,6 +116,7 @@ addon_ingress_install() {
   # Values for the chart
   sed \
     -e "s%__INGRESS_CERT_NAME__%$_cert_name%" \
+    -e "s%__REPLICAS__%$_replicas%" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"

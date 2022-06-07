@@ -1,4 +1,5 @@
 controller:
+  replicaCount: __REPLICAS__
   ingressClassResource:
     default: true
 extraArgs:
