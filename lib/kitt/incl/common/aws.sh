@@ -17,6 +17,7 @@ INCL_AWS_SH="1"
 # ---------
 
 # For now fixed values, will make configurable later
+export DEFAULT_EKS_EBS_POLICY_NAME="AmazonEKS_EBS_CSI_Driver_Policy"
 
 export DEFAULT_EKS_EFS_REGION="eu-north-1"
 export DEFAULT_EKS_EFS_POLICY_NAME="AmazonEKS_EFS_CSI_Driver_Policy"
@@ -44,6 +45,38 @@ fi
 # ---------
 
 # Initial versions, will generalise later
+
+# EKS/EBS
+
+aws_add_eks_ebs_policy() {
+  _tmpl="$1"
+  _policy_name="$DEFAULT_EKS_EBS_POLICY_NAME"
+  if [ -f "$_tmpl" ]; then
+    _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+    _policy_id="$(
+      aws iam get-policy \
+        --policy-arn "arn:aws:iam::$_account_id:policy/$_policy_name" \
+        --query 'Policy.PolicyId' \
+        --output text
+    )"
+    if [ "$_policy_id" = "None" ]; then
+      old_dir="$(pwd)"
+      tmp_dir="$(mktemp -d)"
+      cp "$_tmpl" "$tmp_dir/iam-policy-example.json"
+      cd "$tmp_dir"
+      aws iam create-policy \
+        --policy-name "$_policy_name" \
+        --policy-document "file://iam-policy-example.json"
+      cd "$old_dir"
+      rm -rf "$tmp_dir"
+    else
+      echo "Policy '$_policy_name' already exist with id '$_policy_id'"
+    fi
+  else
+    echo "Missing eks-ebs-policy template '$_tmpl'"
+    exit 1
+  fi
+}
 
 # EKS/EFS
 
