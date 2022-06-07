@@ -300,7 +300,7 @@ ctool_eks_zone_sc_add() {
   _storageclass_yaml="$AWS_EBS_STORAGECLASS_YAML"
   : >"$_storageclass_yaml"
   for _zone in $(echo "$CLUSTER_AVAILABILITY_ZONES" | sed -e 's/,/ /g'); do
-    _storageclass_name="ebs-$_zone"
+    _storageclass_name="$CLUSTER_AWS_EBS_TYPE-$_zone"
     sed \
       -e "s%__STORAGECLASS_NAME__%$_storageclass_name%" \
       -e "s%__FS_TYPE__%$CLUSTER_AWS_EBS_FS_TYPE%" \
