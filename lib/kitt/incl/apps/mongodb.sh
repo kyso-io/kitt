@@ -352,8 +352,11 @@ apps_mongodb_install() {
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
-    find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml"
+    done <<EOF
+$(find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml')
+EOF
   fi
   # Create PVCs
   for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
@@ -392,22 +395,24 @@ apps_mongodb_install() {
     -n "$_ns" "$_release"
   # Remove old PVCs
   i=1
-  for _yaml in $(
-    find "$MONGODB_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n); do
+  while read -r _yaml; do
     if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
     i="$((i+1))"
-  done
+  done <<EOF
+$(find "$MONGODB_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n)
+EOF
   # Remove old PVs
   i=1
-  for _yaml in $(
-    find "$MONGODB_KUBECTL_DIR" -name "pv-*.yaml" | sort -n); do
+  while read -r _yaml; do
     if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
     i="$((i+1))"
-  done
+  done <<EOF
+$(find "$MONGODB_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
+EOF
 }
 
 apps_mongodb_remove() {
@@ -427,11 +432,17 @@ apps_mongodb_remove() {
       rm -f "$_values_yaml"
     fi
     # Remove PVCs
-    find "$MONGODB_KUBECTL_DIR" -name 'pvc-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml"
+    done <<EOF
+$(find "$MONGODB_KUBECTL_DIR" -name 'pvc-*.yaml')
+EOF
     # Remove PVs
-    find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml"
+    done <<EOF
+$(find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml')
+EOF
     # Delete namespace if there are no charts deployed
     if [ -z "$(helm list -n "$_ns" -q)" ]; then
       delete_namespace "$_ns"

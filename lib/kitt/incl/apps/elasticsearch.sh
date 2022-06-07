@@ -270,8 +270,11 @@ apps_elasticsearch_install() {
   else
     _storage_sed="/BEG: local-storage/,/END: local-storage/{d}"
     _storage_sed="$_storage_sed;$_storage_class_sed"
-    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pv-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml"
+    done <<EOF
+find "$ELASTICSEARCH_KUBECTL_DIR" -name "pvc-*.yaml"
+EOF
   fi
   # Create PVCs
   for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
@@ -293,22 +296,24 @@ apps_elasticsearch_install() {
     -n "$_ns" "statefulset/elasticsearch-master"
   # Remove old PVCs
   i=1
-  for _yaml in $(
-    find "$ELASTICSEARCH_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n); do
+  while read -r _yaml; do
     if [ "$i" -gt "$ELASTICSEARCH_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
     i="$((i+1))"
-  done
+  done <<EOF
+$(find "$ELASTICSEARCH_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n)
+EOF
   # Remove old PVs
   i=1
-  for _yaml in $(
-    find "$ELASTICSEARCH_KUBECTL_DIR" -name "pv-*.yaml" | sort -n); do
+  while read -r _yaml; do
     if [ "$i" -gt "$ELASTICSEARCH_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
     i="$((i+1))"
-  done
+  done <<EOF
+$(find "$ELASTICSEARCH_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
+EOF
 }
 
 apps_elasticsearch_remove() {
@@ -327,11 +332,17 @@ apps_elasticsearch_remove() {
       rm -f "$_values_yaml"
     fi
     # Remove PVCs
-    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pvc-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml" || true
+    done <<EOF
+$(find "$ELASTICSEARCH_KUBECTL_DIR" -name "pvc-*.yaml")
+EOF
     # Remove PVs
-    find "$ELASTICSEARCH_KUBECTL_DIR" -name 'pv-*.yaml' \
-      -exec kubectl_delete {} \;
+    while read -r _yaml; do
+      kubectl_delete "$_yaml" || true
+    done <<EOF
+$(find "$ELASTICSEARCH_KUBECTL_DIR" -name "pv-*.yaml")
+EOF
     # Delete namespace if there are no charts deployed
     if [ -z "$(helm list -n "$_ns" -q)" ]; then
       delete_namespace "$_ns"
