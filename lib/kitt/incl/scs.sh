@@ -30,6 +30,22 @@ fi
 # Functions
 # ---------
 
+# FIXME: use a configuration file to get the token for the right user
+scs_reindex() {
+  _hostname="$(echo "$DEPLOYMENT_HOSTNAMES" | head -1)"
+  _api_base="https://${_hostname}/api/v1"
+  _auth_json="$(
+    curl -X 'POST' "${_api_base}/auth/login" \
+      -H 'accept: application/json' \
+      -H 'Content-Type: application/json' \
+      -d '{"email":"lo+rey@dev.kyso.io","password":"n0tiene","provider":"kyso"}'
+  )"
+  _token="$(echo "$_auth_json" | jq -c '.data')"
+  curl -X 'GET' "${_api_base}/search/reindex?pathToIndex=%2Fsftp%2Fdata%2Fscs" \
+    -H 'accept: application/json' \
+    -H "Authorization: Bearer $_token"
+}
+
 scs_command() {
   _command="$1"
   _arg="$2"
@@ -50,6 +66,7 @@ scs_command() {
       _file="$_arg"
     fi
     ;;
+  reindex) scs_reindex ;;
   restore)
     if [ "$_arg" ]; then
       _cmnd="cd /sftp/data && tar xf -"
@@ -81,6 +98,7 @@ scs_command() {
 scs_command_list() {
   cat <<EOF
 dump: Dump the scs filesystem to the passed file
+reindex: Reindex the scs contents
 restore: Restore the scs filesystem from the passed file
 EOF
 }
