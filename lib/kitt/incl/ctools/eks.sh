@@ -20,7 +20,8 @@ INCL_CTOOLS_EKS_SH="1"
 
 # EKS defaults
 export APP_DEFAULT_CLUSTER_REGION="eu-north-1"
-export APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES="eu-north-1a,eu-north-1b"
+APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES="eu-north-1a,eu-north-1b,eu-north-1c"
+export APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES
 export APP_DEFAULT_CLUSTER_EKS_NODEGROUP="mng01"
 export APP_DEFAULT_CLUSTER_EKS_NODEGROUP_AZ="eu-north-1a"
 export APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE="m5.large"
@@ -31,6 +32,8 @@ export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS="3"
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
 export APP_DEFAULT_CLUSTER_EKS_VERSION="1.22"
 export APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
+export APP_DEFAULT_CLUSTER_AWS_EBS_FS_TYPE="ext4"
+export APP_DEFAULT_CLUSTER_AWS_EBS_TYPE="gp2"
 
 # --------
 # Includes
@@ -88,12 +91,21 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_FORCE_SSL_REDIRECT" ] ||
     CLUSTER_FORCE_SSL_REDIRECT="${APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT}"
   export CLUSTER_FORCE_SSL_REDIRECT
+  [ "$CLUSTER_AWS_EBS_FS_TYPE" ] ||
+    CLUSTER_AWS_EBS_FS_TYPE="${APP_DEFAULT_CLUSTER_AWS_EBS_FS_TYPE}"
+  export CLUSTER_AWS_EBS_FS_TYPE
+  [ "$CLUSTER_AWS_EBS_TYPE" ] ||
+    CLUSTER_AWS_EBS_TYPE="${APP_DEFAULT_CLUSTER_AWS_EBS_TYPE}"
+  export CLUSTER_AWS_EBS_TYPE
   # Directories
   export EKS_TMPL_DIR="$TMPL_DIR/eks"
   # Templates
   export EKS_CONFIG_TMPL="$EKS_TMPL_DIR/cluster.yaml"
+  export AWS_EBS_STORAGECLASS_TMPL="$EKS_TMPL_DIR/storageclass-aws-ebs.yaml"
   # Generated files
   export EKS_CONFIG_YAML="$CLUST_EKS_DIR/cluster.yaml"
+  AWS_EBS_STORAGECLASS_YAML="$CLUST_KUBECTL_DIR/storageclass-aws-ebs.yaml"
+  export AWS_EBS_STORAGECLASS_YAML
   # set variable to avoid running the function twice
   __ctool_eks_export_variables="1"
 }
@@ -281,6 +293,32 @@ ctool_eks_status() {
   eks_get_cluster_status "$_cluster"
 }
 
+ctool_eks_zone_sc_add() {
+  _cluster="$1"
+  ctool_eks_export_variables "$_cluster"
+  _storageclass_tmpl="$AWS_EBS_STORAGECLASS_TMPL"
+  _storageclass_yaml="$AWS_EBS_STORAGECLASS_YAML"
+  : >"$_storageclass_yaml"
+  for _zone in $(echo "$CLUSTER_AVAILABILITY_ZONES" | sed -e 's/,/ /g'); do
+    _storageclass_name="ebs-$_zone"
+    sed \
+      -e "s%__STORAGECLASS_NAME__%$_storageclass_name%" \
+      -e "s%__FS_TYPE__%$CLUSTER_AWS_EBS_FS_TYPE%" \
+      -e "s%__EBS_TYPE__%$CLUSTER_AWS_EBS_TYPE%" \
+      -e "s%__ZONE__%$_zone%" \
+      "$_storageclass_tmpl" >>"$_storageclass_yaml"
+    echo "---" >>"$_storageclass_yaml"
+  done
+  kubectl_apply "$_storageclass_yaml"
+}
+
+ctool_eks_zone_sc_del() {
+  _cluster="$1"
+  ctool_eks_export_variables "$_cluster"
+  _storageclass_yaml="$AWS_EBS_STORAGECLASS_YAML"
+  kubectl_delete "$_storageclass_yaml"
+}
+
 ctool_eks_command() {
   _command="$1"
   _cluster="$2"
@@ -289,12 +327,14 @@ ctool_eks_command() {
     remove) ctool_eks_remove "$_cluster" ;;
     scale) ctool_eks_scale "$_cluster" ;;
     status) ctool_eks_status "$_cluster" ;;
+    zone-sc-add) ctool_eks_zone_sc_add "$_cluster" ;;
+    zone-sc-del) ctool_eks_zone_sc_del "$_cluster" ;;
     *) echo "Unknown eks subcommand '$_command'"; exit 1 ;;
   esac
 }
 
 ctool_eks_command_list() {
-  echo "install remove scale status"
+  echo "install remove scale status zone-sc-add zone-sc-del"
 }
 
 # ----
