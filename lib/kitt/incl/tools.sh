@@ -49,7 +49,11 @@ tools_install_app() {
     MSG="Install it in /usr/local/bin?"
     OPT="true"
   fi
-  read_bool "$MSG" "$OPT"
+  if [ "$KITT_NONINTERACTIVE" = "true" ]; then
+    READ_VALUE="$OPT"
+  else
+    read_bool "$MSG" "$OPT"
+  fi
   is_selected "${READ_VALUE}" && return 0 || return 1
 }
 
@@ -213,7 +217,7 @@ tools_check_kubectl() {
     curl -fsSL -o "$tmp_dir/kubectl" "$base_url/$release/bin/$os/$arch/kubectl"
     sudo install "$tmp_dir/kubectl" /usr/local/bin/
     rm -rf "$tmp_dir"
-    kubectl version --client
+    kubectl version --client --output=yaml
     if [ -d "$BASH_COMPLETION" ]; then
       sudo sh -c "kubectl completion bash > $BASH_COMPLETION/kubectl"
     fi
