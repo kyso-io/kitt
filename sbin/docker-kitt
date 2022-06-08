@@ -22,6 +22,7 @@ BUILD_ARGS=""
 CONTAINER_VARS="-v $HOME:$HOME"
 CONTAINER_VARS="$CONTAINER_VARS -v /etc/passwd:/etc/passwd:ro"
 CONTAINER_VARS="$CONTAINER_VARS -v /etc/group:/etc/group:ro"
+CONTAINER_VARS="$CONTAINER_VARS -e EDITOR=vi"
 
 # ---------
 # FUNCTIONS
@@ -100,6 +101,12 @@ docker_run() {
   if [ "$(docker_status)" ]; then
     docker rm "$CONTAINER_NAME"
   fi
+  if [ -f "/run/docker.sock" ]; then
+    _docker_sock="/run/docker.sock"
+  else
+    _docker_sock="/var/run/docker.sock"
+  fi
+  CONTAINER_VARS="$CONTAINER_VARS -v $_docker_sock:/run/docker.sock:rw"
   BUILD_TAG="$IMAGE_NAME:$PACKAGE_VERSION"
   DOCKER_COMMAND="$(
     printf "%s" \
@@ -110,7 +117,9 @@ docker_run() {
 }
 
 docker_run_as_user() {
+  _docker_gid="$(getent group docker | cut -d: -f3)"
   CONTAINER_VARS="$CONTAINER_VARS -u $(id -u):$(id -g)"
+  CONTAINER_VARS="$CONTAINER_VARS --group-add $_docker_gid"
   docker_run "$@"
 }
 
