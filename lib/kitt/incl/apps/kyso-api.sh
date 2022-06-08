@@ -492,6 +492,7 @@ apps_kyso_api_command() {
   reinstall) apps_kyso_api_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
   restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
+  settings) apps_kyso_scs_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_api_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_api_summary "$_deployment" "$_cluster" ;;
   uris) apps_kyso_api_uris "$_deployment" "$_cluster" ;;
@@ -503,7 +504,7 @@ apps_kyso_api_command() {
 }
 
 apps_kyso_api_command_list() {
-  echo "logs install reinstall remove restart status summary uris"
+  echo "logs install reinstall remove restart settings status summary uris"
 }
 
 # ----

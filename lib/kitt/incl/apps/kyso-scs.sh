@@ -631,6 +631,7 @@ apps_kyso_scs_command() {
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_kyso_scs_rmvols "$_deployment" "$_cluster" ;;
   restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
+  settings) apps_kyso_scs_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
   *)
@@ -641,7 +642,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "logs install reinstall remove restart rmvols status summary"
+  echo "logs install reinstall remove restart rmvols settings status summary"
 }
 
 # ----
