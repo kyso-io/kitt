@@ -91,11 +91,15 @@ docker_build_prune() {
 }
 
 docker_exec() {
+  if [ -z "$@" ];  then
+    echo "Pass a command to execute inside the kitt container"
+    exit 1
+  fi
   if [ "$(docker_status)" ]; then
-    docker exec -ti "$CONTAINER_NAME" kitt.sh "$@"
+    docker exec -ti "$CONTAINER_NAME" "$@"
   else
     docker_start >/dev/null
-    docker exec -ti "$CONTAINER_NAME" kitt.sh "$@"
+    docker exec -ti "$CONTAINER_NAME" "$@"
     docker_stop "0" >/dev/null
   fi
 }
@@ -160,7 +164,7 @@ Usage: $0 CMND [ARGS]
 Where CMND can be one of:
 - build: create container using the passed package version
 - build-prune: cleanup builder caché
-- exec: execute kitt.sh inside the container (if it is not running the call
+- exec: execute a command inside the container (if it is not running the call
   starts and stops it, otherwise it is used and left alone)
 - rar: run container in interactive mode as root
 - run: run container in interactive mode as the current user
