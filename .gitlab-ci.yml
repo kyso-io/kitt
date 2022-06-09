@@ -4,4 +4,7 @@ include:
     file: '/templates/dockerfile-build.yml'
 
 variables:
+  DOCKER_BUILDKIT: 1
   CODE_QUALITY_DISABLED: "true"
+  SAST_DISABLED: "true"
+  KYSO_IGNORE_BRANCH: "true"
