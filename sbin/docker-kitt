@@ -85,10 +85,10 @@ docker_build() {
   DOCKER_COMMAND="$DOCKER_COMMAND --tag '$BUILD_TAG' ."
   ret="0"
   # Create version file
-  ./bin/kitt.sh version >version.txt
+  VERSION_INFO="$(./bin/kitt.sh version)"
   echo "Build version information"
   echo "---"
-  cat version.txt
+  echo "$VERSION_INFO" | tee version.txt
   echo "---"
   eval "$DOCKER_COMMAND" || ret="$?"
   rm -f version.txt
