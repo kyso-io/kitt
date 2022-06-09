@@ -16,7 +16,8 @@ set -e
 RELPATH_TO_WORKDIR=".."
 
 # Variables
-IMAGE_NAME="kitt"
+IMAGE_NAME="${IMAGE_NAME:-kitt}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
 CONTAINER_NAME="kitt"
 BUILD_ARGS=""
 CONTAINER_VARS="-v $HOME:$HOME"
@@ -73,15 +74,13 @@ cd_to_workdir() {
 }
 
 docker_build() {
-  PACKAGE_VERSION="$1"
-  [ "$PACKAGE_VERSION" ] || PACKAGE_VERSION="latest"
   # Compute build args
   if [ -f "./.build-args" ]; then
     BUILD_ARGS="$(
       awk '!/^#/ { printf(" --build-arg \"%s\"", $0); }' "./.build-args"
     )"
   fi
-  BUILD_TAG="$IMAGE_NAME:$PACKAGE_VERSION"
+  BUILD_TAG="$IMAGE_NAME:$IMAGE_TAG"
   DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
   DOCKER_COMMAND="$DOCKER_COMMAND --tag '$BUILD_TAG' ."
   eval "$DOCKER_COMMAND"
@@ -91,15 +90,24 @@ docker_build_prune() {
   DOCKER_BUILDKIT=1 docker builder prune -af
 }
 
+docker_exec() {
+  if [ "$(docker_status)" ]; then
+    docker exec -ti "$CONTAINER_NAME" kitt.sh "$@"
+  else
+    docker_start >/dev/null
+    docker exec -ti "$CONTAINER_NAME" kitt.sh "$@"
+    docker_stop "0" >/dev/null
+  fi
+}
+
 docker_rm() {
   docker rm "$CONTAINER_NAME"
 }
 
 docker_run() {
-  PACKAGE_VERSION="$1"
-  [ "$PACKAGE_VERSION" ] || PACKAGE_VERSION="latest"
   if [ "$(docker_status)" ]; then
-    docker rm "$CONTAINER_NAME"
+    echo "Container already running, aborting!"
+    exit 1
   fi
   if [ -f "/run/docker.sock" ]; then
     _docker_sock="/run/docker.sock"
@@ -107,12 +115,20 @@ docker_run() {
     _docker_sock="/var/run/docker.sock"
   fi
   CONTAINER_VARS="$CONTAINER_VARS -v $_docker_sock:/run/docker.sock:rw"
-  BUILD_TAG="$IMAGE_NAME:$PACKAGE_VERSION"
-  DOCKER_COMMAND="$(
-    printf "%s" \
-      "docker run -ti --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
-      " $CONTAINER_VARS '$BUILD_TAG'"
-  )"
+  BUILD_TAG="$IMAGE_NAME:$IMAGE_TAG"
+  if [ "$1" = "daemon" ]; then
+    DOCKER_COMMAND="$(
+      printf "%s" \
+        "docker run -d --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
+        " $CONTAINER_VARS '$BUILD_TAG' sleep infinity"
+    )"
+  else
+    DOCKER_COMMAND="$(
+      printf "%s" \
+        "docker run -ti --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
+        " $CONTAINER_VARS '$BUILD_TAG'"
+    )"
+  fi
   eval "$DOCKER_COMMAND"
 }
 
@@ -120,7 +136,11 @@ docker_run_as_user() {
   _docker_gid="$(getent group docker | cut -d: -f3)"
   CONTAINER_VARS="$CONTAINER_VARS -u $(id -u):$(id -g)"
   CONTAINER_VARS="$CONTAINER_VARS --group-add $_docker_gid"
-  docker_run "$@"
+  docker_run
+}
+
+docker_start() {
+  docker_run daemon
 }
 
 docker_status() {
@@ -129,8 +149,8 @@ docker_status() {
 }
 
 docker_stop() {
-  docker stop "$CONTAINER_NAME"
-  docker rm "$CONTAINER_NAME"
+  secs="${1:-1}"
+  docker stop "$CONTAINER_NAME" -t "$secs"
 }
 
 usage() {
@@ -140,9 +160,11 @@ Usage: $0 CMND [ARGS]
 Where CMND can be one of:
 - build: create container using the passed package version
 - build-prune: cleanup builder caché
+- exec: execute kitt.sh inside the container (if it is not running the call
+  starts and stops it, otherwise it is used and left alone)
 - rar: run container in interactive mode as root
-- run: run container in interactive mode with the right settings
-- stop|status|rm|logs: operations on the container
+- run: run container in interactive mode as the current user
+- start|stop|status|rm|logs: operations on the container
 EOF
 }
 
@@ -151,17 +173,16 @@ EOF
 # ----
 
 cd_to_workdir
-echo "WORKING DIRECTORY = '$(pwd)'"
-echo ""
-
 case "$1" in
 build) shift && docker_build "$@";;
 build-prune) docker_build_prune ;;
+exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
 rm) docker_rm ;;
-rar) shift && docker_run "$@" ;;
-run) shift && docker_run_as_user "$@";;
+rar) shift && docker_run ;;
+run) shift && docker_run_as_user ;;
 status) docker_status ;;
+start) docker_start ;;
 stop) docker_stop ;;
 *) usage ;;
 esac
