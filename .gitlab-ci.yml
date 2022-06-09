@@ -3,6 +3,11 @@ include:
     ref: v0.4.15
     file: '/templates/dockerfile-build.yml'
 
+docker-build:
+  before_script:
+  - !reference [.docker-config, before_script]
+  - ./bin/kitt.sh version > version.txt
+
 variables:
   DOCKER_BUILDKIT: 1
   CODE_QUALITY_DISABLED: "true"
