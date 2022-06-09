@@ -25,8 +25,8 @@ ZSH_COMPLETIONS="/usr/share/zsh/vendor-completions"
 # --------
 
 if [ -d "$INCL_DIR" ]; then
-  # shellcheck source=./common.sh
-  [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+  # shellcheck source=./common/io.sh
+  [ "$INCL_COMMON_IO_SH" = "1" ] || . "$INCL_DIR/common/io.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1

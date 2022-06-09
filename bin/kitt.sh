@@ -127,10 +127,9 @@ setup_app_dirs
 if [ -f "$INCL_DIR/config.sh" ]; then
   # shellcheck source=../lib/kitt/incl/config.sh
   . "$INCL_DIR/config.sh"
+  # Load the user defined application variables
+  config_app_load_variables
 fi
-
-# Load the user defined application variables
-config_app_load_variables
 
 if [ "$1" = "--debug" ]; then
   EXEC_CMND="exec sh -x"
