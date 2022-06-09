@@ -6,7 +6,13 @@ include:
 docker-build:
   before_script:
   - !reference [.docker-config, before_script]
-  - ./bin/kitt.sh version > version.txt
+  - |-
+    echo "git:" >version.txt
+    [ -z "$CI_COMMIT_BRANCH" ] ||
+      echo "  branch: $CI_COMMIT_BRANCH" >>version.txt
+    echo "  commit: $CI_COMMIT_SHA" >>version.txt
+    [ -z "$CI_COMMIT_TAG" ] ||
+      echo "  tag: $CI_COMMIT_TAG" >>version.txt
 
 variables:
   DOCKER_BUILDKIT: 1
