@@ -83,7 +83,11 @@ docker_build() {
   BUILD_TAG="$IMAGE_NAME:$IMAGE_TAG"
   DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
   DOCKER_COMMAND="$DOCKER_COMMAND --tag '$BUILD_TAG' ."
-  eval "$DOCKER_COMMAND"
+  ./bin/kitt.sh version >version.txt
+  ret="$?"
+  eval "$DOCKER_COMMAND" || ret="$?"
+  rm -f version.txt
+  return "$ret"
 }
 
 docker_build_prune() {
@@ -91,7 +95,7 @@ docker_build_prune() {
 }
 
 docker_exec() {
-  if [ -z "$@" ];  then
+  if [ -z "$*" ];  then
     echo "Pass a command to execute inside the kitt container"
     exit 1
   fi
