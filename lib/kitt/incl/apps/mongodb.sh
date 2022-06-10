@@ -338,6 +338,7 @@ apps_mongodb_install() {
     _storage_sed="$_storage_class_sed"
     # Create PVs
     for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
+      _pvc_name="$MONGODB_PV_PREFIX-$i"
       _pv_name="$MONGODB_PV_PREFIX-$i"
       _pv_yaml="$MONGODB_KUBECTL_DIR/pv-$i.yaml"
       sed \

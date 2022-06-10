@@ -256,6 +256,7 @@ apps_elasticsearch_install() {
     _storage_sed="$_storage_class_sed"
     # Create PVs
     for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
+      _pvc_name="$ELASTICSEARCH_PV_PREFIX-$i"
       _pv_name="$ELASTICSEARCH_PV_PREFIX-$i"
       _pv_yaml="$ELASTICSEARCH_KUBECTL_DIR/pv-$i.yaml"
       sed \
