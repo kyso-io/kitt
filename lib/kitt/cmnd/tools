@@ -1,0 +1,67 @@
+#!/bin/sh
+# ----
+# File:        tools
+# Description: Command to check and (re)install tools used by kitt
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="tools: check and (re)install tools used by kitt"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/tools.sh
+  [ "$INCL_TOOLS_SH" = "1" ] || . "$INCL_DIR/tools.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+# Usage function
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $APP_BASE_NAME $(basename "$0") apps|pkgs|SPACE_SEPARATED_LIST_OF_TOOLS
+
+Where the SPACE_SEPARATED_LIST_OF_TOOLS can include binaries (apps):
+
+$(for tool in $(tools_apps_list); do echo "- $tool"; done)
+
+And debian packages (pkgs):
+
+$(for tool in $(tools_pkgs_list); do echo "- $tool"; done)
+
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+# shellcheck disable=SC2046
+case "$1" in
+"") usage 0 ;;
+apps) tools_check $(tools_apps_list) ;;
+pkgs) tools_check $(tools_pkgs_list) ;;
+*) tools_check "$@" ;;
+esac
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

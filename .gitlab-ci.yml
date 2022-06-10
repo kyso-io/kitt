@@ -1,0 +1,21 @@
+include:
+  - project: 'common/gitlab-ci'
+    ref: v0.4.15
+    file: '/templates/dockerfile-build.yml'
+
+docker-build:
+  before_script:
+  - !reference [.docker-config, before_script]
+  - |-
+    echo "git:" >version.txt
+    [ -z "$CI_COMMIT_BRANCH" ] ||
+      echo "  branch: $CI_COMMIT_BRANCH" >>version.txt
+    echo "  commit: $CI_COMMIT_SHA" >>version.txt
+    [ -z "$CI_COMMIT_TAG" ] ||
+      echo "  tag: $CI_COMMIT_TAG" >>version.txt
+
+variables:
+  DOCKER_BUILDKIT: 1
+  CODE_QUALITY_DISABLED: "true"
+  SAST_DISABLED: "true"
+  KYSO_IGNORE_BRANCH: "true"
