@@ -80,10 +80,10 @@ docker_exec() {
     exit 1
   fi
   if [ "$(docker_status)" ]; then
-    docker exec -ti "$CONTAINER_NAME" su -s /bin/sh -c "$*" "$(id -un)"
+    docker exec -ti "$CONTAINER_NAME" su -P -s /bin/sh -c "$*" "$(id -un)"
   else
     docker_start >/dev/null
-    docker exec -ti "$CONTAINER_NAME" su -s /bin/sh -c "$*" "$(id -un)"
+    docker exec -ti "$CONTAINER_NAME" su -P -s /bin/sh -c "$*" "$(id -un)"
     docker_stop "0" >/dev/null
   fi
 }
