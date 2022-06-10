@@ -168,7 +168,8 @@ apps_mongodb_read_variables() {
   MONGODB_REPO=${READ_VALUE}
   read_value "MongoDB Enable Metrics" "${MONGODB_ENABLE_METRICS}"
   MONGODB_ENABLE_METRICS=${READ_VALUE}
-  read_value "MongoDB storageClass" "${MONGODB_STORAGE_CLASS}"
+  read_value "MongoDB storageClass ('local-storage' @ k3d, 'gp3' @ eks)" \
+    "${MONGODB_STORAGE_CLASS}"
   MONGODB_STORAGE_CLASS=${READ_VALUE}
   read_value "MongoDB Storage Size" "${MONGODB_STORAGE_SIZE}"
   MONGODB_STORAGE_SIZE=${READ_VALUE}
@@ -192,7 +193,7 @@ MONGODB_REPO=$MONGODB_REPO
 # Set to true to add metrics to the deployment, useful with our own
 # prometheus deployment
 MONGODB_ENABLE_METRICS=$MONGODB_ENABLE_METRICS
-# MongoDB Storage Class
+# MongoDB Storage Class ('local-storage' @ k3d, 'gp3' @ eks)
 MONGODB_STORAGE_CLASS=$MONGODB_STORAGE_CLASS
 # MongoDB Volume Size (if storage is local or NFS the value is ignored)
 MONGODB_STORAGE_SIZE=$MONGODB_STORAGE_SIZE

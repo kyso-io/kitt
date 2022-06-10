@@ -284,7 +284,7 @@ apps_kyso_scs_read_variables() {
   KYSO_INDEXER_IMAGE=${READ_VALUE}
   read_value "SCS Replicas" "${KYSO_SCS_REPLICAS}"
   KYSO_SCS_REPLICAS=${READ_VALUE}
-  read_value "Kyso SCS Storage Class ('local-storage' needs PV, 'efs-sc' eks)" \
+  read_value "Kyso SCS Storage Class ('local-storage' @ k3d, 'efs-sc' @ eks)" \
     "${KYSO_SCS_STORAGE_CLASS}"
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
   read_value "Kyso SCS Volume Size" "${KYSO_SCS_STORAGE_SIZE}"
@@ -312,7 +312,7 @@ KYSO_SCS_NGINX_IMAGE=$KYSO_SCS_NGINX_IMAGE
 KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
 # Number of pods to run in parallel (for more than 1 the volumes must be EFS)
 KYSO_SCS_REPLICAS=$KYSO_SCS_REPLICAS
-# Kyso SCS Storage Class ('local-storage' requires existing PV, 'efs-sc' eks)
+# Kyso SCS Storage Class ('local-storage' @ k3d, 'efs-sc' @ eks)
 KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 # Kyso SCS Volume Size (if the storage is local or NFS the value is ignored)
 KYSO_SCS_STORAGE_SIZE=$KYSO_SCS_STORAGE_SIZE

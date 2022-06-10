@@ -162,7 +162,8 @@ apps_elasticsearch_read_variables() {
   read_value "Elasticsearch mem request (i.e. 500m)" \
     "${ELASTICSEARCH_MEM_REQUESTS}"
   ELASTICSEARCH_MEM_REQUESTS=${READ_VALUE}
-  read_value "Elasticsearch storageClass" "${ELASTICSEARCH_STORAGE_CLASS}"
+  read_value "Elasticsearch storageClass ('local-storage' @ k3d, 'gp3' @ eks)" \
+    "${ELASTICSEARCH_STORAGE_CLASS}"
   ELASTICSEARCH_STORAGE_CLASS=${READ_VALUE}
   read_value "Elasticsearch Storage Size" "${ELASTICSEARCH_STORAGE_SIZE}"
   ELASTICSEARCH_STORAGE_SIZE=${READ_VALUE}
@@ -185,7 +186,7 @@ ELASTICSEARCH_JAVAOPTS=$ELASTICSEARCH_JAVAOPTS
 ELASTICSEARCH_CPU_REQUESTS=$ELASTICSEARCH_CPU_REQUESTS
 # Elasticsearch mem request (chart defaults to 2Gi)
 ELASTICSEARCH_MEM_REQUESTS=$ELASTICSEARCH_MEM_REQUESTS
-# Elasticsearch storageClass
+# Elasticsearch storageClass ('local-storage' @ k3d, 'gp3' @ eks)
 ELASTICSEARCH_STORAGE_CLASS=$ELASTICSEARCH_STORAGE_CLASS
 # Elasticsearch Volume Size (if storage is local or NFS the value is ignored)
 ELASTICSEARCH_STORAGE_SIZE=$ELASTICSEARCH_STORAGE_SIZE
