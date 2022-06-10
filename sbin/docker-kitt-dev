@@ -18,10 +18,12 @@ RELPATH_TO_WORKDIR=".."
 # Variables
 IMAGE_NAME="${IMAGE_NAME:-kitt}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+IMAGE_TAG="$IMAGE_NAME:$IMAGE_TAG"
 CONTAINER_NAME="kitt"
 BUILD_ARGS=""
 CONTAINER_VARS="-v $HOME:$HOME"
 CONTAINER_VARS="$CONTAINER_VARS -v /etc/passwd:/etc/passwd:ro"
+CONTAINER_VARS="$CONTAINER_VARS -v /etc/shadow:/etc/shadow:ro"
 CONTAINER_VARS="$CONTAINER_VARS -v /etc/group:/etc/group:ro"
 CONTAINER_VARS="$CONTAINER_VARS -e EDITOR=vi"
 
@@ -80,9 +82,8 @@ docker_build() {
       awk '!/^#/ { printf(" --build-arg \"%s\"", $0); }' "./.build-args"
     )"
   fi
-  BUILD_TAG="$IMAGE_NAME:$IMAGE_TAG"
   DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
-  DOCKER_COMMAND="$DOCKER_COMMAND --tag '$BUILD_TAG' ."
+  DOCKER_COMMAND="$DOCKER_COMMAND --tag '$IMAGE_TAG' ."
   ret="0"
   # Create version file
   VERSION_INFO="$(./bin/kitt.sh version)"
@@ -100,15 +101,15 @@ docker_build_prune() {
 }
 
 docker_exec() {
-  if [ -z "$*" ];  then
+  if [ -z "$*" ]; then
     echo "Pass a command to execute inside the kitt container"
     exit 1
   fi
   if [ "$(docker_status)" ]; then
-    docker exec -ti "$CONTAINER_NAME" "$@"
+    docker exec -ti "$CONTAINER_NAME" su -s /bin/sh -c "$*" "$(id -un)"
   else
     docker_start >/dev/null
-    docker exec -ti "$CONTAINER_NAME" "$@"
+    docker exec -ti "$CONTAINER_NAME" su -s /bin/sh -c "$*" "$(id -un)"
     docker_stop "0" >/dev/null
   fi
 }
@@ -122,34 +123,40 @@ docker_run() {
     echo "Container already running, aborting!"
     exit 1
   fi
+  case "$1" in
+  "")
+    CONTAINER_VARS="$CONTAINER_VARS -ti"
+    CONTAINER_CMND=""
+    ;;
+  daemon)
+    CONTAINER_VARS="$CONTAINER_VARS -d"
+    CONTAINER_VARS="$CONTAINER_VARS -e USER_NAME=$(id -un)"
+    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GROUP=docker"
+    CONTAINER_CMND="sleep infinity"
+    ;;
+  user)
+    CONTAINER_VARS="$CONTAINER_VARS -ti"
+    CONTAINER_VARS="$CONTAINER_VARS -e USER_NAME=$(id -un)"
+    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GROUP=docker"
+    CONTAINER_CMND=""
+    ;;
+  *)
+    echo "Wrong argument: $1"
+    exit 1
+    ;;
+  esac
   if [ -f "/run/docker.sock" ]; then
     _docker_sock="/run/docker.sock"
   else
     _docker_sock="/var/run/docker.sock"
   fi
   CONTAINER_VARS="$CONTAINER_VARS -v $_docker_sock:/run/docker.sock:rw"
-  BUILD_TAG="$IMAGE_NAME:$IMAGE_TAG"
-  if [ "$1" = "daemon" ]; then
-    DOCKER_COMMAND="$(
-      printf "%s" \
-        "docker run -d --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
-        " $CONTAINER_VARS '$BUILD_TAG' sleep infinity"
-    )"
-  else
-    DOCKER_COMMAND="$(
-      printf "%s" \
-        "docker run -ti --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
-        " $CONTAINER_VARS '$BUILD_TAG'"
-    )"
-  fi
+  DOCKER_COMMAND="$(
+    printf "%s" \
+      "docker run --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
+      " $CONTAINER_VARS '$IMAGE_TAG' $CONTAINER_CMND"
+  )"
   eval "$DOCKER_COMMAND"
-}
-
-docker_run_as_user() {
-  _docker_gid="$(getent group docker | cut -d: -f3)"
-  CONTAINER_VARS="$CONTAINER_VARS -u $(id -u):$(id -g)"
-  CONTAINER_VARS="$CONTAINER_VARS --group-add $_docker_gid"
-  docker_run
 }
 
 docker_start() {
@@ -187,13 +194,13 @@ EOF
 
 cd_to_workdir
 case "$1" in
-build) shift && docker_build "$@";;
+build) shift && docker_build "$@" ;;
 build-prune) docker_build_prune ;;
 exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
 rm) docker_rm ;;
 rar) shift && docker_run ;;
-run) shift && docker_run_as_user ;;
+run) shift && docker_run user ;;
 status) docker_status ;;
 start) docker_start ;;
 stop) docker_stop ;;
