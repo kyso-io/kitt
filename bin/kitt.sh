@@ -75,7 +75,7 @@ setup_app_dirs() {
   export INCL_DIR="$LIB_DIR/incl"
   export TMPL_DIR="$LIB_DIR/tmpl"
   _missing_dirs=""
-  for _dir in "$LIB_DIR" "$CMND_DIR" "$INCL_DIR" "$TMPL_DIR"; do
+  for _dir in "$LIB_DIR" "$CMND_DIR" "$INCL_DIR"; do
     [ -d "$_dir" ] || _missing_dirs="$_missing_dirs '$_dir'"
   done
   if [ "$_missing_dirs" ]; then
