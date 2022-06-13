@@ -28,17 +28,19 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./common.sh
   [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
   # shellcheck source=./elasticsearch.sh
-  [ "$INCL_KYSO_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
+  [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
   # shellcheck source=./mongodb.sh
-  [ "$INCL_KYSO_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
+  [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
+  # shellcheck source=./nats.sh
+  [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
   # shellcheck source=./mongo-gui.sh
-  [ "$INCL_KYSO_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
+  [ "$INCL_APPS_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
   # shellcheck source=./kyso-api.sh
-  [ "$INCL_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
+  [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
   # shellcheck source=./kyso-scs.sh
-  [ "$INCL_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
+  [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./kyso-ui.sh
-  [ "$INCL_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
 fi
 
 # ---------
@@ -53,6 +55,7 @@ apps_export_variables() {
   apps_common_export_variables "$_deployment" "$_cluster"
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   apps_mongodb_export_variables "$_deployment" "$_cluster"
+  apps_nats_export_variables "$_deployment" "$_cluster"
   apps_mongo_gui_export_variables "$_deployment" "$_cluster"
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
@@ -65,6 +68,7 @@ apps_check_directories() {
   apps_common_check_directories
   apps_elasticsearch_check_directories
   apps_mongodb_check_directories
+  apps_nats_check_directories
   apps_mongo_gui_check_directories
   apps_kyso_api_check_directories
   apps_kyso_scs_check_directories
@@ -75,6 +79,7 @@ apps_print_variables() {
   apps_common_print_variables
   apps_elasticsearch_print_variables
   apps_mongodb_print_variables
+  apps_nats_print_variables
   apps_mongo_gui_print_variables
   apps_kyso_api_print_variables
   apps_kyso_scs_print_variables
@@ -88,6 +93,8 @@ apps_read_variables() {
   apps_elasticsearch_read_variables
   footer
   apps_mongodb_read_variables
+  footer
+  apps_nats_read_variables
   footer
   apps_mongo_gui_read_variables
   footer

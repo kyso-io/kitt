@@ -23,8 +23,10 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
   # shellcheck source=./apps/mongodb.sh
   [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
-  # shellcheck source=./apps/mongodb.sh
+  # shellcheck source=./apps/kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
+  # shellcheck source=./apps/nats.sh
+  [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -326,6 +328,76 @@ pf_stop_myssh() {
   pf_stop "$_name" "$_pidf" "$_outf"
 }
 
+# NATS
+
+pf_info_nats() {
+  _name="nats"
+  _pidf="$NATS_PF_PID"
+  _outf="$NATS_PF_OUT"
+  header "$_name port-forward info"
+  if ! pf_running "$_pidf"; then
+    cat <<EOF
+
+The '$_name' port-forward for the '$DEPLOYMENT_NAME' deployment is not running.
+
+EOF
+    return 0
+  fi
+  host_port="$(pf_host_port "$_pidf" "$_outf")"
+  cat <<EOF
+
+Use the URL 'nats://$host_port' to connect to nats locally.
+
+If you are working from a remote host redirect the ports using ssh:
+
+  LOCAL_IP_AND_PORT="127.0.0.1:4222"
+  ssh $(hostname) -L \$LOCAL_IP_AND_PORT:$host_port sleep infinity
+
+While the ssh session is running you can connect to NATS using the URL
+'nats://\$LOCAL_IP_AND_PORT'
+
+EOF
+}
+
+pf_start_nats() {
+  _name="nats"
+  _ns="$NATS_NAMESPACE"
+  _svc="svc/$NATS_RELEASE"
+  _addr="$DEPLOYMENT_PF_ADDR"
+  _pf_port="$NATS_PF_PORT"
+  _svc_port="4222"
+  _pidf="$NATS_PF_PID"
+  _outf="$NATS_PF_OUT"
+  if ! pf_running "$_pidf"; then
+    _pf_dir="$(dirname "$_pidf")"
+    if [ -z "$_pidf" ] || [ ! -d "$_pf_dir" ]; then
+      echo "Directory '$_pf_dir' not found!"
+      echo "Have you installed '$_name'?"
+      exit 1
+    fi
+    echo "Starting $_name port-forward"
+    nohup kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
+      "$_pf_port:$_svc_port" >"$_outf" 2>/dev/null &
+    echo "$!" >"$_pidf"
+    sleep 1
+  fi
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_status_nats() {
+  _name="nats"
+  _pidf="$NATS_PF_PID"
+  _outf="$NATS_PF_OUT"
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_stop_nats() {
+  _name="nats"
+  _pidf="$NATS_PF_PID"
+  _outf="$NATS_PF_OUT"
+  pf_stop "$_name" "$_pidf" "$_outf"
+}
+
 # Main commands function
 
 pf_command() {
@@ -336,6 +408,7 @@ pf_command() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  apps_nats_export_variables "$_deployment" "$_cluster"
   case "$_cmnd" in
   info)
     case "$_arg" in
@@ -362,6 +435,10 @@ pf_command() {
       pf_info_myssh "$_deployment" "$_cluster"
       if pf_running "$KYSO_SCS_MYSSH_PF_PID"; then pf_note; fi
       ;;
+    nats)
+      pf_info_nats "$_deployment" "$_cluster"
+      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
+      ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -371,10 +448,12 @@ pf_command() {
       pf_start_elastic "$_deployment" "$_cluster"
       pf_start_mongodb "$_deployment" "$_cluster"
       pf_start_myssh "$_deployment" "$_cluster"
+      pf_start_nats "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_start_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_start_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_start_myssh "$_deployment" "$_cluster" ;;
+    nats) pf_start_nats "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -384,10 +463,12 @@ pf_command() {
       pf_stop_elastic "$_deployment" "$_cluster"
       pf_stop_mongodb "$_deployment" "$_cluster"
       pf_stop_myssh "$_deployment" "$_cluster"
+      pf_stop_nats "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_stop_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_stop_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_stop_myssh "$_deployment" "$_cluster" ;;
+    nats) pf_stop_nats "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -397,10 +478,12 @@ pf_command() {
       pf_status_elastic "$_deployment" "$_cluster"
       pf_status_mongodb "$_deployment" "$_cluster"
       pf_status_myssh "$_deployment" "$_cluster"
+      pf_status_nats "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_status_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_status_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_status_myssh "$_deployment" "$_cluster" ;;
+    nats) pf_status_nats "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -427,6 +510,7 @@ all: work on all the port-forwards
 elastic|elastisearch: operate on the elasticsearch web port
 mongodb: operate on the mongodb database port
 myssh|sftp: operate on the the kyso-scs sftp port
+nats: operate on the nats client port
 EOF
 }
 

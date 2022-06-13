@@ -24,17 +24,19 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/config.sh
   [ "$INCL_APPS_CONFIG_SH" = "1" ] || . "$INCL_DIR/apps/config.sh"
   # shellcheck source=./apps/elasticsearch.sh
-  [ "$INCL_KYSO_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
+  [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
   # shellcheck source=./apps/mongodb.sh
-  [ "$INCL_KYSO_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
+  [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
+  # shellcheck source=./apps/nats.sh
+  [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
   # shellcheck source=./apps/mongo-gui.sh
-  [ "$INCL_KYSO_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
+  [ "$INCL_APPS_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
   # shellcheck source=./apps/kyso-api.sh
-  [ "$INCL_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
+  [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
   # shellcheck source=./apps/kyso-scs.sh
-  [ "$INCL_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
+  [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./apps/kyso-ui.sh
-  [ "$INCL_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -91,6 +93,9 @@ apps_command() {
   mongo-gui | mongo_gui)
     apps_mongo_gui_command "$_command" "$_deployment" "$_cluster"
     ;;
+  nats)
+    apps_nats_command "$_command" "$_deployment" "$_cluster"
+    ;;
   esac
   case "$_command" in
     status|summary) ;;
@@ -99,7 +104,7 @@ apps_command() {
 }
 
 apps_list() {
-  echo "config elasticsearch mongodb mongo-gui kyso-api kyso-scs kyso-ui"
+  echo "config elasticsearch mongodb nats mongo-gui kyso-api kyso-scs kyso-ui"
 }
 
 apps_command_list() {
@@ -108,6 +113,7 @@ apps_command_list() {
   config) apps_config_command_list ;;
   elasticsearch) apps_elasticsearch_command_list ;;
   mongodb) apps_mongodb_command_list ;;
+  nats) apps_nats_command_list ;;
   mongo-gui | mongo_gui) apps_mongo_gui_command_list ;;
   kyso-api) apps_kyso_api_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
