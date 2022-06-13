@@ -33,7 +33,10 @@ cluster_export_variables() {
   fi
   # Directories
   export APP_DATA_DIR="${APP_DATA_DIR:-$APP_DEFAULT_DATA_DIR}"
+  export CERTIFICATES_DIR="$APP_DATA_DIR/certificates"
   export CLUSTERS_DIR="$APP_DATA_DIR/clusters"
+  export STORAGE_DIR="$APP_DATA_DIR/storage"
+  export VOLUMES_DIR="$APP_DATA_DIR/volumes"
   export CLUSTER_DIR="$CLUSTERS_DIR/$CLUST_NAME"
   export CLUST_EKS_DIR="$CLUSTER_DIR/eks"
   export CLUST_EXTSVC_DIR="$CLUSTER_DIR/extsvc"
@@ -42,9 +45,8 @@ cluster_export_variables() {
   export CLUST_KUBECTL_DIR="$CLUSTER_DIR/kubectl"
   export CLUST_NS_KUBECTL_DIR="$CLUSTER_DIR/ns-kubectl"
   export CLUST_SECRETS_DIR="$CLUSTER_DIR/secrets"
-  export CLUST_STORAGE_DIR="$CLUSTER_DIR/storage"
-  export CLUST_TLS_DIR="$CLUSTER_DIR/tls"
-  export CLUST_VOLUMES_DIR="$CLUSTER_DIR/volumes"
+  export CLUST_STORAGE_DIR="$STORAGE_DIR/$CLUST_NAME"
+  export CLUST_VOLUMES_DIR="$VOLUMES_DIR/$CLUST_NAME"
   # Files
   export CLUSTER_CONFIG="$CLUSTER_DIR/config"
   # Export CLUSTER_CONFIG variables
@@ -120,7 +122,7 @@ EOF
 }
 
 cluster_check_directories() {
-  for _d in "$APP_DATA_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR" \
+  for _d in "$APP_DATA_DIR" "$CERTIFICATES_DIR" "$CLUSTERS_DIR" "$CLUSTER_DIR" \
     "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done

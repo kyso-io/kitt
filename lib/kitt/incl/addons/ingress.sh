@@ -49,8 +49,8 @@ addon_ingress_export_variables() {
   export INGRESS_HELM_VALUES_TMPL="$INGRESS_TMPL_DIR/values.yaml"
   # Files
   export INGRESS_HELM_VALUES_YAML="$INGRESS_HELM_DIR/values.yaml"
-  export INGRESS_CERT_CRT="$CLUST_TLS_DIR/$CLUSTER_DOMAIN.crt"
-  export INGRESS_CERT_KEY="$CLUST_TLS_DIR/$CLUSTER_DOMAIN${SOPS_EXT}.key"
+  export INGRESS_CERT_CRT="$CERTIFICATES_DIR/$CLUSTER_DOMAIN.crt"
+  export INGRESS_CERT_KEY="$CERTIFICATES_DIR/$CLUSTER_DOMAIN${SOPS_EXT}.key"
   _cert_yaml="$INGRESS_KUBECTL_DIR/$INGRESS_CERT_NAME$SOPS_EXT.yaml"
   export INGRESS_CERT_YAML="$_cert_yaml"
   # Set variable to avoid loading variables twice

@@ -51,7 +51,6 @@ deployment_export_variables() {
   export DEPLOY_KUBECTL_DIR="$DEPLOYMENT_DIR/kubectl"
   export DEPLOY_PF_DIR="$DEPLOYMENT_DIR/pf"
   export DEPLOY_SECRETS_DIR="$DEPLOYMENT_DIR/secrets"
-  export DEPLOY_TLS_DIR="$DEPLOYMENT_DIR/tls"
   # Files
   export DEPLOYMENT_CONFIG="$DEPLOYMENT_DIR/config"
   # Export DEPLOYMENT_CONFIG variables
@@ -74,14 +73,14 @@ deployment_check_directories() {
   cluster_check_directories
   for _d in "$DEPLOYMENTS_DIR" "$DEPLOYMENT_DIR" "$DEPLOY_ANNOTATIONS_DIR" \
     "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" "$DEPLOY_PF_DIR" \
-    "$DEPLOY_SECRETS_DIR" "$DEPLOY_TLS_DIR"; do
+    "$DEPLOY_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 remove_deployment_directories() {
   for _d in "$DEPLOY_ANNOTATIONS_DIR" "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" \
-    "$DEPLOY_PF_DIR" "$DEPLOY_SECRETS_DIR" "$DEPLOY_TLS_DIR" "$DEPLOYMENT_DIR" \
+    "$DEPLOY_PF_DIR" "$DEPLOY_SECRETS_DIR" "$DEPLOYMENT_DIR" \
     "$DEPLOYMENTS_DIR"; do
     if [ -d "$_d" ]; then
       rm -rf "$_d"

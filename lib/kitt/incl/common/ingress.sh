@@ -100,8 +100,8 @@ create_app_cert_yamls() {
     fi
     for _hostname in $DEPLOYMENT_HOSTNAMES; do
       _cert_name="$_hostname"
-      _cert_crt="$DEPLOY_TLS_DIR/$_hostname.crt"
-      _cert_key="$DEPLOY_TLS_DIR/$_hostname${SOPS_EXT}.key"
+      _cert_crt="$CERTIFICATES_DIR/$_hostname.crt"
+      _cert_key="$CERTIFICATES_DIR/$_hostname${SOPS_EXT}.key"
       _cert_yaml="$_kubectl_dir/tls-$_hostname${SOPS_EXT}.yaml"
       create_tls_cert_yaml "$_ns" "$_cert_name" "$_cert_crt" "$_cert_key" \
         "$_cert_yaml"
