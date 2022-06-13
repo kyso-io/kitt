@@ -35,8 +35,7 @@ COPY lib/kitt/cmnd/tools /usr/local/lib/kitt/cmnd/
 COPY lib/kitt/incl/common/io.sh /usr/local/lib/kitt/incl/common/
 COPY lib/kitt/incl/tools.sh /usr/local/lib/kitt/incl/
 # Install applications using kitt
-RUN mkdir /usr/local/lib/kitt/tmpl\
- && KITT_NONINTERACTIVE=true /usr/local/bin/kitt.sh tools apps
+RUN KITT_NONINTERACTIVE=true /usr/local/bin/kitt.sh tools apps
 # Add the entrypoint
 COPY container/entrypoint.sh /entrypoint.sh
 # Use our entrypoint (executes bash if no CMD is passed)
