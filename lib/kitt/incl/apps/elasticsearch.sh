@@ -396,7 +396,7 @@ apps_elasticsearch_summary() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   _addon="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
-  _release="$ELASTICSEARCH_HELM_RELEASE"
+  _release="$ELASTICSEARCH_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
   statefulset_helm_summary "$_ns" "elasticsearch-master"
 }
