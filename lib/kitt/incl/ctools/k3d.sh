@@ -21,7 +21,6 @@ INCL_CTOOLS_K3D_SH="1"
 # K3D defaults
 export APP_DEFAULT_CLUSTER_K3D_SERVERS="1"
 export APP_DEFAULT_CLUSTER_K3D_WORKERS="0"
-export APP_DEFAULT_CLUSTER_K3S_IMAGE="docker.io/rancher/k3s:latest"
 export APP_DEFAULT_CLUSTER_API_HOST="127.0.0.1"
 export APP_DEFAULT_CLUSTER_API_PORT="6443"
 export APP_DEFAULT_CLUSTER_LB_HOST_IP="127.0.0.1"
@@ -60,7 +59,7 @@ ctool_k3d_export_variables() {
     CLUSTER_NUM_WORKERS="${APP_DEFAULT_CLUSTER_K3D_WORKERS}"
   export CLUSTER_NUM_WORKERS
   [ "$CLUSTER_K3S_IMAGE" ] ||
-    CLUSTER_K3S_IMAGE="${APP_DEFAULT_CLUSTER_K3S_IMAGE}"
+    CLUSTER_K3S_IMAGE="$(k3d config init -o - | sed -n -e 's/^image: //p')"
   export CLUSTER_K3S_IMAGE
   [ "$CLUSTER_API_HOST" ] ||
     CLUSTER_API_HOST="${APP_DEFAULT_CLUSTER_API_HOST}"
@@ -108,7 +107,7 @@ ctool_k3d_check_directories() {
 ctool_k3d_read_variables() {
   read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
   CLUSTER_DOMAIN=${READ_VALUE}
-  read_value "Number of servers (Masters)" "${CLUSTER_NUM_SERVERS}"
+  read_value "Number of servers (Master + Agent)" "${CLUSTER_NUM_SERVERS}"
   CLUSTER_NUM_SERVERS=${READ_VALUE}
   read_value "Number of workers (Agents)" "${CLUSTER_NUM_WORKERS}"
   CLUSTER_NUM_WORKERS=${READ_VALUE}
