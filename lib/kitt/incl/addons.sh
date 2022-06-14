@@ -76,7 +76,6 @@ fi
 # ---------
 
 check_addon_directories() {
-  cluster_check_directories
   for _d in "$CLUST_HELM_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR" \
     "$CLUST_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"

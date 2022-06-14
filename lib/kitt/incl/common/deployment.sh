@@ -70,7 +70,6 @@ EOF
 }
 
 deployment_check_directories() {
-  cluster_check_directories
   for _d in "$DEPLOYMENTS_DIR" "$DEPLOYMENT_DIR" "$DEPLOY_ANNOTATIONS_DIR" \
     "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" "$DEPLOY_PF_DIR" \
     "$DEPLOY_SECRETS_DIR"; do

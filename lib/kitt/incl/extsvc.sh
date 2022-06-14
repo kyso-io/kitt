@@ -129,7 +129,6 @@ EOF
 }
 
 extsvc_check_directories() {
-  cluster_check_directories
   for _d in "$CLUST_EXTSVC_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_SECRETS_DIR" \
     "$EXTSVC_BASE_KUBECTL_DIR" "$EXTSVC_BASE_SECRETS_DIR" "$EXTSVC_CONFIG_DIR" \
     "$EXTSVC_KUBECTL_DIR" "$EXTSVC_SECRETS_DIR"; do
