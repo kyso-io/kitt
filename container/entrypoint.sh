@@ -19,7 +19,7 @@ if [ "$USER_UID" -eq "0" ]; then
   if [ "$*" ]; then
     exec /bin/sh -c "$*"
   else
-    exec /bin/bash
+    exec /bin/bash -l
   fi
 else
   echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/kitt-user
@@ -27,7 +27,7 @@ else
   if [ "$*" ]; then
     exec su -s /bin/sh -c "$*" "$USER_NAME"
   else
-    exec su -s /bin/bash "$USER_NAME"
+    exec su -s /bin/bash -l "$USER_NAME"
   fi
 fi
 
