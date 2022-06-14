@@ -65,7 +65,7 @@ EOF
   case "$CLUSTER_KIND" in
   k3d) export KUBECTL_CONTEXT="k3d-$CLUSTER_NAME" ;;
   eks)
-    KUBECTL_CONTEXT="$(kubectx | grep "@$CLUSTER_NAME\.")"
+    KUBECTL_CONTEXT="$(kubectx | grep "@$CLUSTER_NAME\.")" || true
     export KUBECTL_CONTEXT
     ;;
   *) export KUBECTL_CONTEXT="$CLUSTER_NAME" ;;
