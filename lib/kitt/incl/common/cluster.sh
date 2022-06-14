@@ -127,12 +127,6 @@ cluster_check_directories() {
     [ -d "$_d" ] || mkdir "$_d"
   done
   if is_selected "$CLUSTER_DATA_IN_GIT" && [ ! -d "$CLUSTER_DIR/.git" ]; then
-    if [ ! -f "$CLUSTER_DIR/.gitignore" ]; then
-      cat >"$CLUSTER_DIR/.gitignore" <<EOF
-/storage
-/volumes
-EOF
-    fi
     (
       cd "$CLUSTER_DIR"
       git init -b main --quiet .
