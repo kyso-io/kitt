@@ -250,7 +250,7 @@ ctool_eks_install() {
       -e "s%__CLUSTER_MAX_WORKERS__%$CLUSTER_MAX_WORKERS%g" \
       -e "s%__CLUSTER_MIN_WORKERS__%$CLUSTER_MIN_WORKERS%g" \
       "$EKS_CONFIG_TMPL" >"$EKS_CONFIG_YAML"
-    eksctl create cluster --config-file="$EKS_CONFIG_YAML"
+    eksctl create cluster --ssh-access --config-file="$EKS_CONFIG_YAML"
   fi
   footer
   kubectx "$KUBECTL_CONTEXT"
