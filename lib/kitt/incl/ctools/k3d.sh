@@ -162,9 +162,9 @@ NAME=$CLUSTER_NAME
 KIND=$CLUSTER_KIND
 # Public DNS domain used with the cluster ingress by default
 DOMAIN=$CLUSTER_DOMAIN
-# Number of server nodes (generally 1 is enough, use more only for testing)
+# Number of server nodes (1, set to 3 if testing etcd, servers are also workers)
 NUM_SERVERS=$CLUSTER_NUM_SERVERS
-# Number of worker nodes (set to 0 for development and use 2 or 3 for testing)
+# Number of worker nodes (0 for development, 2 for testing (2+1 = 3 workers))
 NUM_WORKERS=$CLUSTER_NUM_WORKERS
 # k3s image (see https://hub.docker.com/r/rancher/k3s/tags)
 K3S_IMAGE=$CLUSTER_K3S_IMAGE
