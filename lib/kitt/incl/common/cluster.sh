@@ -129,7 +129,7 @@ cluster_check_directories() {
   if is_selected "$CLUSTER_DATA_IN_GIT" && [ ! -d "$CLUSTER_DIR/.git" ]; then
     (
       cd "$CLUSTER_DIR"
-      git init -b main --quiet .
+      git init --initial-branch=main --quiet .
       git add .
       git commit -m 'Initial commit' --quiet
     )
