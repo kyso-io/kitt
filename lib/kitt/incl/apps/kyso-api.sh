@@ -120,17 +120,18 @@ apps_kyso_api_export_variables() {
   fi
   export KYSO_API_DOCS_INGRESS
   if [ "$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA" ]; then
-    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA"
+    _v="$DEPLOYMENT_KYSO_API_POPULATE_TEST_DATA"
   else
-    KYSO_API_POPULATE_TEST_DATA="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_TEST_DATA"
+    _v="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_TEST_DATA"
   fi
-  export KYSO_API_POPULATE_TEST_DATA
+  export KYSO_API_POPULATE_TEST_DATA="$_v"
   if [ "$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX" ]; then
-    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX"
+    _v="$DEPLOYMENT_KYSO_API_POPULATE_MAIL_PREFIX"
   else
-    KYSO_API_POPULATE_MAIL_PREFIX="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX"
+    _v="$DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX"
   fi
-  export KYSO_API_POPULATE_MAIL_PREFIX
+  export KYSO_API_POPULATE_MAIL_PREFIX="$_v"
+  _v=""
   __apps_kyso_api_export_variables="1"
 }
 
@@ -217,8 +218,8 @@ apps_kyso_api_install() {
   _cluster="$2"
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
   if [ -z "$KYSO_API_ENDPOINT" ] && [ -z "$KYSO_API_IMAGE" ]; then
-    echo "The API_IMAGE & API_ENDPOINT variables are is empty"
-    echo "Export KYSO_API_IMAGE, KYSO_API_ENDPOINT or reconfigure"
+    echo "The API_IMAGE & API_ENDPOINT variables are empty."
+    echo "Export KYSO_API_IMAGE or KYSO_API_ENDPOINT or reconfigure."
     exit 1
   fi
   apps_kyso_api_check_directories

@@ -339,7 +339,8 @@ apps_kyso_scs_install() {
   _cluster="$2"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   if [ -z "$KYSO_INDEXER_IMAGE" ]; then
-    echo "The INDEXER_IMAGE is empty, export KYSO_INDEXER_IMAGE or reconfigure"
+    echo "The INDEXER_IMAGE is empty."
+    echo "Export KYSO_INDEXER_IMAGE or reconfigure."
     exit 1
   fi
   apps_kyso_scs_check_directories

@@ -153,7 +153,7 @@ apps_kyso_ui_install() {
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
   if [ -z "$KYSO_UI_ENDPOINT" ] && [ -z "$KYSO_UI_IMAGE" ]; then
     echo "The UI_IMAGE & UI_ENDPOINT variables are empty."
-    echo "Export KYSO_UI_IMAGE, KYSO_UI_ENDPOINT or reconfigure"
+    echo "Export KYSO_UI_IMAGE or KYSO_UI_ENDPOINT or reconfigure."
     exit 1
   fi
   apps_kyso_ui_check_directories
