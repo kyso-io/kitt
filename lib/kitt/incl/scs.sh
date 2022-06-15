@@ -34,11 +34,13 @@ fi
 scs_reindex() {
   _hostname="$(echo "$DEPLOYMENT_HOSTNAMES" | head -1)"
   _api_base="https://${_hostname}/api/v1"
+  _user_data="\"email\":\"lo+palpatine@dev.kyso.io\",\"password\":\"n0tiene\""
+  _user_data="$_user_data,\"provider\":\"kyso\""
   _auth_json="$(
     curl -s -X 'POST' "${_api_base}/auth/login" \
       -H 'accept: application/json' \
       -H 'Content-Type: application/json' \
-      -d '{"email":"lo+rey@dev.kyso.io","password":"n0tiene","provider":"kyso"}'
+      -d "{$_user_data}"
   )"
   _token="$(echo "$_auth_json" | jq -r '.data')"
   _output="$(
