@@ -8,8 +8,10 @@ parameters:
   fsType: __FS_TYPE__
   type: __EBS_TYPE__
   encrypted: "true"
+  tagSpecification_1: "Name={{ .PVCName }}"
 allowedTopologies:
 - matchLabelExpressions:
   - key: topology.kubernetes.io/zone
     values:
     - __ZONE__
+allowVolumeExpansion: true
