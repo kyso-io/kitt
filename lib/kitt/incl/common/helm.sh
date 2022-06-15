@@ -35,9 +35,29 @@ check_helm_repo() {
   )" || true
   if [ "$repo_added" != "yes" ]; then
     helm repo add "$repo_name" "$repo_url"
-    helm repo update
+    helm repo update "$repo_name"
   fi
 }
+
+check_helm_chart() {
+  chart="$1"
+  version="$2"
+  if [ "$version" ]; then
+    # Check if the version is available
+    [ "$(helm search repo "$chart" -l -o json --version "$version")" = "[]" ] ||
+      return 0
+    # Maybe an update is needed, we update all just in case
+    helm repo update
+    # Check again
+    [ "$(helm search repo "$chart" -l -o json --version "$version")" = "[]" ] ||
+      return 0
+  else
+    [ "$(helm search repo "$chart" -l -o json)" = "[]" ] || return 0
+  fi
+  # If we arrive here the chart or the chart + version is not available
+  return 1
+}
+
 
 # Call help update
 helm_upgrade() {
@@ -47,9 +67,19 @@ helm_upgrade() {
   _chart="$4"
   _version="$5"
   if [ "$_version" ]; then
-    _version_op="--version=$_version"
+    if check_helm_chart "$_chart" "$_version"; then
+      _version_op="--version=$_version"
+    else
+      echo "Version '$_version' of chart '$_chart' not found, check settings!"
+      return 1
+    fi
   else
-    _version_op=""
+    if check_helm_chart "$_chart" "$_version"; then
+      _version_op=""
+    else
+      echo "Chart '$_chart' not found, check settings!"
+      return 1
+    fi
   fi
   # shellcheck disable=SC2086
   if [ "$_values_yaml" ]; then
