@@ -61,6 +61,7 @@ apps_kyso_ui_export_variables() {
   export KYSO_UI_INGRESS_TMPL="$KYSO_UI_TMPL_DIR/ingress.yaml"
   # Files
   export KYSO_UI_DEPLOY_YAML="$KYSO_UI_KUBECTL_DIR/deploy.yaml"
+  export KYSO_UI_ENDPOINT_YAML="$KYSO_UI_KUBECTL_DIR/endpoint.yaml"
   export KYSO_UI_SERVICE_YAML="$KYSO_UI_KUBECTL_DIR/service.yaml"
   export KYSO_UI_INGRESS_YAML="$KYSO_UI_KUBECTL_DIR/ingress.yaml"
   # Use defaults for variables missing from config files / enviroment
