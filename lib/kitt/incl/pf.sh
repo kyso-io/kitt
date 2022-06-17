@@ -416,8 +416,9 @@ pf_command() {
       pf_info_elastic "$_deployment" "$_cluster"
       pf_info_mongodb "$_deployment" "$_cluster"
       pf_info_myssh "$_deployment" "$_cluster"
+      pf_info_nats "$_deployment" "$_cluster"
       for _pidf in "$ELASTICSEARCH_PF_PID" "$MONGODB_PF_PID" \
-        "$KYSO_SCS_MYSSH_PF_PID"; do
+        "$KYSO_SCS_MYSSH_PF_PID" "$NATS_PF_PID"; do
         if pf_running "$_pidf"; then
           pf_note; break
         fi
@@ -437,7 +438,7 @@ pf_command() {
       ;;
     nats)
       pf_info_nats "$_deployment" "$_cluster"
-      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
+      if pf_running "$NATS_PF_PID"; then pf_note; fi
       ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
