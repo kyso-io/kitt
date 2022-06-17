@@ -255,7 +255,7 @@ apps_nats_install() {
   if [ "$_storage_class" = "local-storage" ] &&
     is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
     for i in $(seq 0 $((NATS_REPLICAS-1))); do
-      _pv_name="$NATS_PV_PREFIX-$i"
+      _pv_name="$NATS_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
@@ -263,7 +263,7 @@ apps_nats_install() {
     # Create PVs
     for i in $(seq 0 $((NATS_REPLICAS-1))); do
       _pvc_name="$NATS_PV_PREFIX-$i"
-      _pv_name="$NATS_PV_PREFIX-$i"
+      _pv_name="$NATS_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       _pv_yaml="$NATS_KUBECTL_DIR/pv-$i.yaml"
       sed \
         -e "s%__APP__%$_app%" \

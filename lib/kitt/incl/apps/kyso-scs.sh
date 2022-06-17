@@ -364,7 +364,7 @@ apps_kyso_scs_install() {
   _pv_yaml="$KYSO_SCS_PV_YAML"
   _pvc_tmpl="$KYSO_SCS_PVC_TMPL"
   _pvc_yaml="$KYSO_SCS_PVC_YAML"
-  _pv_name="$_ns"
+  _pv_name="$_app-$DEPLOYMENT_NAME"
   _pvc_name="$_ns"
   _svc_tmpl="$KYSO_SCS_SERVICE_TMPL"
   _svc_yaml="$KYSO_SCS_SERVICE_YAML"
@@ -581,8 +581,9 @@ apps_kyso_scs_rmvols() {
   _deployment="$1"
   _cluster="$2"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
-  _pv_name="$_ns"
+  _pv_name="$_app-$DEPLOYMENT_NAME"
   if find_namespace "$_ns"; then
     echo "Namespace '$_ns' found, not removing volumes!"
   else

@@ -249,7 +249,7 @@ apps_elasticsearch_install() {
   if [ "$_storage_class" = "local-storage" ] &&
     is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
     for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
-      _pv_name="$ELASTICSEARCH_PV_PREFIX-$i"
+      _pv_name="$ELASTICSEARCH_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
@@ -257,7 +257,7 @@ apps_elasticsearch_install() {
     # Create PVs
     for i in $(seq 0 $((ELASTICSEARCH_REPLICAS-1))); do
       _pvc_name="$ELASTICSEARCH_PV_PREFIX-$i"
-      _pv_name="$ELASTICSEARCH_PV_PREFIX-$i"
+      _pv_name="$ELASTICSEARCH_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       _pv_yaml="$ELASTICSEARCH_KUBECTL_DIR/pv-$i.yaml"
       sed \
         -e "s%__APP__%$_app%" \
