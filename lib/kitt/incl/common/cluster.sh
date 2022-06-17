@@ -130,6 +130,7 @@ cluster_check_directories() {
     (
       cd "$CLUSTER_DIR"
       git init --quiet .
+      touch .gitignore
       git add .
       git commit -m 'Initial commit' --quiet
     )
