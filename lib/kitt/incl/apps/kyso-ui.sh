@@ -55,6 +55,8 @@ apps_kyso_ui_export_variables() {
   export KYSO_UI_SECRETS_DIR="$DEPLOY_SECRETS_DIR/kyso-ui"
   # Templates
   export KYSO_UI_DEPLOY_TMPL="$KYSO_UI_TMPL_DIR/deploy.yaml"
+  export KYSO_UI_ENDPOINT_TMPL="$KYSO_UI_TMPL_DIR/endpoint.yaml"
+  export KYSO_UI_ENDPOINT_SVC_TMPL="$KYSO_UI_TMPL_DIR/endpoint_svc.yaml"
   export KYSO_UI_SERVICE_TMPL="$KYSO_UI_TMPL_DIR/service.yaml"
   export KYSO_UI_INGRESS_TMPL="$KYSO_UI_TMPL_DIR/ingress.yaml"
   # Files

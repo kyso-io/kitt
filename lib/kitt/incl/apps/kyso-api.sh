@@ -66,7 +66,7 @@ apps_kyso_api_export_variables() {
   # Templates
   export KYSO_API_DEPLOY_TMPL="$KYSO_API_TMPL_DIR/deploy.yaml"
   export KYSO_API_ENDPOINT_TMPL="$KYSO_API_TMPL_DIR/endpoint.yaml"
-  export KYSO_API_ENDPOINT_SVC_TMPL="$KYSO_API_TMPL_DIR/endpoint-svc.yaml"
+  export KYSO_API_ENDPOINT_SVC_TMPL="$KYSO_API_TMPL_DIR/endpoint_svc.yaml"
   export KYSO_API_ENV_TMPL="$KYSO_API_TMPL_DIR/kyso-api.env"
   export KYSO_API_INGRESS_TMPL="$KYSO_API_TMPL_DIR/ingress.yaml"
   export KYSO_API_INGRESS_DOCS_TMPL="$KYSO_API_TMPL_DIR/ingress-docs.yaml"
