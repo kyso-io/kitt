@@ -99,7 +99,7 @@ ctool_k3d_export_variables() {
 
 ctool_k3d_check_directories() {
   cluster_check_directories
-  for _d in $CLUST_K3D_DIR; do
+  for _d in "$CLUST_K3D_DIR" "$CLUST_STORAGE_DIR" "$CLUST_VOLUMES_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
