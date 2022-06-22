@@ -273,7 +273,7 @@ tools_check_kubectx() {
       curl -sL "$download_url" -o "$app.tar.gz"
       tar xzf "$app.tar.gz" "$app"
       sudo install "./$app" /usr/local/bin/
-      sudo ln -sf "./$app" "/usr/local/bin/kubectl-$app"
+      sudo ln -sf "./$app" "/usr/local/bin/kubectl-${app#kube}"
       if [ -d "$BASH_COMPLETION" ]; then
         curl -sL "$_compl_url/$app.bash" |
           sudo sh -c "cat >"$BASH_COMPLETION/$app""
