@@ -206,6 +206,32 @@ tools_check_k3d() {
   fi
 }
 
+tools_check_krew() {
+  app="krew"
+  if tools_install_app "$app"; then
+    repo_path="kubernetes-sigs/krew"
+    case "$(uname)" in
+      Linux) os_arch="linux_amd64" ;;
+      Darwin) os_arch="darwin_amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+        sed -n "s/^.*\"browser_download_url\": \"\(.*-$os_arch.tar.gz\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    orig_pwd="$(pwd)"
+    tmp_dir="$(mktemp -d)"
+    cd "$tmp_dir"
+    curl -sL "$download_url" -o "$tmp_dir/$app.tar.gz"
+    tar xzf "$app.tar.gz" "./$app-$os_arch"
+    sudo install "./$app-$os_arch" "/usr/local/bin/kubectl-$app"
+    sudo ln -sf "./kubectl-$app" "/usr/local/bin/$app"
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    krew version
+  fi
+}
+
 tools_check_kubectl() {
   if tools_install_app "kubectl"; then
     base_url="https://storage.googleapis.com/kubernetes-release/release"
@@ -345,6 +371,7 @@ tools_check() {
     jq) tools_check_jq ;;
     json2file|json2file-go) tools_check_json2file ;;
     k3d) tools_check_k3d ;;
+    krew) tools_check_krew ;;
     kubectl) tools_check_kubectl ;;
     kubectx) tools_check_kubectx ;;
     mkcert) tools_check_mkcert ;;
@@ -358,7 +385,7 @@ tools_check() {
 }
 
 tools_apps_list() {
-  echo "aws docker eksctl helm jq k3d kubectl kubectx sops velero"
+  echo "aws docker eksctl helm jq k3d krew kubectl kubectx sops velero"
 }
 
 tools_pkgs_list() {
