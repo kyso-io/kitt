@@ -224,8 +224,8 @@ tools_check_krew() {
     cd "$tmp_dir"
     curl -sL "$download_url" -o "$tmp_dir/$app.tar.gz"
     tar xzf "$app.tar.gz" "./$app-$os_arch"
-    sudo install "./$app-$os_arch" "/usr/local/bin/kubectl-$app"
-    sudo ln -sf "./kubectl-$app" "/usr/local/bin/$app"
+    sudo install "./$app-$os_arch" "/usr/local/bin/$app"
+    sudo ln -sf "./$app" "/usr/local/bin/kubectl-$app"
     cd "$orig_pwd"
     rm -rf "$tmp_dir"
     krew version
@@ -273,6 +273,7 @@ tools_check_kubectx() {
       curl -sL "$download_url" -o "$app.tar.gz"
       tar xzf "$app.tar.gz" "$app"
       sudo install "./$app" /usr/local/bin/
+      sudo ln -sf "./$app" "/usr/local/bin/kubectl-$app"
       if [ -d "$BASH_COMPLETION" ]; then
         curl -sL "$_compl_url/$app.bash" |
           sudo sh -c "cat >"$BASH_COMPLETION/$app""
