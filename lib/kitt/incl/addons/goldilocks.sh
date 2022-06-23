@@ -198,12 +198,13 @@ addon_goldilocks_command() {
     remove) addon_goldilocks_remove ;;
     status) addon_goldilocks_status ;;
     summary) addon_goldilocks_summary ;;
+    uris) addon_goldilocks_uris ;;
     *) echo "Unknown goldilocks subcommand '$1'"; exit 1 ;;
   esac
 }
 
 addon_goldilocks_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----

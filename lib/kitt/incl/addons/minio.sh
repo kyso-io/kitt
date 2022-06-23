@@ -259,12 +259,13 @@ addon_minio_command() {
     remove) addon_minio_remove ;;
     status) addon_minio_status ;;
     summary) addon_minio_summary ;;
+    uris) addon_minio_uris ;;
     *) echo "Unknown minio subcommand '$1'"; exit 1 ;;
   esac
 }
 
 addon_minio_command_list() {
-  echo "install remove status summary"
+  echo "install remove status summary uris"
 }
 
 # ----
