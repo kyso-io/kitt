@@ -241,17 +241,18 @@ addon_minio_summary() {
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_dashboard_uris() {
-  addon_dashboard_export_variables
-  _hostname="dashboard.$CLUSTER_DOMAIN"
+addon_minio_uris() {
+  addon_minio_export_variables
+  _hostname="minio.$CLUSTER_DOMAIN"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
     [ -f "$DASHBOARD_AUTH_FILE" ]; then
-    _uap="$(file_to_stdout "$DASHBOARD_AUTH_FILE")"
+    _uap="$(file_to_stdout "$MINIO_AUTH_FILE")"
     echo "https://$_uap@$_hostname/"
   else
     echo "https://$_hostname/"
   fi
 }
+
 addon_minio_command() {
   case "$1" in
     install) addon_minio_install ;;
