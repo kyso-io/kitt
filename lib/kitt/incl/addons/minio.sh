@@ -244,8 +244,7 @@ addon_minio_summary() {
 addon_minio_uris() {
   addon_minio_export_variables
   _hostname="minio.$CLUSTER_DOMAIN"
-  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
-    [ -f "$DASHBOARD_AUTH_FILE" ]; then
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" && [ -f "$MINIO_AUTH_FILE" ]; then
     _uap="$(file_to_stdout "$MINIO_AUTH_FILE")"
     echo "https://$_uap@$_hostname/"
   else

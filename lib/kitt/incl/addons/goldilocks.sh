@@ -184,7 +184,7 @@ addon_goldilocks_uris() {
   addon_goldilocks_export_variables
   _hostname="goldilocks.$CLUSTER_DOMAIN"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
-    [ -f "$DASHBOARD_AUTH_FILE" ]; then
+    [ -f "$GOLDILOCKS_AUTH_FILE" ]; then
     _uap="$(file_to_stdout "$GOLDILOCKS_AUTH_FILE")"
     echo "https://$_uap@$_hostname/"
   else
