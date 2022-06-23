@@ -1,0 +1,5 @@
+recommender:
+  extraArgs:
+    prometheus-address: |
+      http://prometheus-operated.monitoring.svc.cluster.local:9090
+    storage: prometheus
