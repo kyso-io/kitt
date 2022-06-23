@@ -36,6 +36,11 @@ if [ -d "$INCL_DIR" ]; then
     [ "$INCL_ADDONS_EFS_SH" = "1" ] || . "$INCL_DIR/addons/efs.sh"
     ADDON_LIST="$ADDON_LIST efs"
   fi
+  # shellcheck source=./addons/goldilocks.sh
+  if [ -f "$INCL_DIR/addons/goldilocks.sh" ]; then
+    [ "$INCL_ADDONS_GOLDILOCKS_SH" = "1" ] || . "$INCL_DIR/addons/goldilocks.sh"
+    ADDON_LIST="$ADDON_LIST goldilocks"
+  fi
   # shellcheck source=./addons/ingress.sh
   if [ -f "$INCL_DIR/addons/ingress.sh" ]; then
     [ "$INCL_ADDONS_INGRESS_SH" = "1" ] || . "$INCL_DIR/addons/ingress.sh"
@@ -45,6 +50,12 @@ if [ -d "$INCL_DIR" ]; then
   if [ -f "$INCL_DIR/addons/loki.sh" ]; then
     [ "$INCL_ADDONS_LOKI_SH" = "1" ] || . "$INCL_DIR/addons/loki.sh"
     ADDON_LIST="$ADDON_LIST loki"
+  fi
+  # shellcheck source=./addons/metrics-server.sh
+  if [ -f "$INCL_DIR/addons/metrics-server.sh" ]; then
+    [ "$INCL_ADDONS_METRICS_SERVER_SH" = "1" ] ||
+      . "$INCL_DIR/addons/metrics-server.sh"
+    ADDON_LIST="$ADDON_LIST metrics-server"
   fi
   # shellcheck source=./addons/minio.sh
   if [ -f "$INCL_DIR/addons/minio.sh" ]; then
@@ -65,6 +76,11 @@ if [ -d "$INCL_DIR" ]; then
   if [ -f "$INCL_DIR/addons/velero.sh" ]; then
     [ "$INCL_ADDONS_VELERO_SH" = "1" ] || . "$INCL_DIR/addons/velero.sh"
     ADDON_LIST="$ADDON_LIST velero"
+  fi
+  # shellcheck source=./addons/vpa.sh
+  if [ -f "$INCL_DIR/addons/vpa.sh" ]; then
+    [ "$INCL_ADDONS_VPA_SH" = "1" ] || . "$INCL_DIR/addons/vpa.sh"
+    ADDON_LIST="$ADDON_LIST vpa"
   fi
 else
   echo "This file has to be sourced using kitt.sh"
@@ -90,12 +106,15 @@ addon_command() {
   dashboard) addon_dashboard_command "$_command" ;;
   ebs) addon_ebs_command "$_command" ;;
   efs) addon_efs_command "$_command" ;;
+  goldilocks) addon_goldilocks_command "$_command" ;;
   ingress) addon_ingress_command "$_command" ;;
   loki) addon_loki_command "$_command" ;;
   minio) addon_minio_command "$_command" ;;
+  metrics-server) addon_metrics_server_command "$_command" ;;
   prometheus) addon_prometheus_command "$_command" ;;
   promtail) addon_promtail_command "$_command" ;;
   velero) addon_velero_command "$_command" ;;
+  vpa) addon_vpa_command "$_command" ;;
   esac
   case "$_command" in
     status|summary) ;;
@@ -104,8 +123,9 @@ addon_command() {
 }
 
 addon_list() {
-  [ "$1" ] && _order="$1" ||
-    _order="ingress dashboard ebs efs prometheus loki promtail minio velero"
+  _default_order="ingress dashboard ebs efs prometheus loki promtail"
+  _default_order="$_default_order minio velero metrics-server vpa goldilocks"
+  [ "$1" ] && _order="$1" || _order="$_default_order"
   for _a in $_order; do
     if echo "$ADDON_LIST" | grep -q -w "$_a"; then
       echo "$_a"
@@ -119,12 +139,15 @@ addon_command_list() {
   dashboard) addon_dashboard_command_list ;;
   ebs) addon_ebs_command_list ;;
   efs) addon_efs_command_list ;;
+  goldilocks) addon_goldilocks_command_list ;;
   ingress) addon_ingress_command_list ;;
   loki) addon_loki_command_list ;;
   minio) addon_minio_command_list ;;
+  metrics-server) addon_metrics_server_command_list ;;
   prometheus) addon_prometheus_command_list ;;
   promtail) addon_promtail_command_list ;;
   velero) addon_velero_command_list ;;
+  vpa) addon_vpa_command_list ;;
   esac
 }
 
@@ -136,11 +159,13 @@ addon_set_list() {
   case "$1" in
   all) addon_list;;
   eks-all)
-    addon_list "ingress dashboard ebs efs prometheus loki promtail velero"
+    addon_list "ingress dashboard ebs efs prometheus loki promtail velero " \
+               "metrics-server vpa goldilocks"
     ;;
   eks-backups) addon_list "velero" ;;
   k3d-all)
-    addon_list "ingress dashboard prometheus loki promtail minio velero"
+    addon_list "ingress dashboard prometheus loki promtail minio velero " \
+               "vpa goldilocks"
     ;;
   k3d-backups) addon_list "minio velero" ;;
   monitoring) addon_list "prometheus loki promtail" ;;
