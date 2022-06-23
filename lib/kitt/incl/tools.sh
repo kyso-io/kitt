@@ -81,7 +81,7 @@ tools_check_aws() {
     curl -fsSL -o "./awscliv2.zip" \
       "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
     unzip ./awscliv2.zip
-    if [ -f "/usr/local/aws-cli/v2/current" ]; then
+    if [ -d "/usr/local/aws-cli/v2/current" ]; then
       sudo ./aws/install --update
     else
       sudo ./aws/install
