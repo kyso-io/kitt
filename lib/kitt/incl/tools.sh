@@ -81,7 +81,11 @@ tools_check_aws() {
     curl -fsSL -o "./awscliv2.zip" \
       "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
     unzip ./awscliv2.zip
-    sudo ./aws/install
+    if [ -f "/usr/local/aws-cli/v2/current" ]; then
+      sudo ./aws/install --update
+    else
+      sudo ./aws/install
+    fi
     cd "$orig_pwd"
     rm -rf "$tmp_dir"
     aws --version
