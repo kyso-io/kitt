@@ -351,6 +351,7 @@ ctool_k3d_reg_reinstall() {
 }
 
 ctool_k3d_reg_remove() {
+  ctool_k3d_export_registry_variables
   if k3d registry ls --no-headers | grep -qsw "^$K3D_REGISTRY"; then
     header "Removing k3d managed registry"
     k3d registry delete "$LO_REGISTRY"
