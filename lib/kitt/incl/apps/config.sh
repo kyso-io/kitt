@@ -37,6 +37,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
   # shellcheck source=./kyso-api.sh
   [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
+  # shellcheck source=./kyso-front.sh
+  [ "$INCL_APPS_KYSO_FRONT_SH" = "1" ] || . "$INCL_DIR/apps/kyso-front.sh"
   # shellcheck source=./kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./kyso-ui.sh
@@ -58,6 +60,7 @@ apps_export_variables() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   apps_mongo_gui_export_variables "$_deployment" "$_cluster"
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  apps_kyso_front_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
@@ -71,6 +74,7 @@ apps_check_directories() {
   apps_nats_check_directories
   apps_mongo_gui_check_directories
   apps_kyso_api_check_directories
+  apps_kyso_front_check_directories
   apps_kyso_scs_check_directories
   apps_kyso_ui_check_directories
 }
@@ -82,6 +86,7 @@ apps_print_variables() {
   apps_nats_print_variables
   apps_mongo_gui_print_variables
   apps_kyso_api_print_variables
+  apps_kyso_front_print_variables
   apps_kyso_scs_print_variables
   apps_kyso_ui_print_variables
 }
@@ -99,6 +104,8 @@ apps_read_variables() {
   apps_mongo_gui_read_variables
   footer
   apps_kyso_api_read_variables
+  footer
+  apps_kyso_front_read_variables
   footer
   apps_kyso_scs_read_variables
   footer

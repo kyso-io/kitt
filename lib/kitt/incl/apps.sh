@@ -33,6 +33,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_MONGO_GUI_SH" = "1" ] || . "$INCL_DIR/apps/mongo-gui.sh"
   # shellcheck source=./apps/kyso-api.sh
   [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
+  # shellcheck source=./apps/kyso-front.sh
+  [ "$INCL_APPS_KYSO_FRONT_SH" = "1" ] || . "$INCL_DIR/apps/kyso-front.sh"
   # shellcheck source=./apps/kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./apps/kyso-ui.sh
@@ -81,6 +83,9 @@ apps_command() {
   kyso-api)
     apps_kyso_api_command "$_command" "$_deployment" "$_cluster"
     ;;
+  kyso-front)
+    apps_kyso_front_command "$_command" "$_deployment" "$_cluster"
+    ;;
   kyso-scs)
     apps_kyso_scs_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -104,7 +109,9 @@ apps_command() {
 }
 
 apps_list() {
-  echo "config elasticsearch mongodb nats mongo-gui kyso-api kyso-scs kyso-ui"
+  _apps="config elasticsearch mongodb nats mongo-gui"
+  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui"
+  echo "$_apps"
 }
 
 apps_command_list() {
@@ -116,6 +123,7 @@ apps_command_list() {
   nats) apps_nats_command_list ;;
   mongo-gui | mongo_gui) apps_mongo_gui_command_list ;;
   kyso-api) apps_kyso_api_command_list ;;
+  kyso-front) apps_kyso_front_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
   kyso-ui) apps_kyso_ui_command_list ;;
   esac

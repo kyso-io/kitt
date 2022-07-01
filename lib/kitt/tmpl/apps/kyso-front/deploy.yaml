@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __APP__
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/name: __APP__
+spec:
+  replicas: __FRONT_REPLICAS__
+  selector:
+    matchLabels:
+      app: __APP__
+  template:
+    metadata:
+      labels:
+        app: __APP__
+    spec:
+      containers:
+      - name: kyso-front
+        image: __FRONT_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        ports:
+        - containerPort: 3000
