@@ -16,6 +16,17 @@ INCL_COMMON_CLUSTER_SH="1"
 # Functions
 # ---------
 
+# Guess kubectl context name
+guess_kubeclt_context() {
+  _kind="$1"
+  _name="$2"
+  case "$_kind" in
+  k3d) echo "k3d-$_name" ;;
+  eks) kubectx | grep "@$_name\." | head -1 || true ;;
+  *) echo "$_name" ;;
+  esac
+}
+
 # Adjust variables related to the current cluster value
 cluster_export_variables() {
   # Check if we need to run the function
@@ -52,7 +63,7 @@ cluster_export_variables() {
   # Export CLUSTER_CONFIG variables
   export_env_file_vars "$CLUSTER_CONFIG" "CLUSTER"
   # Check if configuration is right
-  CLUSTER_NAME="${CLUSTER_NAME:-$CLUST_NAME}"
+  export CLUSTER_NAME="${CLUSTER_NAME:-$CLUST_NAME}"
   if [ "$CLUSTER_NAME" != "$CLUST_NAME" ]; then
     cat <<EOF
 Cluster name '$CLUSTER_NAME' does not match '$CLUST_NAME'.
@@ -62,14 +73,12 @@ EOF
     exit 1
   fi
   # Try to switch to the right kubectl context
-  case "$CLUSTER_KIND" in
-  k3d) export KUBECTL_CONTEXT="k3d-$CLUSTER_NAME" ;;
-  eks)
-    KUBECTL_CONTEXT="$(kubectx | grep "@$CLUSTER_NAME\.")" || true
-    export KUBECTL_CONTEXT
-    ;;
-  *) export KUBECTL_CONTEXT="$CLUSTER_NAME" ;;
-  esac
+  if [ "$CLUSTER_KUBECTL_CONTEXT" ]; then
+    KUBECTL_CONTEXT="$CLUSTER_KUBECTL_CONTEXT"
+  else
+    KUBECTL_CONTEXT="$(guess_kubeclt_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
+    export CLUSTER_KUBECTL_CONTEXT="$KUBECTL_CONTEXT"
+  fi
   kubectx "$KUBECTL_CONTEXT" >/dev/null 2>/dev/null || true
   # Adjust USE_SOPS first just in case any function needs the SOPS_EXT
   if [ -z "$CLUSTER_USE_SOPS" ]; then

@@ -45,6 +45,8 @@ ctool_ext_check_directories() {
 }
 
 ctool_ext_read_variables() {
+  read_value "Cluster Kubectl Context" "${CLUSTER_KUBECTL_CONTEXT}"
+  CLUSTER_KUBECTL_CONTEXT=${READ_VALUE}
   read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
   CLUSTER_DOMAIN=${READ_VALUE}
   read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
@@ -72,6 +74,8 @@ ctool_ext_print_variables() {
 # ---
 # Cluster name
 NAME=$CLUSTER_NAME
+# Kubectl context
+KUBECTL_CONTEXT=$CLUSTER_KUBECTL_CONTEXT
 # Cluster kind (one of eks, ext or k3d for now)
 KIND=$CLUSTER_KIND
 # Public DNS domain used with the cluster ingress by default
