@@ -70,8 +70,8 @@ j2f_config_read_variables() {
   header_with_note "Configuring json2file webhook processing"
   j2f_common_read_variables
   footer
-#  j2f_spooler_read_variables
-#  footer
+  #j2f_spooler_read_variables
+  #footer
   j2f_systemd_read_variables
   footer
   j2f_webhook_read_variables
@@ -86,6 +86,12 @@ j2f_config_edit_variables() {
     echo "Export the EDITOR environment variable to use this subcommand"
     exit 1
   fi
+}
+
+j2f_config_print_path() {
+  j2f_config_check_directories
+  j2f_config_export_variables
+  echo "$J2F_CONFIG"
 }
 
 # Configure deployment
@@ -121,15 +127,19 @@ j2f_config_update_variables() {
 j2f_config_command() {
   _command="$1"
   case "$_command" in
-    edit) j2f_config_edit_variables ;;
-    show) j2f_config_print_variables | grep -v "^#" ;;
-    update) j2f_config_update_variables ;;
-    *) echo "Unknown config subcommand '$_command'"; exit 1 ;;
+  edit) j2f_config_edit_variables ;;
+  path) j2f_config_print_path ;;
+  show) j2f_config_print_variables | grep -v "^#" ;;
+  update) j2f_config_update_variables ;;
+  *)
+    echo "Unknown config subcommand '$_command'"
+    exit 1
+    ;;
   esac
 }
 
 j2f_config_command_args() {
-  echo "edit show update"
+  echo "edit path show update"
 }
 
 # ----

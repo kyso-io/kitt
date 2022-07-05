@@ -37,7 +37,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $APP_BASE_NAME $(basename "$0") edit|show|update
+  $APP_BASE_NAME $(basename "$0") edit|path|show|update
 
 The values adjusted here are defaults for all kitt clusters.
 EOF
@@ -51,6 +51,9 @@ EOF
 case "$1" in
 edit) 
   config_app_edit_variables
+  ;;
+path)
+  config_app_print_path
   ;;
 show | update)
   config_app_load_variables

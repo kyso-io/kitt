@@ -45,6 +45,13 @@ ctool_config_edit() {
   fi
 }
 
+# Print the PATH to the cluster configuration file
+ctool_config_print_path() {
+  _deployment="$1"
+  _cluster="$2"
+  echo "$CLUSTER_CONFIG"
+}
+
 ctool_config_show() {
   _cluster="$1"
   if [ -f "$CLUSTER_CONFIG" ]; then
@@ -150,6 +157,7 @@ ctool_config_command() {
   _cluster="$2"
   case "$_command" in
     edit) ctool_config_edit "$_cluster" ;;
+    path) ctool_config_print_path "$_cluster" ;;
     show) ctool_config_show "$_cluster" ;;
     update) ctool_config_update "$_cluster" ;;
     *) echo "Unknown config subcommand '$_command'"; exit 1 ;;
@@ -157,7 +165,7 @@ ctool_config_command() {
 }
 
 ctool_config_command_list() {
-  echo "edit show update"
+  echo "edit path show update"
 }
 
 # ----

@@ -96,6 +96,11 @@ config_app_edit_variables() {
   fi
 }
 
+# Print the path to the application configuration file
+config_app_print_path() {
+  echo "$APP_CONF_PATH"
+}
+
 # Load app configuration from the KITT_CONF file if it exists, from the
 # APP_CONF_NAME file found on the on the current directory or from the
 # APP_CONF_NAME file on the user's HOME; note that only one file is processed,

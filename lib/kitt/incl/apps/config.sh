@@ -124,6 +124,13 @@ apps_edit_variables() {
   fi
 }
 
+apps_print_conf_path() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  echo "$DEPLOYMENT_CONFIG"
+}
+
 # Configure deployment
 apps_update_variables() {
   _deployment="$1"
@@ -163,6 +170,7 @@ apps_config_command() {
   _cluster="$3"
   case "$_command" in
     edit) apps_edit_variables "$_deployment" "$_cluster" ;;
+    path) apps_print_conf_path "$_deployment" "$_cluster" ;;
     show) apps_print_variables "$_deployment" "$_cluster" | grep -v "^#" ;;
     update) apps_update_variables "$_deployment" "$_cluster" ;;
     *) echo "Unknown config subcommand '$_command'"; exit 1 ;;
@@ -170,7 +178,7 @@ apps_config_command() {
 }
 
 apps_config_command_list() {
-  echo "edit show update"
+  echo "edit path show update"
 }
 
 # ----
