@@ -88,6 +88,10 @@ docker_exec() {
   fi
 }
 
+docker_pull() {
+  docker pull "$IMAGE_URI"
+}
+
 docker_rm() {
   docker rm "$CONTAINER_NAME"
 }
@@ -155,7 +159,7 @@ Where CMND can be one of:
 - exec: execute a command inside the container (if it is not running the call
   starts and stops it, otherwise it is used and left alone)
 - run: run container in interactive mode as the current user
-- start|stop|status|rm|logs: operations on the container
+- start|stop|status|rm|pull|logs: operations on the container
 EOF
 }
 
@@ -167,6 +171,7 @@ cd_to_workdir
 case "$1" in
 exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
+pull) docker_pull ;;
 rm) docker_rm ;;
 run) shift && docker_run ;;
 status) docker_status ;;
