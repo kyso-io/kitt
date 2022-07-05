@@ -1,2 +1,2 @@
 DEBIAN_VERSION=bullseye-slim
-BASE_VERSION=base-v1.0.0
+BASE_VERSION=base-v1.0.1
