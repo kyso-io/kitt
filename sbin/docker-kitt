@@ -1,7 +1,7 @@
 #!/bin/sh
 # ----
-# File:        docker-kitt-dev
-# Description: Script to manage the kitt container on the developer machine.
+# File:        docker-kitt
+# Description: Script to use kitt.sh with a container.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
 # Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
 # ----
@@ -16,11 +16,10 @@ set -e
 RELPATH_TO_WORKDIR=".."
 
 # Variables
-IMAGE_NAME="${IMAGE_NAME:-kitt}"
+IMAGE_NAME="${IMAGE_NAME:-registry.kyso.io/kyso-io/kitt}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-IMAGE_TAG="$IMAGE_NAME:$IMAGE_TAG"
+IMAGE_URI="$IMAGE_NAME:$IMAGE_TAG"
 CONTAINER_NAME="kitt"
-BUILD_ARGS=""
 CONTAINER_VARS="-v $HOME:$HOME"
 CONTAINER_VARS="$CONTAINER_VARS -e EDITOR=vi"
 
@@ -72,31 +71,6 @@ cd_to_workdir() {
   fi
 }
 
-docker_build() {
-  # Compute build args
-  if [ -f "./.build-args" ]; then
-    BUILD_ARGS="$(
-      awk '!/^#/ { printf(" --build-arg \"%s\"", $0); }' "./.build-args"
-    )"
-  fi
-  DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
-  DOCKER_COMMAND="$DOCKER_COMMAND --tag '$IMAGE_TAG' ."
-  ret="0"
-  # Create version file
-  VERSION_INFO="$(./bin/kitt.sh version)"
-  echo "Build version information"
-  echo "---"
-  echo "$VERSION_INFO" | tee version.txt
-  echo "---"
-  eval "$DOCKER_COMMAND" || ret="$?"
-  rm -f version.txt
-  return "$ret"
-}
-
-docker_build_prune() {
-  DOCKER_BUILDKIT=1 docker builder prune -af
-}
-
 docker_exec() {
   if [ -z "$*" ]; then
     echo "Pass a command to execute inside the kitt container"
@@ -109,6 +83,10 @@ docker_exec() {
     docker exec -ti "$CONTAINER_NAME" su -P -s /bin/sh -c "$*" "$(id -un)"
     docker_stop "0" >/dev/null
   fi
+}
+
+docker_pull() {
+  docker pull "$IMAGE_URI"
 }
 
 docker_rm() {
@@ -157,7 +135,7 @@ docker_run() {
   DOCKER_COMMAND="$(
     printf "%s" \
       "docker run --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
-      " $CONTAINER_VARS '$IMAGE_TAG' $CONTAINER_CMND"
+      " $CONTAINER_VARS '$IMAGE_URI' $CONTAINER_CMND"
   )"
   eval "$DOCKER_COMMAND"
 }
@@ -181,13 +159,10 @@ usage() {
 Usage: $0 CMND [ARGS]
 
 Where CMND can be one of:
-- build: create container using the passed package version
-- build-prune: cleanup builder caché
 - exec: execute a command inside the container (if it is not running the call
   starts and stops it, otherwise it is used and left alone)
-- rar: run container in interactive mode as root
 - run: run container in interactive mode as the current user
-- start|stop|status|rm|logs: operations on the container
+- start|stop|status|rm|pull|logs: operations on the container
 EOF
 }
 
@@ -197,13 +172,11 @@ EOF
 
 cd_to_workdir
 case "$1" in
-build) shift && docker_build "$@" ;;
-build-prune) docker_build_prune ;;
 exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
+pull) docker_pull ;;
 rm) docker_rm ;;
-rar) shift && docker_run ;;
-run) shift && docker_run user ;;
+run) shift && docker_run ;;
 status) docker_status ;;
 start) docker_start ;;
 stop) docker_stop ;;
