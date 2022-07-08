@@ -70,7 +70,6 @@ apps_kyso_api_export_variables() {
   export KYSO_API_ENV_TMPL="$KYSO_API_TMPL_DIR/kyso-api.env"
   export KYSO_API_INGRESS_TMPL="$KYSO_API_TMPL_DIR/ingress.yaml"
   export KYSO_API_INGRESS_DOCS_TMPL="$KYSO_API_TMPL_DIR/ingress-docs.yaml"
-  export KYSO_API_SECRET_TMPL="$KYSO_API_TMPL_DIR/secrets.yaml"
   export KYSO_API_SERVICE_TMPL="$KYSO_API_TMPL_DIR/service.yaml"
   # Files
   export KYSO_API_DEPLOY_YAML="$KYSO_API_KUBECTL_DIR/deploy.yaml"
@@ -237,7 +236,6 @@ apps_kyso_api_install() {
   _ep_yaml="$KYSO_API_ENDPOINT_YAML"
   _env_tmpl="$KYSO_API_ENV_TMPL"
   _secret_env="$KYSO_API_ENV_SECRET"
-  _secret_tmpl="$KYSO_API_SECRET_TMPL"
   _secret_yaml="$KYSO_API_SECRET_YAML"
   _service_tmpl="$KYSO_API_SERVICE_TMPL"
   _service_yaml="$KYSO_API_SERVICE_YAML"
