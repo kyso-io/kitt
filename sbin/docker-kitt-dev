@@ -120,6 +120,7 @@ docker_run() {
     echo "Container already running, aborting!"
     exit 1
   fi
+  DOCKER_GID="$(getent group docker | cut -d: -f3)" || true
   case "$1" in
   "")
     CONTAINER_VARS="$CONTAINER_VARS -ti"
@@ -131,7 +132,7 @@ docker_run() {
     CONTAINER_VARS="$CONTAINER_VARS -e USER_UID=$(id -u)"
     CONTAINER_VARS="$CONTAINER_VARS -e USER_GID=$(id -g)"
     CONTAINER_VARS="$CONTAINER_VARS -e USER_HOME=$HOME"
-    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GROUP=docker"
+    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GID=$DOCKER_GID"
     CONTAINER_CMND="sleep infinity"
     ;;
   user)
@@ -140,7 +141,7 @@ docker_run() {
     CONTAINER_VARS="$CONTAINER_VARS -e USER_UID=$(id -u)"
     CONTAINER_VARS="$CONTAINER_VARS -e USER_GID=$(id -g)"
     CONTAINER_VARS="$CONTAINER_VARS -e USER_HOME=$HOME"
-    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GROUP=docker"
+    CONTAINER_VARS="$CONTAINER_VARS -e DOCKER_GID=$DOCKER_GID"
     CONTAINER_CMND=""
     ;;
   *)
