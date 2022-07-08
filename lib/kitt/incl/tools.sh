@@ -293,6 +293,23 @@ tools_check_kubectx() {
   fi
 }
 
+tools_check_kubelogin() {
+  if tools_install_app "kubelogin"; then
+    orig_pwd="$(pwd)"
+    tmp_dir="$(mktemp -d)"
+    cd "$tmp_dir"
+    os="$(uname | tr '[:upper:]' '[:lower:]')"
+    arch="amd64"
+    zip="kubelogin-${os}-${arch}.zip"
+    curl -fsSL -o "./$zip" \
+      "https://github.com/Azure/kubelogin/releases/latest/download/$zip"
+    unzip "./$zip"
+    sudo install "./bin/${os}_${arch}/kubelogin" /usr/local/bin
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    kubelogin --version
+  fi
+}
 tools_check_mkcert() {
   if tools_install_pkg "mkcert"; then
     sudo apt update && sudo apt install mkcert && sudo apt clean
@@ -379,6 +396,7 @@ tools_check() {
     krew) tools_check_krew ;;
     kubectl) tools_check_kubectl ;;
     kubectx) tools_check_kubectx ;;
+    kubelogin) tools_check_kubelogin ;;
     mkcert) tools_check_mkcert ;;
     sops) tools_check_sops ;;
     tsp) tools_check_tsp ;;
@@ -390,7 +408,9 @@ tools_check() {
 }
 
 tools_apps_list() {
-  echo "aws docker eksctl helm jq k3d krew kubectl kubectx sops velero"
+  tools="aws docker eksctl helm jq k3d krew kubectl kubectx kubelogin"
+  tools="$tools sops velero"
+  echo "$tools"
 }
 
 tools_pkgs_list() {
