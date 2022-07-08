@@ -38,4 +38,5 @@ auth:
   passwords:
   - "__MONGODB_DB_PASS__"
 persistence:
+  enabled: true
   storageClass: "__STORAGE_CLASS__"
