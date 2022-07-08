@@ -1,7 +1,7 @@
 #!/bin/sh
 # ----
 # File:        entrypoint.sh
-# Description: kitt.sh container entrypoint (used to setup sudo)
+# Description: kitt.sh container entrypoint (used to setup getent & sudo)
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
 # Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
 # ----
@@ -15,7 +15,7 @@ fi
 USER_NAME="${USER_NAME:-root}"
 USER_UID="${USER_UID:-0}"
 USER_GID="${USER_GID:-0}"
-USER_HOME="${USER_HOME:-/}"
+USER_HOME="${USER_HOME:-/home/$USER_NAME}"
 USER_SHELL="${USER_SHELL:-/bin/bash}"
 
 if [ "$USER_UID" -eq "0" ]; then
@@ -29,6 +29,9 @@ else
     >>/etc/passwd || true
   echo "$USER_NAME:::0:99999:7:::" >>/etc/shadow || true
   echo "$USER_NAME:x:$USER_GID:" >>/etc/group || true
+  if [ "$DOCKER_GID" ]; then
+    echo "docker:x:$DOCKER_GID:$USER_NAME" >>/etc/group || true
+  fi
   echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/kitt-user
   # shellcheck disable=SC2086
   if [ "$*" ]; then
