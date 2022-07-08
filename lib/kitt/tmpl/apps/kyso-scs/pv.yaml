@@ -10,7 +10,7 @@ spec:
     storage: __STORAGE_SIZE__
   volumeMode: Filesystem
   accessModes:
-  - ReadWriteOnce
+  - __ACCESS_MODES__
   persistentVolumeReclaimPolicy: Delete
   claimRef:
     namespace: __NAMESPACE__

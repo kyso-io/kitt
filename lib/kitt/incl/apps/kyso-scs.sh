@@ -26,6 +26,7 @@ export DEPLOYMENT_DEFAULT_KYSO_SCS_NGINX_IMAGE="$_nginx_image"
 export DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT=""
+export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_ACCESS_MODES="ReadWriteOnce"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE="10Gi"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_RESTIC_BACKUP="false"
@@ -122,6 +123,13 @@ apps_kyso_scs_export_variables() {
     KYSO_SCS_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS"
   fi
   export KYSO_SCS_REPLICAS
+  if [ "$DEPLOYMENT_KYSO_SCS_STORAGE_ACCESS_MODES" ]; then
+    KYSO_SCS_STORAGE_ACCESS_MODES="$DEPLOYMENT_KYSO_SCS_STORAGE_ACCESS_MODES"
+  else
+    _storage_access_modes="$DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_ACCESS_MODES"
+    KYSO_SCS_STORAGE_ACCESS_MODES="$_storage_access_modes"
+  fi
+  export KYSO_SCS_STORAGE_ACCESS_MODES
   if [ "$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS" ]; then
     KYSO_SCS_STORAGE_CLASS="$DEPLOYMENT_KYSO_SCS_STORAGE_CLASS"
   else
@@ -284,6 +292,9 @@ apps_kyso_scs_read_variables() {
   KYSO_INDEXER_IMAGE=${READ_VALUE}
   read_value "SCS Replicas" "${KYSO_SCS_REPLICAS}"
   KYSO_SCS_REPLICAS=${READ_VALUE}
+  read_value "Kyso SCS Access Modes ('ReadWriteOnce', 'ReadWriteMany' if efs)" \
+    "${KYSO_SCS_STORAGE_ACCESS_MODES}"
+  KYSO_SCS_STORAGE_ACCESS_MODES=${READ_VALUE}
   read_value "Kyso SCS Storage Class ('local-storage' @ k3d, 'efs-sc' @ eks)" \
     "${KYSO_SCS_STORAGE_CLASS}"
   KYSO_SCS_STORAGE_CLASS=${READ_VALUE}
@@ -312,6 +323,8 @@ KYSO_SCS_NGINX_IMAGE=$KYSO_SCS_NGINX_IMAGE
 KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
 # Number of pods to run in parallel (for more than 1 the volumes must be EFS)
 KYSO_SCS_REPLICAS=$KYSO_SCS_REPLICAS
+# Kyso SCS Access Modes ('ReadWriteOnce', 'ReadWriteMany' if efs)
+KYSO_SCS_STORAGE_ACCESS_MODES=$KYSO_SCS_STORAGE_ACCESS_MODES
 # Kyso SCS Storage Class ('local-storage' @ k3d, 'efs-sc' @ eks)
 KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 # Kyso SCS Volume Size (if the storage is local or NFS the value is ignored)
@@ -374,6 +387,7 @@ apps_kyso_scs_install() {
   _statefulset_yaml="$KYSO_SCS_STATEFULSET_YAML"
   _ingress_tmpl="$KYSO_SCS_INGRESS_TMPL"
   _ingress_yaml="$KYSO_SCS_INGRESS_YAML"
+  _access_modes="$KYSO_SCS_STORAGE_ACCESS_MODES"
   _storage_class="$KYSO_SCS_STORAGE_CLASS"
   _storage_size="$KYSO_SCS_STORAGE_SIZE"
   _indexer_app_yaml_tmpl="$KYSO_SCS_INDEXER_APP_YAML_TMPL"
@@ -426,6 +440,7 @@ apps_kyso_scs_install() {
       -e "s%__NAMESPACE__%$_ns%" \
       -e "s%__PV_NAME__%$_pv_name%" \
       -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__ACCESS_MODES__%$_access_modes%" \
       -e "s%__STORAGE_SIZE__%$_storage_size%" \
       -e "$_storage_sed" \
       "$_pv_tmpl" >>"$_pv_yaml"
@@ -441,6 +456,7 @@ apps_kyso_scs_install() {
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \
+    -e "s%__ACCESS_MODES__%$_access_modes%" \
     -e "s%__STORAGE_SIZE__%$_storage_size%" \
     -e "$_storage_sed" \
     "$_pvc_tmpl" >>"$_pvc_yaml"
