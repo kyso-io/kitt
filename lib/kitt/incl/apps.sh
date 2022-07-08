@@ -39,6 +39,9 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./apps/kyso-ui.sh
   [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  # shellcheck source=./apps/notification-consumer.sh
+  [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/notification-consumer.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -68,7 +71,7 @@ apps_command() {
             READ_VALUE="true"
           fi
           if is_selected "${READ_VALUE}"; then
-            apps_command "$_a" "$_command" "$_deployment" "$_cluster";
+            apps_command "$_a" "$_command" "$_deployment" "$_cluster"
           fi
         fi
       done
@@ -101,16 +104,19 @@ apps_command() {
   nats)
     apps_nats_command "$_command" "$_deployment" "$_cluster"
     ;;
+  notification-consumer)
+    apps_notification_consumer_command "$_command" "$_deployment" "$_cluster"
+    ;;
   esac
   case "$_command" in
-    status|summary) ;;
-    *) cluster_git_update ;;
+  status | summary) ;;
+  *) cluster_git_update ;;
   esac
 }
 
 apps_list() {
   _apps="config elasticsearch mongodb nats mongo-gui"
-  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui"
+  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui notification-consumer"
   echo "$_apps"
 }
 
@@ -126,6 +132,7 @@ apps_command_list() {
   kyso-front) apps_kyso_front_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
   kyso-ui) apps_kyso_ui_command_list ;;
+  notification-consumer) apps_notification_consumer_command_list ;;
   esac
 }
 
