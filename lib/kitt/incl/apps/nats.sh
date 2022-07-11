@@ -312,6 +312,8 @@ EOF
   # Wait for service to be available
   kubectl rollout status --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "statefulset/$_release"
+  # update the api settings
+  apps_kyso_update_api_settings "$_deployment" "$_cluster"
   # Remove old PVCs
   i=1
   while read -r _yaml; do
