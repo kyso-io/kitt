@@ -587,7 +587,7 @@ apps_kyso_scs_env_edit() {
     apps_export_variables "$_deployment" "$_cluster"
     _env_file="$DEPLOY_ENVS_DIR/$_app.env"
     if [ -f "$_env_file" ]; then
-      exec "$EDITOR" "$_env_file"
+      "$EDITOR" "$_env_file"
     else
       echo "The '$_env_file' does not exist, use 'env-update' to create it"
       exit 1
@@ -605,6 +605,16 @@ apps_kyso_scs_env_path() {
   apps_export_variables "$_deployment" "$_cluster"
   _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   echo "$_env_file"
+}
+
+apps_kyso_scs_env_save() {
+  _app="kyso-scs"
+  _deployment="$1"
+  _cluster="$2"
+  _env_file="$3"
+  apps_kyso_scs_check_directories
+  apps_kyso_scs_print_variables "$_deployment" "$_cluster" |
+    stdout_to_file "$_env_file"
 }
 
 apps_kyso_scs_env_update() {
@@ -632,9 +642,7 @@ apps_kyso_scs_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_check_directories
-      apps_print_variables "$_deployment" "$_cluster" |
-        stdout_to_file "$_env_file"
+      apps_kyso_scs_env_save "$_deployment" "$_cluster" "$_env_file"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer
@@ -652,6 +660,9 @@ apps_kyso_scs_command() {
     ;;
   env-path | env_path)
     apps_kyso_scs_env_path "$_deployment" "$_cluster"
+    ;;
+  env-show | env_show)
+    apps_kyso_scs_print_variables "$_deployment" "$_cluster" | grep -v '^#'
     ;;
   env-update | env_update)
     apps_kyso_scs_env_update "$_deployment" "$_cluster"
@@ -673,8 +684,8 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  _cmnds="env-edit env-path env-update install logs reinstall remove restart"
-  _cmnds="$_cmnds rmvols status summary"
+  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
+  _cmnds="$_cmnds restart rmvols status summary"
   echo "$_cmnds"
 }
 

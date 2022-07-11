@@ -84,6 +84,39 @@ apps_check_directories() {
   apps_notification_consumer_check_directories
 }
 
+apps_migrate_variables() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  if [ -f "$DEPLOYMENT_CONFIG" ]; then
+    echo "Migrating '$DEPLOYMENT_CONFIG' to multiple files"
+    _env_file="$(apps_common_env_path)"
+    apps_common_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_elasticsearch_env_path)"
+    apps_elasticsearch_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_mongodb_env_path)"
+    apps_mongodb_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_nats_env_path)"
+    apps_nats_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_mongo_gui_env_path)"
+    apps_mongo_gui_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_kyso_api_env_path)"
+    apps_kyso_api_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_kyso_front_env_path)"
+    apps_kyso_front_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_kyso_scs_env_path)"
+    apps_kyso_scs_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_kyso_ui_env_path)"
+    apps_kyso_ui_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_notification_consumer_env_path)"
+    apps_notification_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
+    rm -f "$DEPLOYMENT_CONFIG"
+  else
+    echo "No '$DEPLOYMENT_CONFIG' found, nothing to migrate!"
+    exit 1
+  fi
+}
+
 apps_print_variables() {
   apps_common_print_variables
   apps_elasticsearch_print_variables
@@ -97,27 +130,13 @@ apps_print_variables() {
   apps_notification_consumer_print_variables
 }
 
-
-apps_edit_variables() {
-  if [ "$EDITOR" ]; then
-    _deployment="$1"
-    _cluster="$2"
-    apps_export_variables "$_deployment" "$_cluster"
-    exec "$EDITOR" "$DEPLOYMENT_CONFIG"
-  else
-    echo "Export the EDITOR environment variable to use this subcommand"
-    exit 1
-  fi
-}
-
 apps_print_conf_path() {
   _deployment="$1"
   _cluster="$2"
   apps_export_variables "$_deployment" "$_cluster"
-  echo "$DEPLOYMENT_CONFIG"
+  echo "$DEPLOY_ENVS_DIR"
 }
 
-# Configure deployment
 apps_update_variables() {
   _deployment="$1"
   _cluster="$2"
@@ -149,7 +168,7 @@ apps_config_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-  edit) apps_edit_variables "$_deployment" "$_cluster" ;;
+  migrate) apps_migrate_variables "$_deployment" "$_cluster" ;;
   path) apps_print_conf_path "$_deployment" "$_cluster" ;;
   show) apps_print_variables "$_deployment" "$_cluster" | grep -v "^#" ;;
   update) apps_update_variables "$_deployment" "$_cluster" ;;
@@ -161,7 +180,7 @@ apps_config_command() {
 }
 
 apps_config_command_list() {
-  echo "edit path show update"
+  echo "migrate path show update"
 }
 
 # ----

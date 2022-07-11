@@ -118,7 +118,7 @@ apps_command() {
 }
 
 apps_list() {
-  _apps="config elasticsearch mongodb nats mongo-gui"
+  _apps="common config elasticsearch mongodb nats mongo-gui"
   _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui notification-consumer"
   echo "$_apps"
 }
