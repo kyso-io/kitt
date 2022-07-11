@@ -39,6 +39,7 @@ export NATS_RELEASE="kyso-nats"
 export NATS_CHART="nats/nats"
 export NATS_VERSION="0.17.0"
 export NATS_PV_PREFIX="$NATS_RELEASE-js-pvc-$NATS_RELEASE"
+export NATS_PORT="4222"
 
 # --------
 # Includes
@@ -49,6 +50,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
   # shellcheck source=./common.sh
   [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
+  # shellcheck source=./kyso-api.sh
+  [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
 fi
 
 # ---------
@@ -208,6 +211,13 @@ apps_nats_install() {
   _deployment="$1"
   _cluster="$2"
   apps_nats_export_variables "$_deployment" "$_cluster"
+  # Initial tests
+  if ! find_namespace "$KYSO_API_NAMESPACE"; then
+    read_bool "kyso-api namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
   apps_nats_check_directories
   _app="nats"
   _ns="$NATS_NAMESPACE"
@@ -416,6 +426,7 @@ apps_nats_command() {
     install) apps_nats_install "$_deployment" "$_cluster";;
     remove) apps_nats_remove "$_deployment" "$_cluster";;
     rmvols) apps_nats_rmvols "$_deployment" "$_cluster";;
+    settings) apps_kyso_update_api_settings "$_deployment" "$_cluster";;
     status) apps_nats_status "$_deployment" "$_cluster";;
     summary) apps_nats_summary "$_deployment" "$_cluster";;
     *) echo "Unknown nats subcommand '$1'"; exit 1 ;;
@@ -423,7 +434,7 @@ apps_nats_command() {
 }
 
 apps_nats_command_list() {
-  echo "logs install remove rmvols status summary"
+  echo "logs install remove rmvols settings status summary"
 }
 
 # ----

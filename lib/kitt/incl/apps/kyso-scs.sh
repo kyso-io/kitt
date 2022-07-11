@@ -49,8 +49,6 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
   # shellcheck source=./elasticsearch.sh
   [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
-  # shellcheck source=../mongo.sh
-  [ "$INCL_MONGO_SH" = "1" ] || . "$INCL_DIR/mongo.sh"
 fi
 
 # ---------
@@ -218,65 +216,6 @@ apps_kyso_scs_create_myssh_secrets() {
     --from-file="user_pass.txt=$user_pass_plain" |
     stdout_to_file "$output_file"
   rm -rf "$_tmp_dir"
-}
-
-apps_kyso_scs_update_api_settings() {
-  ret="0"
-  _deployment="$1"
-  _cluster="$2"
-  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
-  _tmp_dir="$(mktemp -d)"
-  chmod 0700 "$_tmp_dir"
-  _settings_csv="$_tmp_dir/KysoSettings.csv"
-  _settings_err="$_tmp_dir/KysoSettings.err"
-  _settings_new="$_tmp_dir/KysoSettings.new"
-  mongo_command settings-export "$_settings_csv" "$_deployment" "$_cluster" \
-    2>"$_settings_err" || ret="$?"
-  if [ "$ret" -ne "0" ]; then
-    cat "$_settings_err" 1>&2
-    rm -rf "$_tmp_dir"
-    return "$ret"
-  fi
-  _base_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
-  _frontend_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
-  _sftp_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _sftp_port="22"
-  _kyso_indexer_api_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _kyso_indexer_api_base_url="http://$_kyso_indexer_api_host:8080"
-  if [ -f "$KYSO_SCS_USERS_TAR" ]; then
-    _user_and_pass="$(
-      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt
-    )"
-    _sftp_username="$(echo "$_user_and_pass" | cut -d':' -f1)"
-    _sftp_password="$(echo "$_user_and_pass" | cut -d':' -f2)"
-  else
-    _sftp_username=""
-    _sftp_password=""
-  fi
-  _sftp_destination_folder=""
-  _static_content_prefix="/scs"
-  sed \
-    -e "s%^\(BASE_URL\),.*%\1,$_base_url%" \
-    -e "s%^\(FRONTEND_URL\),.*%\1,$_frontend_url%" \
-    -e "s%^\(SFTP_HOST\),.*$%\1,$_sftp_host%" \
-    -e "s%^\(SFTP_PORT\),.*$%\1,$_sftp_port%" \
-    -e "s%^\(SFTP_USERNAME\),.*$%\1,$_sftp_username%" \
-    -e "s%^\(SFTP_PASSWORD\),.*$%\1,$_sftp_password%" \
-    -e "s%^\(SFTP_DESTINATION_FOLDER\),.*$%\1,$_sftp_destination_folder%" \
-    -e "s%^\(STATIC_CONTENT_PREFIX\),.*$%\1,$_static_content_prefix%" \
-    -e "s%^\(KYSO_INDEXER_API_BASE_URL\),.*$%\1,$_kyso_indexer_api_base_url%" \
-    "$_settings_csv" >"$_settings_new"
-  DIFF_OUT="$(diff -U 0 "$_settings_csv" "$_settings_new")" || true
-  if [ "$DIFF_OUT" ]; then
-    echo "Updating KysoSettings:"
-    echo "$DIFF_OUT" | grep '^[-+][^-+]'
-    mongo_command settings-merge "$_settings_new" 2>"$_settings_err" || ret="$?"
-    if [ "$ret" -ne "0" ]; then
-      cat "$_settings_err" 1>&2
-    fi
-  fi
-  rm -rf "$_tmp_dir"
-  return "$ret"
 }
 
 apps_kyso_scs_read_variables() {
@@ -515,7 +454,7 @@ apps_kyso_scs_install() {
   kubectl rollout status statefulset --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "$_app"
   # Update settings
-  apps_kyso_scs_update_api_settings
+  apps_kyso_update_api_settings
 }
 
 apps_kyso_scs_reinstall() {
@@ -649,7 +588,7 @@ apps_kyso_scs_command() {
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_kyso_scs_rmvols "$_deployment" "$_cluster" ;;
   restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
-  settings) apps_kyso_scs_update_api_settings "$_deployment" "$_cluster" ;;
+  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
   *)

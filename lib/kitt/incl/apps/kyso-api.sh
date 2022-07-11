@@ -43,8 +43,6 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
   # shellcheck source=./mongodb.sh
   [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
-  # shellcheck source=./kyso-scs.sh
-  [ "$INCL_APPS_KYSO_API_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
 fi
 
 # ---------
@@ -371,8 +369,8 @@ apps_kyso_api_install() {
   if [ -f "$_deploy_yaml" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
       -n "$_ns" "$_app"
-    # If we succeed update the api settings with the kyso-scs settings
-    apps_kyso_scs_update_api_settings "$_deployment" "$_cluster"
+    # If we succeed update the api settings
+    apps_kyso_update_api_settings "$_deployment" "$_cluster"
   fi
 }
 
@@ -491,7 +489,7 @@ apps_kyso_api_command() {
   reinstall) apps_kyso_api_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
   restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
-  settings) apps_kyso_scs_update_api_settings "$_deployment" "$_cluster" ;;
+  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_api_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_api_summary "$_deployment" "$_cluster" ;;
   uris) apps_kyso_api_uris "$_deployment" "$_cluster" ;;

@@ -32,6 +32,12 @@ export KUBE_STACK_RELEASE="kube-stack"
 if [ -d "$INCL_DIR" ]; then
   # shellcheck source=../common.sh
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
+  # shellcheck source=../mongo.sh
+  [ "$INCL_MONGO_SH" = "1" ] || . "$INCL_DIR/mongo.sh"
+  # shellcheck source=./kyso-scs.sh
+  [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
+  # shellcheck source=./nats.sh
+  [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
 fi
 
 # ---------
@@ -98,6 +104,72 @@ apps_common_read_variables() {
   read_value "Port forward IP address" \
     "${DEPLOYMENT_PF_ADDR}"
   DEPLOYMENT_PF_ADDR=${READ_VALUE}
+}
+
+apps_kyso_update_api_settings() {
+  ret="0"
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  apps_nats_export_variables "$_deployment" "$_cluster"
+  _tmp_dir="$(mktemp -d)"
+  chmod 0700 "$_tmp_dir"
+  _settings_csv="$_tmp_dir/KysoSettings.csv"
+  _settings_err="$_tmp_dir/KysoSettings.err"
+  _settings_new="$_tmp_dir/KysoSettings.new"
+  mongo_command settings-export "$_settings_csv" "$_deployment" "$_cluster" \
+    2>"$_settings_err" || ret="$?"
+  if [ "$ret" -ne "0" ]; then
+    cat "$_settings_err" 1>&2
+    rm -rf "$_tmp_dir"
+    return "$ret"
+  fi
+  # Common variables
+  _base_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
+  _frontend_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
+  # SCS Vars
+  _sftp_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  _sftp_port="22"
+  _kyso_indexer_api_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  _kyso_indexer_api_base_url="http://$_kyso_indexer_api_host:8080"
+  if [ -f "$KYSO_SCS_USERS_TAR" ]; then
+    _user_and_pass="$(
+      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt
+    )"
+    _sftp_username="$(echo "$_user_and_pass" | cut -d':' -f1)"
+    _sftp_password="$(echo "$_user_and_pass" | cut -d':' -f2)"
+  else
+    _sftp_username=""
+    _sftp_password=""
+  fi
+  _sftp_destination_folder=""
+  _static_content_prefix="/scs"
+  # NATS Vars
+  _nats_url="nats://$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local:$NATS_PORT"
+  # Replace values
+  sed \
+    -e "s%^\(BASE_URL\),.*%\1,$_base_url%" \
+    -e "s%^\(FRONTEND_URL\),.*%\1,$_frontend_url%" \
+    -e "s%^\(SFTP_HOST\),.*$%\1,$_sftp_host%" \
+    -e "s%^\(SFTP_PORT\),.*$%\1,$_sftp_port%" \
+    -e "s%^\(SFTP_USERNAME\),.*$%\1,$_sftp_username%" \
+    -e "s%^\(SFTP_PASSWORD\),.*$%\1,$_sftp_password%" \
+    -e "s%^\(SFTP_DESTINATION_FOLDER\),.*$%\1,$_sftp_destination_folder%" \
+    -e "s%^\(STATIC_CONTENT_PREFIX\),.*$%\1,$_static_content_prefix%" \
+    -e "s%^\(KYSO_INDEXER_API_BASE_URL\),.*$%\1,$_kyso_indexer_api_base_url%" \
+    -e "s%^\(KYSO_NATS_URL\),.*$%\1,$_nats_url%" \
+    "$_settings_csv" >"$_settings_new"
+  DIFF_OUT="$(diff -U 0 "$_settings_csv" "$_settings_new")" || true
+  if [ "$DIFF_OUT" ]; then
+    echo "Updating KysoSettings:"
+    echo "$DIFF_OUT" | grep '^[-+][^-+]'
+    mongo_command settings-merge "$_settings_new" 2>"$_settings_err" || ret="$?"
+    if [ "$ret" -ne "0" ]; then
+      cat "$_settings_err" 1>&2
+    fi
+  fi
+  rm -rf "$_tmp_dir"
+  return "$ret"
 }
 
 # ----
