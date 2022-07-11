@@ -17,13 +17,9 @@ INCL_APPS_COMMON_SH="1"
 # ---------
 
 # Deployment defaults
-export DEPLOYMENT_DEFAULT_HOSTNAMES="lo.kyso.io"
 export DEPLOYMENT_DEFAULT_IMAGE_PULL_POLICY="Always"
 export DEPLOYMENT_DEFAULT_INGRESS_TLS_CERTS="false"
 export DEPLOYMENT_DEFAULT_PF_ADDR="127.0.0.1"
-
-# Fixed values
-export KUBE_STACK_RELEASE="kube-stack"
 
 # --------
 # Includes
@@ -53,7 +49,7 @@ apps_common_export_variables() {
   export DEPLOYMENT_CERTS_DIR="$DEPLOY_SECRETS_DIR/certs"
   # Use defaults for variables missing from config files
   [ "$DEPLOYMENT_HOSTNAMES" ] ||
-    export DEPLOYMENT_HOSTNAMES="$DEPLOYMENT_DEFAULT_HOSTNAMES"
+    export DEPLOYMENT_HOSTNAMES="$CLUSTER_DOMAIN"
   [ "$DEPLOYMENT_IMAGE_PULL_POLICY" ] ||
     export DEPLOYMENT_IMAGE_PULL_POLICY="$DEPLOYMENT_DEFAULT_IMAGE_PULL_POLICY"
   [ "$DEPLOYMENT_INGRESS_TLS_CERTS" ] ||
@@ -68,10 +64,9 @@ apps_common_check_directories() {
 }
 
 apps_common_print_variables() {
-  cat << EOF
-# KITT Deployment config file
-# ---
-# Common variables
+  _app="common"
+  cat <<EOF
+# Deployment $_app settings
 # ---
 # Deployment name
 NAME=$DEPLOYMENT_NAME
@@ -104,6 +99,69 @@ apps_common_read_variables() {
   read_value "Port forward IP address" \
     "${DEPLOYMENT_PF_ADDR}"
   DEPLOYMENT_PF_ADDR=${READ_VALUE}
+}
+
+apps_common_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="common"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOYMENT_CONFIG"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_common_env_path() {
+  _app="common"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOYMENT_CONFIG"
+  echo "$_env_file"
+}
+
+apps_common_env_update() {
+  _app="common"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOYMENT_CONFIG"
+  header "$_app config variables"
+  apps_common_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_common_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
 }
 
 apps_kyso_update_api_settings() {
@@ -170,6 +228,31 @@ apps_kyso_update_api_settings() {
   fi
   rm -rf "$_tmp_dir"
   return "$ret"
+}
+
+apps_common_command() {
+  _command="$1"
+  _deployment="$2"
+  _cluster="$3"
+  case "$_command" in
+  env-edit | env_edit)
+    apps_common_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_common_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_common_env_update "$_deployment" "$_cluster"
+    ;;
+  *)
+    echo "Unknown common subcommand '$1'"
+    exit 1
+    ;;
+  esac
+}
+
+apps_common_command_list() {
+  echo "env-edit env-path env-update"
 }
 
 # ----

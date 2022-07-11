@@ -96,14 +96,16 @@ apps_mongo_gui_clean_directories() {
 }
 
 apps_mongo_gui_read_variables() {
-  header "Mongo GUI Settings"
+  _app="mongo-gui"
+  header "Reading $_app settings"
   read_value "Mongo-gui image" "${MONGO_GUI_IMAGE}"
   MONGO_GUI_IMAGE=${READ_VALUE}
 }
 
 apps_mongo_gui_print_variables() {
+  _app="mongo-gui"
   cat <<EOF
-# Mongo GUI Settings
+# Deployment $_app settings
 # ---
 MONGO_GUI_IMAGE=$MONGO_GUI_IMAGE
 # ---
@@ -311,25 +313,102 @@ apps_mongo_gui_uris() {
   fi
 }
 
+apps_mongo_gui_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="mongo-gui"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_mongo_gui_env_path() {
+  _app="mongo-gui"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_mongo_gui_env_update() {
+  _app="mongo-gui"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_mongo_gui_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_mongo_gui_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_mongo_gui_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-    logs) apps_mongo_gui_logs "$_deployment" "$_cluster";;
-    install) apps_mongo_gui_install "$_deployment" "$_cluster";;
-    reinstall) apps_mongo_gui_reinstall "$_deployment" "$_cluster";;
-    remove) apps_mongo_gui_remove "$_deployment" "$_cluster";;
-    restart) apps_mongo_gui_restart "$_deployment" "$_cluster";;
-    status) apps_mongo_gui_status "$_deployment" "$_cluster";;
-    summary) apps_mongo_gui_summary "$_deployment" "$_cluster";;
-    uris) apps_mongo_gui_uris "$_deployment" "$_cluster";;
-    *) echo "Unknown mongo-gui subcommand '$1'"; exit 1 ;;
+  env-edit | env_edit)
+    apps_mongo_gui_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_mongo_gui_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_mongo_gui_env_update "$_deployment" "$_cluster"
+    ;;
+  logs) apps_mongo_gui_logs "$_deployment" "$_cluster" ;;
+  install) apps_mongo_gui_install "$_deployment" "$_cluster" ;;
+  reinstall) apps_mongo_gui_reinstall "$_deployment" "$_cluster" ;;
+  remove) apps_mongo_gui_remove "$_deployment" "$_cluster" ;;
+  restart) apps_mongo_gui_restart "$_deployment" "$_cluster" ;;
+  status) apps_mongo_gui_status "$_deployment" "$_cluster" ;;
+  summary) apps_mongo_gui_summary "$_deployment" "$_cluster" ;;
+  uris) apps_mongo_gui_uris "$_deployment" "$_cluster" ;;
+  *)
+    echo "Unknown mongo-gui subcommand '$1'"
+    exit 1
+    ;;
   esac
 }
 
 apps_mongo_gui_command_list() {
-  echo "logs install reinstall remove restart status summary uris"
+  _cmnds="env-edit env-path env-update install logs reinstall remove restart"
+  _cmnds="$_cmnds status summary uris"
+  echo "$_cmnds"
 }
 
 # ----

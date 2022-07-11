@@ -77,6 +77,9 @@ apps_command() {
       done
     done
     ;;
+  common)
+    apps_common_command "$_command" "$_deployment" "$_cluster"
+    ;;
   config)
     apps_config_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -123,6 +126,7 @@ apps_list() {
 apps_command_list() {
   _app="$1"
   case "$_app" in
+  common) apps_common_command_list ;;
   config) apps_config_command_list ;;
   elasticsearch) apps_elasticsearch_command_list ;;
   mongodb) apps_mongodb_command_list ;;

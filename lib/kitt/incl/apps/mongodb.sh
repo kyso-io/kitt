@@ -152,9 +152,10 @@ apps_mongodb_clean_directories() {
 }
 
 apps_mongodb_read_variables() {
-  header "MongoDB Settings"
+  _app="mongodb"
+  header "Reading $_app settings"
   read_value "MongoDB Architecture ('standalone'/'replicaset')" \
-   "${MONGODB_ARCHITECTURE}"
+    "${MONGODB_ARCHITECTURE}"
   MONGODB_ARCHITECTURE=${READ_VALUE}
   if [ "$MONGODB_ARCHITECTURE" = "replicaset" ]; then
     read_value "MongoDB Replicas" "${MONGODB_REPLICAS}"
@@ -179,8 +180,9 @@ apps_mongodb_read_variables() {
 }
 
 apps_mongodb_print_variables() {
+  _app="mongodb"
   cat <<EOF
-# MongoDB Settings
+# Deployment $_app settings
 # ---
 # MongoDB Deployment Architecture ('standalone' or 'replicaset')
 MONGODB_ARCHITECTURE=$MONGODB_ARCHITECTURE
@@ -217,7 +219,7 @@ apps_mongodb_print_root_database_uri() {
   else
     _suffix="$MONGODB_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
     _db_hosts="$MONGODB_RELEASE-0.$_suffix"
-    for i in $(seq $((MONGODB_REPLICAS-1))); do
+    for i in $(seq $((MONGODB_REPLICAS - 1))); do
       _db_hosts="$_db_hosts,$MONGODB_RELEASE-$i.$_suffix"
     done
   fi
@@ -238,7 +240,7 @@ apps_mongodb_print_user_database_uri() {
   else
     _suffix="$MONGODB_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
     _db_hosts="$MONGODB_RELEASE-0.$_suffix"
-    for i in $(seq $((MONGODB_REPLICAS-1))); do
+    for i in $(seq $((MONGODB_REPLICAS - 1))); do
       _db_hosts="$_db_hosts,$MONGODB_RELEASE-$i.$_suffix"
     done
   fi
@@ -292,7 +294,7 @@ apps_mongodb_install() {
     _mongodb_user_pass=""
   fi
   # Enable arbeiter only for an even number of replicas
-  if [ "$((MONGODB_REPLICAS%2))" -eq "0" ]; then
+  if [ "$((MONGODB_REPLICAS % 2))" -eq "0" ]; then
     _arbiter_enabled="true"
   else
     _arbiter_enabled="false"
@@ -330,14 +332,14 @@ apps_mongodb_install() {
   # Pre-create directories if needed and adjust storage_sed
   if [ "$_storage_class" = "local-storage" ] &&
     is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
-    for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
+    for i in $(seq 0 $((MONGODB_REPLICAS - 1))); do
       _pv_name="$MONGODB_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
     _storage_sed="$_storage_class_sed"
     # Create PVs
-    for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
+    for i in $(seq 0 $((MONGODB_REPLICAS - 1))); do
       _pvc_name="$MONGODB_PV_PREFIX-$i"
       _pv_name="$MONGODB_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       _pv_yaml="$MONGODB_KUBECTL_DIR/pv-$i.yaml"
@@ -361,7 +363,7 @@ $(find "$MONGODB_KUBECTL_DIR" -name 'pv-*.yaml')
 EOF
   fi
   # Create PVCs
-  for i in $(seq 0 $((MONGODB_REPLICAS-1))); do
+  for i in $(seq 0 $((MONGODB_REPLICAS - 1))); do
     _pvc_name="$MONGODB_PV_PREFIX-$i"
     _pvc_yaml="$MONGODB_KUBECTL_DIR/pvc-$i.yaml"
     sed \
@@ -401,7 +403,7 @@ EOF
     if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
-    i="$((i+1))"
+    i="$((i + 1))"
   done <<EOF
 $(find "$MONGODB_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n)
 EOF
@@ -411,7 +413,7 @@ EOF
     if [ "$i" -gt "$MONGODB_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
-    i="$((i+1))"
+    i="$((i + 1))"
   done <<EOF
 $(find "$MONGODB_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
 EOF
@@ -501,23 +503,100 @@ apps_mongodb_summary() {
   statefulset_helm_summary "$_ns" "$_release"
 }
 
+apps_mongodb_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="mongodb"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_mongodb_env_path() {
+  _app="mongodb"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_mongodb_env_update() {
+  _app="mongodb"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_mongodb_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_mongodb_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_mongodb_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-    logs) apps_mongodb_logs "$_deployment" "$_cluster";;
-    install) apps_mongodb_install "$_deployment" "$_cluster";;
-    remove) apps_mongodb_remove "$_deployment" "$_cluster";;
-    rmvols) apps_mongodb_rmvols "$_deployment" "$_cluster";;
-    status) apps_mongodb_status "$_deployment" "$_cluster";;
-    summary) apps_mongodb_summary "$_deployment" "$_cluster";;
-    *) echo "Unknown mongodb subcommand '$1'"; exit 1 ;;
+  env-edit | env_edit)
+    apps_mongodb_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_mongodb_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_mongodb_env_update "$_deployment" "$_cluster"
+    ;;
+  logs) apps_mongodb_logs "$_deployment" "$_cluster" ;;
+  install) apps_mongodb_install "$_deployment" "$_cluster" ;;
+  remove) apps_mongodb_remove "$_deployment" "$_cluster" ;;
+  rmvols) apps_mongodb_rmvols "$_deployment" "$_cluster" ;;
+  status) apps_mongodb_status "$_deployment" "$_cluster" ;;
+  summary) apps_mongodb_summary "$_deployment" "$_cluster" ;;
+  *)
+    echo "Unknown mongodb subcommand '$1'"
+    exit 1
+    ;;
   esac
 }
 
 apps_mongodb_command_list() {
-  echo "logs install remove rmvols status summary"
+  _cmnds="env-edit env-path env-update install logs remove rmvols status"
+  _cmnds="$_cmnds summary"
+  echo "$_cmnds"
 }
 
 # ----

@@ -110,11 +110,12 @@ apps_notification_consumer_clean_directories() {
 }
 
 apps_notification_consumer_read_variables() {
-  header "Notification Consumer Settings"
+  _app="notification-consumer"
+  header "Reading $_app settings"
   _ex="registry.kyso.io/kyso-io/consumers/notification-consumer/develop:latest"
+  _var="NOTIFICATION_CONSUMER_IMAGE"
   read_value \
-    "Notification Consumer Image URI (i.e. '$_ex' or export "\
-    "NOTIFICATION_CONSUMER_IMAGE env var)"
+    "Notification Consumer Image URI (i.e. '$_ex' or export $_var env var)" \
     "${NOTIFICATION_CONSUMER_IMAGE}"
   NOTIFICATION_CONSUMER_IMAGE=${READ_VALUE}
   read_value "Notification Consumer Replicas" \
@@ -123,8 +124,9 @@ apps_notification_consumer_read_variables() {
 }
 
 apps_notification_consumer_print_variables() {
+  _app="notification-consumer"
   cat <<EOF
-# Notification Consumer Settings
+# Deployment $_app settings
 # ---
 # Notification Consumer Image URI, examples for local testing:
 # - 'registry.kyso.io/kyso-io/consumers/notification-consumer/develop:latest'
@@ -304,11 +306,83 @@ apps_notification_consumer_summary() {
   deployment_summary "$_ns" "$_app"
 }
 
+apps_notification_consumer_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="notification-consumer"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_notification_consumer_env_path() {
+  _app="notification-consumer"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_notification_consumer_env_update() {
+  _app="notification-consumer"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_notification_consumer_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_notification_consumer_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_notification_consumer_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  env-edit | env_edit)
+    apps_notification_consumer_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_notification_consumer_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_notification_consumer_env_update "$_deployment" "$_cluster"
+    ;;
   logs) apps_notification_consumer_logs "$_deployment" "$_cluster" ;;
   install) apps_notification_consumer_install "$_deployment" "$_cluster" ;;
   reinstall) apps_notification_consumer_reinstall "$_deployment" "$_cluster" ;;
@@ -324,7 +398,9 @@ apps_notification_consumer_command() {
 }
 
 apps_notification_consumer_command_list() {
-  echo "logs install reinstall remove restart status summary"
+  _cmnds="env-edit env-path env-update install logs reinstall remove restart"
+  _cmnds="$_cmnds status summary"
+  echo "$_cmnds"
 }
 
 # ----

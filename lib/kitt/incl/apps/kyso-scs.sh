@@ -219,7 +219,8 @@ apps_kyso_scs_create_myssh_secrets() {
 }
 
 apps_kyso_scs_read_variables() {
-  header "Kyso SCS Settings"
+  _app="kyso-scs"
+  header "Reading $_app settings"
   read_value "MySecureShell Image URI" "${KYSO_SCS_MYSSH_IMAGE}"
   KYSO_SCS_MYSSH_IMAGE=${READ_VALUE}
   read_value "Nginx Image URI" "${KYSO_SCS_NGINX_IMAGE}"
@@ -247,8 +248,9 @@ apps_kyso_scs_read_variables() {
 }
 
 apps_kyso_scs_print_variables() {
+  _app="kyso-scs"
   cat <<EOF
-# Kyso SCS Settings
+# Deployment $_app settings
 # ---
 # Kyso SCS MySecureShell Image URI
 KYSO_SCS_MYSSH_IMAGE=$KYSO_SCS_MYSSH_IMAGE
@@ -373,7 +375,7 @@ apps_kyso_scs_install() {
     test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
       mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     _storage_sed="$_storage_class_sed"
-    :>"$_pv_yaml"
+    : >"$_pv_yaml"
     sed \
       -e "s%__APP__%$_app%" \
       -e "s%__NAMESPACE__%$_ns%" \
@@ -390,7 +392,7 @@ apps_kyso_scs_install() {
     kubectl_delete "$_pv_yaml" || true
   fi
   # Create PV & PVC
-  :>"$_pvc_yaml"
+  : >"$_pvc_yaml"
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
@@ -414,7 +416,7 @@ apps_kyso_scs_install() {
   chmod 0700 "$_tmp_dir"
   sed \
     -e "s%__ELASTIC_URL__%$_elastic_url%g" \
-    "$_indexer_app_yaml_tmpl" > "$_tmp_dir/application.yaml"
+    "$_indexer_app_yaml_tmpl" >"$_tmp_dir/application.yaml"
   kubectl create configmap "$_indexer_configmap_name" --dry-run=client -o yaml \
     -n "$_ns" --from-file=application.yaml="$_tmp_dir/application.yaml" \
     >"$_indexer_configmap_yaml"
@@ -506,7 +508,7 @@ apps_kyso_scs_remove() {
   apps_kyso_scs_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_secret_yaml"  "$_statefulset_yaml" "$_deploy_yaml" \
+    for _yaml in "$_secret_yaml" "$_statefulset_yaml" "$_deploy_yaml" \
       "$_indexer_configmap_yaml" "$_svc_yaml" "$_pvc_yaml" "$_pv_yaml" \
       "$_ingress_yaml" $_cert_yamls; do
       kubectl_delete "$_yaml" || true
@@ -577,11 +579,83 @@ apps_kyso_scs_summary() {
   statefulset_summary "$_ns" "$_app"
 }
 
+apps_kyso_scs_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="kyso-scs"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_kyso_scs_env_path() {
+  _app="kyso-scs"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_kyso_scs_env_update() {
+  _app="kyso-scs"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_kyso_scs_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_kyso_scs_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_kyso_scs_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  env-edit | env_edit)
+    apps_kyso_scs_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_kyso_scs_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_kyso_scs_env_update "$_deployment" "$_cluster"
+    ;;
   logs) apps_kyso_scs_logs "$_deployment" "$_cluster" ;;
   install) apps_kyso_scs_install "$_deployment" "$_cluster" ;;
   reinstall) apps_kyso_scs_reinstall "$_deployment" "$_cluster" ;;
@@ -599,7 +673,9 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  echo "logs install reinstall remove restart rmvols settings status summary"
+  _cmnds="env-edit env-path env-update install logs reinstall remove restart"
+  _cmnds="$_cmnds rmvols status summary"
+  echo "$_cmnds"
 }
 
 # ----

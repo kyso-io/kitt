@@ -43,6 +43,9 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./kyso-ui.sh
   [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  # shellcheck source=./notification-consumer.sh
+  [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/notification-consumer.sh"
 fi
 
 # ---------
@@ -63,6 +66,7 @@ apps_export_variables() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
+  apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"
 }
@@ -77,6 +81,7 @@ apps_check_directories() {
   apps_kyso_front_check_directories
   apps_kyso_scs_check_directories
   apps_kyso_ui_check_directories
+  apps_notification_consumer_check_directories
 }
 
 apps_print_variables() {
@@ -89,28 +94,9 @@ apps_print_variables() {
   apps_kyso_front_print_variables
   apps_kyso_scs_print_variables
   apps_kyso_ui_print_variables
+  apps_notification_consumer_print_variables
 }
 
-apps_read_variables() {
-  header_with_note "Configuring kyso deployment"
-  apps_common_read_variables
-  footer
-  apps_elasticsearch_read_variables
-  footer
-  apps_mongodb_read_variables
-  footer
-  apps_nats_read_variables
-  footer
-  apps_mongo_gui_read_variables
-  footer
-  apps_kyso_api_read_variables
-  footer
-  apps_kyso_front_read_variables
-  footer
-  apps_kyso_scs_read_variables
-  footer
-  apps_kyso_ui_read_variables
-}
 
 apps_edit_variables() {
   if [ "$EDITOR" ]; then
@@ -136,32 +122,26 @@ apps_update_variables() {
   _deployment="$1"
   _cluster="$2"
   apps_export_variables "$_deployment" "$_cluster"
-  header "Configuration variables"
-  apps_print_variables "$_deployment" "$_cluster" | grep -v "^#"
-  if [ -f "$DEPLOYMENT_CONFIG" ]; then
-    footer
-    read_bool "Update configuration?" "No"
-  else
-    READ_VALUE="Yes"
-  fi
-  if is_selected "${READ_VALUE}"; then
-    footer
-    apps_read_variables
-    if [ -f "$DEPLOYMENT_CONFIG" ]; then
-      footer
-      read_bool "Save updated configuration?" "Yes"
-    else
-      READ_VALUE="Yes"
-    fi
-    if is_selected "${READ_VALUE}"; then
-      apps_check_directories
-      apps_print_variables "$_deployment" "$_cluster" |
-        stdout_to_file "$DEPLOYMENT_CONFIG"
-      footer
-      echo "Configuration saved to '$DEPLOYMENT_CONFIG'"
-      footer
-    fi
-  fi
+  header_with_note "Configuring kyso deployment"
+  apps_common_env_update
+  footer
+  apps_elasticsearch_env_update
+  footer
+  apps_mongodb_env_update
+  footer
+  apps_nats_env_update
+  footer
+  apps_mongo_gui_env_update
+  footer
+  apps_kyso_api_env_update
+  footer
+  apps_kyso_front_env_update
+  footer
+  apps_kyso_scs_env_update
+  footer
+  apps_kyso_ui_env_update
+  footer
+  apps_notification_consumer_env_update
 }
 
 apps_config_command() {
@@ -169,11 +149,14 @@ apps_config_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-    edit) apps_edit_variables "$_deployment" "$_cluster" ;;
-    path) apps_print_conf_path "$_deployment" "$_cluster" ;;
-    show) apps_print_variables "$_deployment" "$_cluster" | grep -v "^#" ;;
-    update) apps_update_variables "$_deployment" "$_cluster" ;;
-    *) echo "Unknown config subcommand '$_command'"; exit 1 ;;
+  edit) apps_edit_variables "$_deployment" "$_cluster" ;;
+  path) apps_print_conf_path "$_deployment" "$_cluster" ;;
+  show) apps_print_variables "$_deployment" "$_cluster" | grep -v "^#" ;;
+  update) apps_update_variables "$_deployment" "$_cluster" ;;
+  *)
+    echo "Unknown config subcommand '$_command'"
+    exit 1
+    ;;
   esac
 }
 

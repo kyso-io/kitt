@@ -152,7 +152,8 @@ apps_nats_clean_directories() {
 }
 
 apps_nats_read_variables() {
-  header "Nats Settings"
+  _app="nats"
+  header "Reading $_app settings"
   read_value "Nats replicas (default is 1, use 3 for cluster)" \
     "${NATS_REPLICAS}"
   NATS_REPLICAS=${READ_VALUE}
@@ -175,8 +176,9 @@ apps_nats_read_variables() {
 }
 
 apps_nats_print_variables() {
+  _app="nats"
   cat <<EOF
-# Nats Settings
+# Deployment $_app settings
 # ---
 # Nats replicas
 NATS_REPLICAS=$NATS_REPLICAS
@@ -264,14 +266,14 @@ apps_nats_install() {
   # Pre-create directories if needed and adjust storage_sed
   if [ "$_storage_class" = "local-storage" ] &&
     is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
-    for i in $(seq 0 $((NATS_REPLICAS-1))); do
+    for i in $(seq 0 $((NATS_REPLICAS - 1))); do
       _pv_name="$NATS_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       test -d "$CLUST_VOLUMES_DIR/$_pv_name" ||
         mkdir "$CLUST_VOLUMES_DIR/$_pv_name"
     done
     _storage_sed="$_storage_class_sed"
     # Create PVs
-    for i in $(seq 0 $((NATS_REPLICAS-1))); do
+    for i in $(seq 0 $((NATS_REPLICAS - 1))); do
       _pvc_name="$NATS_PV_PREFIX-$i"
       _pv_name="$NATS_PV_PREFIX-$DEPLOYMENT_NAME-$i"
       _pv_yaml="$NATS_KUBECTL_DIR/pv-$i.yaml"
@@ -295,7 +297,7 @@ find "$NATS_KUBECTL_DIR" -name "pvc-*.yaml"
 EOF
   fi
   # Create PVCs
-  for i in $(seq 0 $((NATS_REPLICAS-1))); do
+  for i in $(seq 0 $((NATS_REPLICAS - 1))); do
     _pvc_name="$NATS_PV_PREFIX-$i"
     _pvc_yaml="$NATS_KUBECTL_DIR/pvc-$i.yaml"
     sed \
@@ -305,7 +307,7 @@ EOF
       -e "s%__STORAGE_SIZE__%$_storage_size%" \
       -e "$_storage_sed" \
       "$_pvc_tmpl" >"$_pvc_yaml"
-      kubectl_apply "$_pvc_yaml"
+    kubectl_apply "$_pvc_yaml"
   done
   # Install or upgrade chart
   helm_upgrade "$_ns" "$_helm_values_yaml" "$_release" "$_chart" "$_version"
@@ -320,7 +322,7 @@ EOF
     if [ "$i" -gt "$NATS_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
-    i="$((i+1))"
+    i="$((i + 1))"
   done <<EOF
 $(find "$NATS_KUBECTL_DIR" -name "pvc-*.yaml" | sort -n)
 EOF
@@ -330,7 +332,7 @@ EOF
     if [ "$i" -gt "$NATS_REPLICAS" ]; then
       kubectl_delete "$_yaml" || true
     fi
-    i="$((i+1))"
+    i="$((i + 1))"
   done <<EOF
 $(find "$NATS_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
 EOF
@@ -419,24 +421,101 @@ apps_nats_summary() {
   statefulset_helm_summary "$_ns" "$_release"
 }
 
+apps_nats_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="nats"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_nats_env_path() {
+  _app="nats"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_nats_env_update() {
+  _app="nats"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_nats_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_nats_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_nats_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-    logs) apps_nats_logs "$_deployment" "$_cluster";;
-    install) apps_nats_install "$_deployment" "$_cluster";;
-    remove) apps_nats_remove "$_deployment" "$_cluster";;
-    rmvols) apps_nats_rmvols "$_deployment" "$_cluster";;
-    settings) apps_kyso_update_api_settings "$_deployment" "$_cluster";;
-    status) apps_nats_status "$_deployment" "$_cluster";;
-    summary) apps_nats_summary "$_deployment" "$_cluster";;
-    *) echo "Unknown nats subcommand '$1'"; exit 1 ;;
+  env-edit | env_edit)
+    apps_nats_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_nats_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_nats_env_update "$_deployment" "$_cluster"
+    ;;
+  logs) apps_nats_logs "$_deployment" "$_cluster" ;;
+  install) apps_nats_install "$_deployment" "$_cluster" ;;
+  remove) apps_nats_remove "$_deployment" "$_cluster" ;;
+  rmvols) apps_nats_rmvols "$_deployment" "$_cluster" ;;
+  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
+  status) apps_nats_status "$_deployment" "$_cluster" ;;
+  summary) apps_nats_summary "$_deployment" "$_cluster" ;;
+  *)
+    echo "Unknown nats subcommand '$1'"
+    exit 1
+    ;;
   esac
 }
 
 apps_nats_command_list() {
-  echo "logs install remove rmvols settings status summary"
+  _cmnds="env-edit env-path env-update install logs remove rmvols"
+  _cmnds="$_cmnds status summary"
+  echo "$_cmnds"
 }
 
 # ----

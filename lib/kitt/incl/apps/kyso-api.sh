@@ -149,7 +149,8 @@ apps_kyso_api_clean_directories() {
 }
 
 apps_kyso_api_read_variables() {
-  header "Kyso API Settings"
+  _app="kyso-api"
+  header "Reading $_app settings"
   _ex_ep="$LINUX_HOST_IP:$KYSO_API_PORT"
   read_value "Kyso API Endpoint (i.e. '$_ex_ep' or '-' to deploy image)" \
     "${KYSO_API_ENDPOINT}"
@@ -173,8 +174,9 @@ apps_kyso_api_read_variables() {
 }
 
 apps_kyso_api_print_variables() {
+  _app="kyso-api"
   cat <<EOF
-# Kyso API Settings
+# Deployment $_app settings
 # ---
 # Endpoint for Kyso API (replaces the real deployment on development systems),
 # set to:
@@ -479,13 +481,85 @@ apps_kyso_api_uris() {
   fi
 }
 
+apps_kyso_api_env_edit() {
+  if [ "$EDITOR" ]; then
+    _app="kyso-api"
+    _deployment="$1"
+    _cluster="$2"
+    apps_export_variables "$_deployment" "$_cluster"
+    _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+    if [ -f "$_env_file" ]; then
+      exec "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+apps_kyso_api_env_path() {
+  _app="kyso-api"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  echo "$_env_file"
+}
+
+apps_kyso_api_env_update() {
+  _app="kyso-api"
+  _deployment="$1"
+  _cluster="$2"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
+  header "$_app configuration variables"
+  apps_kyso_api_print_variables "$_deployment" "$_cluster" |
+    grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_app env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    apps_kyso_api_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_app env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      apps_check_directories
+      apps_print_variables "$_deployment" "$_cluster" |
+        stdout_to_file "$_env_file"
+      footer
+      echo "$_app configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 apps_kyso_api_command() {
   _command="$1"
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-  logs) apps_kyso_api_logs "$_deployment" "$_cluster" ;;
+  env-edit | env_edit)
+    apps_kyso_api_env_edit "$_deployment" "$_cluster"
+    ;;
+  env-path | env_path)
+    apps_kyso_api_env_path "$_deployment" "$_cluster"
+    ;;
+  env-update | env_update)
+    apps_kyso_api_env_update "$_deployment" "$_cluster"
+    ;;
   install) apps_kyso_api_install "$_deployment" "$_cluster" ;;
+  logs) apps_kyso_api_logs "$_deployment" "$_cluster" ;;
   reinstall) apps_kyso_api_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
   restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
@@ -501,7 +575,9 @@ apps_kyso_api_command() {
 }
 
 apps_kyso_api_command_list() {
-  echo "logs install reinstall remove restart settings status summary uris"
+  _cmnds="env-edit env-path env-update install logs reinstall remove restart"
+  _cmnds="$_cmnds settings status summary uris"
+  echo "$_cmnds"
 }
 
 # ----

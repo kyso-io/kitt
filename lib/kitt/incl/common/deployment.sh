@@ -51,10 +51,18 @@ deployment_export_variables() {
   export DEPLOY_KUBECTL_DIR="$DEPLOYMENT_DIR/kubectl"
   export DEPLOY_PF_DIR="$DEPLOYMENT_DIR/pf"
   export DEPLOY_SECRETS_DIR="$DEPLOYMENT_DIR/secrets"
+  export DEPLOY_ENVS_DIR="$DEPLOYMENT_DIR/envs"
   # Files
   export DEPLOYMENT_CONFIG="$DEPLOYMENT_DIR/config"
   # Export DEPLOYMENT_CONFIG variables
   export_env_file_vars "$DEPLOYMENT_CONFIG" "DEPLOYMENT"
+  if [ -d "$DEPLOY_ENVS_DIR" ]; then
+    while read -r _env_file; do
+      export_env_file_vars "$_env_file" "DEPLOYMENT"
+    done <<EOF
+$(find "$DEPLOY_ENVS_DIR" -name '*.env')
+EOF
+  fi
   # Check if configuration is right
   DEPLOYMENT_NAME="${DEPLOYMENT_NAME:-$DEPLOY_NAME}"
   if [ "$DEPLOYMENT_NAME" != "$DEPLOY_NAME" ]; then
@@ -71,16 +79,16 @@ EOF
 
 deployment_check_directories() {
   for _d in "$DEPLOYMENTS_DIR" "$DEPLOYMENT_DIR" "$DEPLOY_ANNOTATIONS_DIR" \
-    "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" "$DEPLOY_PF_DIR" \
-    "$DEPLOY_SECRETS_DIR"; do
+    "$DEPLOY_ENVS_DIR" "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" \
+    "$DEPLOY_PF_DIR" "$DEPLOY_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 remove_deployment_directories() {
   for _d in "$DEPLOY_ANNOTATIONS_DIR" "$DEPLOY_HELM_DIR" "$DEPLOY_KUBECTL_DIR" \
-    "$DEPLOY_PF_DIR" "$DEPLOY_SECRETS_DIR" "$DEPLOYMENT_DIR" \
-    "$DEPLOYMENTS_DIR"; do
+    "$DEPLOY_PF_DIR" "$DEPLOY_SECRETS_DIR" "$DEPLOY_ENVS_DIR" \
+    "$DEPLOYMENT_DIR" "$DEPLOYMENTS_DIR"; do
     if [ -d "$_d" ]; then
       rm -rf "$_d"
     fi
