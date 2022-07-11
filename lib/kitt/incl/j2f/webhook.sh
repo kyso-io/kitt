@@ -160,7 +160,7 @@ j2f_webhook_read_variables() {
   if is_selected "$READ_VALUE"; then
     read_value "Slack channel" "$_slack_channel"
     _slack_channel=${READ_VALUE}
-    echo "$_slack_channel" > "$J2F_SLACK_CHANNEL_FILE"
+    echo "$_slack_channel" >"$J2F_SLACK_CHANNEL_FILE"
     echo "Slack channel value saved to file '$J2F_SLACK_CHANNEL_FILE'"
   fi
   if [ -f "$J2F_SLACK_TOKEN_FILE" ]; then
@@ -180,7 +180,7 @@ j2f_webhook_read_variables() {
 }
 
 j2f_webhook_print_variables() {
-  cat << EOF
+  cat <<EOF
 MAIL_PREFIX=$J2F_MAIL_PREFIX
 EXEC_COMMAND=$J2F_EXEC_COMMAND
 MAIL_ERRFILE=$J2F_MAIL_ERRFILE
@@ -262,10 +262,26 @@ j2f_webhook_command() {
   # shellcheck disable=SC2154
   project_path="${gl_web_url#"$J2F_GITLAB_URL"/}"
   case "$project_path" in
-  "kyso-io/kyso-api") app="kyso-api"; img_var="KYSO_API_IMAGE" ;;
-  "kyso-io/kyso-front") app="kyso-front"; img_var="KYSO_FRONT_IMAGE" ;;
-  "kyso-io/kyso-indexer") app="kyso-scs"; img_var="KYSO_INDEXER_IMAGE" ;;
-  "kyso-io/kyso-ui") app="kyso-ui"; img_var="KYSO_UI_IMAGE" ;;
+  "kyso-io/kyso-api")
+    app="kyso-api"
+    img_var="KYSO_API_IMAGE"
+    ;;
+  "kyso-io/kyso-front")
+    app="kyso-front"
+    img_var="KYSO_FRONT_IMAGE"
+    ;;
+  "kyso-io/kyso-indexer")
+    app="kyso-scs"
+    img_var="KYSO_INDEXER_IMAGE"
+    ;;
+  "kyso-io/kyso-ui")
+    app="kyso-ui"
+    img_var="KYSO_UI_IMAGE"
+    ;;
+  "kyso-io/consumers/notification-consumer")
+    app="notification-consumer"
+    img_var="NOTIFICATION_CONSUMER_IMAGE"
+    ;;
   *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac
   # shellcheck disable=SC2154
