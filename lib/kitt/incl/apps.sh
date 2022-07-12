@@ -39,6 +39,9 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./apps/kyso-ui.sh
   [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  # shellcheck source=./apps/activity-feed-consumer.sh
+  [ "$INCL_APPS_ACTIVITY_FEED_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/activity-feed-consumer.sh"
   # shellcheck source=./apps/notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
@@ -107,6 +110,9 @@ apps_command() {
   nats)
     apps_nats_command "$_command" "$_deployment" "$_cluster"
     ;;
+  activity-feed-consumer)
+    apps_activity_feed_consumer_command "$_command" "$_deployment" "$_cluster"
+    ;;
   notification-consumer)
     apps_notification_consumer_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -119,7 +125,8 @@ apps_command() {
 
 apps_list() {
   _apps="common config elasticsearch mongodb nats mongo-gui"
-  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui notification-consumer"
+  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui"
+  _apps="$_apps activity-feed-consumer notification-consumer"
   echo "$_apps"
 }
 
@@ -136,6 +143,7 @@ apps_command_list() {
   kyso-front) apps_kyso_front_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
   kyso-ui) apps_kyso_ui_command_list ;;
+  activity-feed-consumer) apps_activity_feed_consumer_command_list ;;
   notification-consumer) apps_notification_consumer_command_list ;;
   esac
 }

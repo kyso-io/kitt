@@ -43,6 +43,9 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./kyso-ui.sh
   [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
+  # shellcheck source=./activity-feed-consumer.sh
+  [ "$INCL_APPS_ACTIVITY_FEED_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/activity-feed-consumer.sh"
   # shellcheck source=./notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
@@ -66,6 +69,7 @@ apps_export_variables() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
+  apps_activity_feed_consumer_export_variables "$_deployment" "$_cluster"
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"
@@ -81,6 +85,7 @@ apps_check_directories() {
   apps_kyso_front_check_directories
   apps_kyso_scs_check_directories
   apps_kyso_ui_check_directories
+  apps_activity_feed_consumer_check_directories
   apps_notification_consumer_check_directories
 }
 
@@ -108,6 +113,8 @@ apps_migrate_variables() {
     apps_kyso_scs_env_save "$_deployment" "$_cluster" "$_env_file"
     _env_file="$(apps_kyso_ui_env_path)"
     apps_kyso_ui_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_activity_feed_consumer_env_path)"
+    apps_activity_feed_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
     _env_file="$(apps_notification_consumer_env_path)"
     apps_notification_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
     rm -f "$DEPLOYMENT_CONFIG"
@@ -127,6 +134,7 @@ apps_print_variables() {
   apps_kyso_front_print_variables
   apps_kyso_scs_print_variables
   apps_kyso_ui_print_variables
+  apps_activity_feed_consumer_print_variables
   apps_notification_consumer_print_variables
 }
 
@@ -159,6 +167,8 @@ apps_update_variables() {
   apps_kyso_scs_env_update
   footer
   apps_kyso_ui_env_update
+  footer
+  apps_activity_feed_consumer_env_update
   footer
   apps_notification_consumer_env_update
 }
