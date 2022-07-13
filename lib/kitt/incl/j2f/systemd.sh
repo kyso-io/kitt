@@ -68,6 +68,7 @@ j2f_systemd_export_variables() {
     J2F_DIRLIST="$J2F_DIRLIST;kyso-indexer:$(uuid);kyso-ui:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;activity-feed-consumer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;notification-consumer:$(uuid)"
+    J2F_DIRLIST="$J2F_DIRLIST;slack-notifications-consumer:$(uuid)"
     export J2F_DIRLIST
   fi
   # set variable to avoid running the function twice

@@ -45,6 +45,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
+  # shellcheck source=./apps/slack-notifications-consumer.sh
+  [ "$INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/slack-notifications-consumer.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -116,6 +119,10 @@ apps_command() {
   notification-consumer)
     apps_notification_consumer_command "$_command" "$_deployment" "$_cluster"
     ;;
+  slack-notifications-consumer)
+    apps_slack_notifications_consumer_command "$_command" "$_deployment" \
+      "$_cluster"
+    ;;
   esac
   case "$_command" in
   status | summary) ;;
@@ -127,6 +134,7 @@ apps_list() {
   _apps="common config elasticsearch mongodb nats mongo-gui"
   _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui"
   _apps="$_apps activity-feed-consumer notification-consumer"
+  _apps="$_apps slack-notifications-consumer"
   echo "$_apps"
 }
 
@@ -145,6 +153,9 @@ apps_command_list() {
   kyso-ui) apps_kyso_ui_command_list ;;
   activity-feed-consumer) apps_activity_feed_consumer_command_list ;;
   notification-consumer) apps_notification_consumer_command_list ;;
+  slack-notifications-consumer)
+    apps_slack_notifications_consumer_command_list
+    ;;
   esac
 }
 

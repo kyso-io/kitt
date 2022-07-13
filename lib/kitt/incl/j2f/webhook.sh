@@ -286,6 +286,10 @@ j2f_webhook_command() {
     app="notification-consumer"
     img_var="NOTIFICATION_CONSUMER_IMAGE"
     ;;
+  "kyso-io/consumers/slack-notifications-consumer")
+    app="slack-notifications-consumer"
+    img_var="SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
+    ;;
   *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac
   # shellcheck disable=SC2154

@@ -49,6 +49,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
+  # shellcheck source=./slack-notifications-consumer.sh
+  [ "$INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/slack-notifications-consumer.sh"
 fi
 
 # ---------
@@ -71,6 +74,7 @@ apps_export_variables() {
   apps_kyso_ui_export_variables "$_deployment" "$_cluster"
   apps_activity_feed_consumer_export_variables "$_deployment" "$_cluster"
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
+  apps_slack_notifications_consumer_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"
 }
@@ -87,6 +91,7 @@ apps_check_directories() {
   apps_kyso_ui_check_directories
   apps_activity_feed_consumer_check_directories
   apps_notification_consumer_check_directories
+  apps_slack_notifications_consumer_check_directories
 }
 
 apps_migrate_variables() {
@@ -117,6 +122,9 @@ apps_migrate_variables() {
     apps_activity_feed_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
     _env_file="$(apps_notification_consumer_env_path)"
     apps_notification_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_slack_notifications_consumer_env_path)"
+    apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster" \
+      "$_env_file"
     rm -f "$DEPLOYMENT_CONFIG"
   else
     echo "No '$DEPLOYMENT_CONFIG' found, nothing to migrate!"
@@ -136,6 +144,7 @@ apps_print_variables() {
   apps_kyso_ui_print_variables
   apps_activity_feed_consumer_print_variables
   apps_notification_consumer_print_variables
+  apps_slack_notifications_consumer_print_variables
 }
 
 apps_print_conf_path() {
@@ -171,6 +180,8 @@ apps_update_variables() {
   apps_activity_feed_consumer_env_update
   footer
   apps_notification_consumer_env_update
+  footer
+  apps_slack_notifications_consumer_env_update
 }
 
 apps_config_command() {

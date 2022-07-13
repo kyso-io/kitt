@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __APP__
+  namespace: __NAMESPACE__
+  labels:
+    app.kubernetes.io/name: __APP__
+spec:
+  replicas: __SLACK_NOTIFICATIONS_CONSUMER_REPLICAS__
+  selector:
+    matchLabels:
+      app: __APP__
+  template:
+    metadata:
+      labels:
+        app: __APP__
+    spec:
+      containers:
+      - name: slack-notifications-consumer
+        image: __SLACK_NOTIFICATIONS_CONSUMER_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        env:
+        - name: DOTENV_FILE
+          value: "/secrets/slack-notifications-consumer/env"
+        volumeMounts:
+        - name: slack-notifications-consumer-secrets
+          mountPath: "/secrets/slack-notifications-consumer"
+          readOnly: true
+        ports:
+        - containerPort: __SERVER_PORT__
+      volumes:
+      - name: slack-notifications-consumer-secrets
+        secret:
+          secretName: slack-notifications-consumer-secrets
