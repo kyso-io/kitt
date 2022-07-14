@@ -26,8 +26,6 @@ spec:
         - name: slack-notifications-consumer-secrets
           mountPath: "/secrets/slack-notifications-consumer"
           readOnly: true
-        ports:
-        - containerPort: __SERVER_PORT__
       volumes:
       - name: slack-notifications-consumer-secrets
         secret:

@@ -26,8 +26,6 @@ spec:
         - name: activity-feed-consumer-secrets
           mountPath: "/secrets/activity-feed-consumer"
           readOnly: true
-        ports:
-        - containerPort: __SERVER_PORT__
       volumes:
       - name: activity-feed-consumer-secrets
         secret:

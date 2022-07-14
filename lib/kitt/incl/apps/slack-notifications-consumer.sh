@@ -22,9 +22,6 @@ INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH="1"
 export DEPLOYMENT_DEFAULT_SLACK_NOTIFICATIONS_CONSUMER_IMAGE=""
 export DEPLOYMENT_DEFAULT_SLACK_NOTIFICATIONS_CONSUMER_REPLICAS="1"
 
-# Fixed values
-export SLACK_NOTIFICATIONS_CONSUMER_PORT="3000"
-
 # --------
 # Includes
 # --------
@@ -59,10 +56,8 @@ apps_slack_notifications_consumer_export_variables() {
   # Templates
   _env_tmpl="$_tmpl_dir/slack-notifications-consumer.env"
   _deploy_tmpl="$_tmpl_dir/deploy.yaml"
-  _service_tmpl="$_tmpl_dir/service.yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_ENV_TMPL="$_env_tmpl"
   export SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
-  export SLACK_NOTIFICATIONS_CONSUMER_SERVICE_TMPL="$_service_tmpl"
   # Files
   _env_secret="$_secrets_dir/slack-notifications-consumer${SOPS_EXT}.env"
   _deploy_yaml="$_kubectl_dir/deploy.yaml"
@@ -172,7 +167,6 @@ apps_slack_notifications_consumer_install() {
   _env_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_ENV_TMPL"
   _secret_env="$SLACK_NOTIFICATIONS_CONSUMER_ENV_SECRET"
   _secret_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML"
-  _service_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_SERVICE_TMPL"
   _service_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SERVICE_YAML"
   _deploy_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_YAML"
@@ -191,7 +185,6 @@ apps_slack_notifications_consumer_install() {
   )"
   sed \
     -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
-    -e "s%__SERVER_PORT__%$SLACK_NOTIFICATIONS_CONSUMER_PORT%" \
     "$_env_tmpl" |
     stdout_to_file "$_secret_env"
   : >"$_secret_yaml"
@@ -208,20 +201,16 @@ apps_slack_notifications_consumer_install() {
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__SERVER_PORT__%$SLACK_NOTIFICATIONS_CONSUMER_PORT%" \
     -e "s%__SLACK_NOTIFICATIONS_CONSUMER_REPLICAS__%$_replicas%" \
     -e "s%__SLACK_NOTIFICATIONS_CONSUMER_IMAGE__%$_image%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
-  # Prepare service_yaml
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__SERVER_PORT__%$SLACK_NOTIFICATIONS_CONSUMER_PORT%" \
-    "$_service_tmpl" >"$_service_yaml"
-  for _yaml in "$_secret_yaml" "$_service_yaml" "$_deploy_yaml"; do
+  # update secret & deployment
+  for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
     kubectl_apply "$_yaml"
   done
+  # Delete service if present
+  kubectl_delete "$_service_yaml" || true
   # Wait until deployment succeds or fails (if there is one, of course)
   if [ -f "$_deploy_yaml" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \

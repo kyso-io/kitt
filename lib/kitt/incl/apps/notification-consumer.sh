@@ -22,9 +22,6 @@ INCL_APPS_NOTIFICATION_CONSUMER_SH="1"
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_IMAGE=""
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_REPLICAS="1"
 
-# Fixed values
-export NOTIFICATION_CONSUMER_PORT="3000"
-
 # --------
 # Includes
 # --------
@@ -59,10 +56,8 @@ apps_notification_consumer_export_variables() {
   # Templates
   _env_tmpl="$_tmpl_dir/notification-consumer.env"
   _deploy_tmpl="$_tmpl_dir/deploy.yaml"
-  _service_tmpl="$_tmpl_dir/service.yaml"
   export NOTIFICATION_CONSUMER_ENV_TMPL="$_env_tmpl"
   export NOTIFICATION_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
-  export NOTIFICATION_CONSUMER_SERVICE_TMPL="$_service_tmpl"
   # Files
   _env_secret="$_secrets_dir/notification-consumer${SOPS_EXT}.env"
   _deploy_yaml="$_kubectl_dir/deploy.yaml"
@@ -172,7 +167,6 @@ apps_notification_consumer_install() {
   _env_tmpl="$NOTIFICATION_CONSUMER_ENV_TMPL"
   _secret_env="$NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"
-  _service_tmpl="$NOTIFICATION_CONSUMER_SERVICE_TMPL"
   _service_yaml="$NOTIFICATION_CONSUMER_SERVICE_YAML"
   _deploy_tmpl="$NOTIFICATION_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$NOTIFICATION_CONSUMER_DEPLOY_YAML"
@@ -191,7 +185,6 @@ apps_notification_consumer_install() {
   )"
   sed \
     -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
-    -e "s%__SERVER_PORT__%$NOTIFICATION_CONSUMER_PORT%" \
     "$_env_tmpl" |
     stdout_to_file "$_secret_env"
   : >"$_secret_yaml"
@@ -206,20 +199,16 @@ apps_notification_consumer_install() {
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__SERVER_PORT__%$NOTIFICATION_CONSUMER_PORT%" \
     -e "s%__NOTIFICATION_CONSUMER_REPLICAS__%$NOTIFICATION_CONSUMER_REPLICAS%" \
     -e "s%__NOTIFICATION_CONSUMER_IMAGE__%$NOTIFICATION_CONSUMER_IMAGE%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
-  # Prepare service_yaml
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__SERVER_PORT__%$NOTIFICATION_CONSUMER_PORT%" \
-    "$_service_tmpl" >"$_service_yaml"
-  for _yaml in "$_secret_yaml" "$_service_yaml" "$_deploy_yaml"; do
+  # update secret & deployment
+  for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
     kubectl_apply "$_yaml"
   done
+  # Delete service if present
+  kubectl_delete "$_service_yaml" || true
   # Wait until deployment succeds or fails (if there is one, of course)
   if [ -f "$_deploy_yaml" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \

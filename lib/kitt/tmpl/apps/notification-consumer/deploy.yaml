@@ -26,8 +26,6 @@ spec:
         - name: notification-consumer-secrets
           mountPath: "/secrets/notification-consumer"
           readOnly: true
-        ports:
-        - containerPort: __SERVER_PORT__
       volumes:
       - name: notification-consumer-secrets
         secret:
