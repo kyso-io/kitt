@@ -89,7 +89,8 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_MYSSH_PF_PID="$KYSO_SCS_PF_DIR/kubectl-sftp.pid"
   export KYSO_SCS_HOST_KEYS="$KYSO_SCS_SECRETS_DIR/host_keys$SOPS_EXT.txt"
   export KYSO_SCS_USERS_TAR="$KYSO_SCS_SECRETS_DIR/user_data$SOPS_EXT.tar"
-  export KYSO_SCS_INDEXER_CONFIGMAP_YAML="$KYSO_SCS_KUBECTL_DIR/configmap.yaml"
+  _config_map="$KYSO_SCS_SECRETS_DIR/configmap$SOPS_EXT.yaml"
+  export KYSO_SCS_INDEXER_CONFIGMAP_YAML="$_config_map"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_SCS_MYSSH_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_IMAGE" ]; then
