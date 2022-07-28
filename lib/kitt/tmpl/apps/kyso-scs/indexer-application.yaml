@@ -5,3 +5,4 @@ app:
     elasticsearch: "__ELASTIC_URL__"
     filepath: "/tmp"
     scsBasePath: "/sftp/data/scs"
+    databaseUri: "__MONGODB_DATABASE_URI__"

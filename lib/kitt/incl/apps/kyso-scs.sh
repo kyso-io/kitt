@@ -412,10 +412,14 @@ apps_kyso_scs_install() {
   # Create kyso-scs indexer configmap
   _elastic_url="http://elasticsearch-master.elasticsearch-$DEPLOYMENT_NAME"
   _elastic_url="$_elastic_url.svc.cluster.local:9200"
+  _mongodb_user_database_uri="$(
+    apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
+  )"
   _tmp_dir="$(mktemp -d)"
   chmod 0700 "$_tmp_dir"
   sed \
     -e "s%__ELASTIC_URL__%$_elastic_url%g" \
+    -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
     "$_indexer_app_yaml_tmpl" >"$_tmp_dir/application.yaml"
   kubectl create configmap "$_indexer_configmap_name" --dry-run=client -o yaml \
     -n "$_ns" --from-file=application.yaml="$_tmp_dir/application.yaml" \
