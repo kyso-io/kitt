@@ -423,8 +423,8 @@ apps_kyso_scs_install() {
     -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
     "$_indexer_app_yaml_tmpl" >"$_tmp_dir/application.yaml"
   kubectl create configmap "$_indexer_configmap_name" --dry-run=client -o yaml \
-    -n "$_ns" --from-file=application.yaml="$_tmp_dir/application.yaml" \
-    >"$_indexer_configmap_yaml"
+    -n "$_ns" --from-file=application.yaml="$_tmp_dir/application.yaml" |
+    stdout_to_file "$_indexer_configmap_yaml"
   rm -rf "$_tmp_dir"
   # Prepare statefulset file
   _kyso_api_host="kyso-api-svc.$KYSO_API_NAMESPACE.svc.cluster.local"
