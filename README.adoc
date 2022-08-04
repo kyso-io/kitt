@@ -38,7 +38,7 @@ The tool will include support to do the following tasks:
 - Setup tunnels to run development versions of the `kyso-api` and/or `kyso-ui`
   tunnels against local or remote deployments of the `kyso` ecosystem.
 
-- Preform common mainteinance tasks on the `kyso` deployments (backup and
+- Perform common mainteinance tasks on the `kyso` deployments (backup and
   restore databases or filesystems, update components, etc.)
 
 // vim: ts=2:sw=2:et:ai:sts=2
