@@ -341,6 +341,29 @@ KYSO_SCS_WEBHOOK_PF_PORT=$KYSO_SCS_WEBHOOK_PF_PORT
 EOF
 }
 
+apps_kyso_scs_cron_runjob() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _label="cronjob=hardlink"
+  _cronjob_name="$(kubectl -n "$_ns" get -l "$_label" cronjob -o name)"
+  if [ "$_cronjob_name" ]; then
+    _job_name="${_cronjob_name#cronjob.batch/}-manual-run"
+    echo "--- Creating job '$_job_name' ---"
+    kubectl -n "$_ns" create job --from "$_cronjob_name" "$_job_name"
+    echo "--- Waiting until job '$_job_name' ends ---"
+    kubectl -n "$_ns" wait job "$_job_name" --for=condition=complete
+    echo "--- Logs for job '$_job_name' ---"
+    kubectl -n "$_ns" logs "job/$_job_name"
+    echo "--- Removing job '$_job_name' ---"
+    kubectl -n "$_ns" delete job "$_job_name"
+  else
+    echo "No cronjob found!"
+    return
+  fi
+}
+
 # To get the last job logs we have added the cronjob=hardlink label to the pods
 # and look for the last created one.
 # ---
@@ -366,36 +389,13 @@ apps_kyso_scs_cron_status() {
   _last_job_pod="$(
     kubectl get pods -n "$_ns" -l "$_label" \
       --sort-by='.metadata.creationTimestamp' \
-      -o 'jsonpath={.items[-1].metadata.name}'
-  )"
+      -o 'jsonpath={.items[-1].metadata.name}' 2>/dev/null
+  )" || true
   if [ "$_last_job_pod" ]; then
     echo "--- Logs from last pod executed ('$_last_job_pod') ---"
     kubectl -n "$_ns" logs "pod/$_last_job_pod"
   else
     echo "No last job found!"
-  fi
-}
-
-apps_kyso_scs_cron_test() {
-  _deployment="$1"
-  _cluster="$2"
-  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
-  _ns="$KYSO_SCS_NAMESPACE"
-  _label="cronjob=hardlink"
-  _cronjob_name="$(kubectl -n "$_ns" get -l "$_label" cronjob -o name)"
-  if [ "$_cronjob_name" ]; then
-    _job_name="${_cronjob_name#cronjob.batch/}-test"
-    echo "Creating job '$_job_name'"
-    kubectl -n "$_ns" create job --from "$_cronjob_name" "$_job_name"
-    echo "Waiting until it finishes"
-    kubectl -n "$_ns" wait job "$_job_name" --for=condition=complete
-    echo "Logs"
-    kubectl -n "$_ns" logs "job/$_job_name"
-    echo "Removing it"
-    kubectl -n "$_ns" delete job "$_job_name"
-  else
-    echo "No cronjob found!"
-    return
   fi
 }
 
@@ -809,11 +809,11 @@ apps_kyso_scs_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  cron-runjob)
+    apps_kyso_scs_cron_runjob"$_deployment" "$_cluster"
+    ;;
   cron-status)
     apps_kyso_scs_cron_status "$_deployment" "$_cluster"
-    ;;
-  cron-test)
-    apps_kyso_scs_cron_test "$_deployment" "$_cluster"
     ;;
   env-edit | env_edit)
     apps_kyso_scs_env_edit "$_deployment" "$_cluster"
@@ -858,7 +858,7 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  _cmnds="cron-status cron-test env-edit env-path env-show env-update install"
+  _cmnds="cron-runjob cron-status env-edit env-path env-show env-update install"
   _cmnds="$_cmnds logs reinstall remove restart rmvols status summary"
   echo "$_cmnds"
 }
