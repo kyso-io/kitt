@@ -28,6 +28,7 @@ _webhook_image="registry.kyso.io/docker/webhook-scs:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_IMAGE="$_webhook_image"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT=""
+export DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_PF_PORT=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_ACCESS_MODES="ReadWriteOnce"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE="10Gi"
@@ -89,6 +90,8 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_PV_YAML="$KYSO_SCS_KUBECTL_DIR/pv.yaml"
   export KYSO_SCS_MYSSH_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-sftp.out"
   export KYSO_SCS_MYSSH_PF_PID="$KYSO_SCS_PF_DIR/kubectl-sftp.pid"
+  export KYSO_SCS_WEBHOOK_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-webhook.out"
+  export KYSO_SCS_WEBHOOK_PF_PID="$KYSO_SCS_PF_DIR/kubectl-webhook.pid"
   export KYSO_SCS_HOST_KEYS="$KYSO_SCS_SECRETS_DIR/host_keys$SOPS_EXT.txt"
   export KYSO_SCS_USERS_TAR="$KYSO_SCS_SECRETS_DIR/user_data$SOPS_EXT.tar"
   _config_map="$KYSO_SCS_SECRETS_DIR/configmap$SOPS_EXT.yaml"
@@ -164,6 +167,12 @@ apps_kyso_scs_export_variables() {
     KYSO_SCS_MYSSH_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT"
   fi
   export KYSO_SCS_MYSSH_PF_PORT
+  if [ "$DEPLOYMENT_KYSO_SCS_WEBHOOK_PF_PORT" ]; then
+    KYSO_SCS_WEBHOOK_PF_PORT="$DEPLOYMENT_KYSO_SCS_WEBHOOK_PF_PORT"
+  else
+    KYSO_SCS_WEBHOOK_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_PF_PORT"
+  fi
+  export KYSO_SCS_WEBHOOK_PF_PORT
   __apps_kyso_scs_export_variables="1"
 }
 
@@ -256,8 +265,11 @@ apps_kyso_scs_read_variables() {
   read_bool "Kyso SCS backups use restic" "${KYSO_SCS_RESTIC_BACKUP}"
   KYSO_SCS_RESTIC_BACKUP=${READ_VALUE}
   read_value "Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random)" \
-    "${KYSO_MYSSH_PF_PORT}"
-  KYSO_MYSSH_PF_PORT=${READ_VALUE}
+    "${KYSO_SCS_MYSSH_PF_PORT}"
+  KYSO_SCS_MYSSH_PF_PORT=${READ_VALUE}
+  read_value "Fixed port for webhook pf? (i.e. 9000 or '-' for random)" \
+    "${KYSO_SCS_WEBHOOK_PF_PORT}"
+  KYSO_SCS_WEBHOOK_PF_PORT=${READ_VALUE}
 }
 
 apps_kyso_scs_print_variables() {
@@ -289,6 +301,8 @@ KYSO_SCS_STORAGE_SIZE=$KYSO_SCS_STORAGE_SIZE
 KYSO_SCS_RESTIC_BACKUP=$KYSO_SCS_RESTIC_BACKUP
 # Fixed port for mysecureshell pf (recommended is 2020, random if empty)
 KYSO_SCS_MYSSH_PF_PORT=$KYSO_SCS_MYSSH_PF_PORT
+# Fixed port for webhook pf (recommended is 9000, random if empty)
+KYSO_SCS_WEBHOOK_PF_PORT=$KYSO_SCS_WEBHOOK_PF_PORT
 # ---
 EOF
 }

@@ -398,6 +398,76 @@ pf_stop_nats() {
   pf_stop "$_name" "$_pidf" "$_outf"
 }
 
+# Webhook
+
+pf_info_webhook() {
+  _name="webhook"
+  _pidf="$KYSO_SCS_WEBHOOK_PF_PID"
+  _outf="$KYSO_SCS_WEBHOOK_PF_OUT"
+  header "$_name port-forward info"
+  if ! pf_running "$_pidf"; then
+    cat <<EOF
+
+The '$_name' port-forward for the '$DEPLOYMENT_NAME' deployment is not running.
+
+EOF
+    return 0
+  fi
+  host_port="$(pf_host_port "$_pidf" "$_outf")"
+  cat <<EOF
+
+Use the URL 'http://$host_port/hooks/{id}' to connect to webhook locally.
+
+If you are working from a remote host redirect the ports using ssh:
+
+  LOCAL_IP_AND_PORT="127.0.0.1:9000"
+  ssh $(hostname) -L \$LOCAL_IP_AND_PORT:$host_port sleep infinity
+
+While the ssh session is running you can connect to the database using the URL
+'http://\$LOCAL_IP_AND_PORT'
+
+EOF
+}
+
+pf_start_webhook() {
+  _name="webhook"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _svc="svc/kyso-scs-svc"
+  _addr="$DEPLOYMENT_PF_ADDR"
+  _pf_port="$KYSO_SCS_WEBHOOK_PF_PORT"
+  _svc_port="9000"
+  _pidf="$KYSO_SCS_WEBHOOK_PF_PID"
+  _outf="$KYSO_SCS_WEBHOOK_PF_OUT"
+  if ! pf_running "$_pidf"; then
+    _pf_dir="$(dirname "$_pidf")"
+    if [ -z "$_pidf" ] || [ ! -d "$_pf_dir" ]; then
+      echo "Directory '$_pf_dir' not found!"
+      echo "Have you installed '$_name'?"
+      exit 1
+    fi
+    echo "Starting $_name port-forward"
+    nohup kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
+      "$_pf_port:$_svc_port" >"$_outf" 2>/dev/null &
+    echo "$!" >"$_pidf"
+    sleep 1
+  fi
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_status_webhook() {
+  _name="webhook"
+  _pidf="$KYSO_SCS_WEBHOOK_PF_PID"
+  _outf="$KYSO_SCS_WEBHOOK_PF_OUT"
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_stop_webhook() {
+  _name="webhook"
+  _pidf="$KYSO_SCS_WEBHOOK_PF_PID"
+  _outf="$KYSO_SCS_WEBHOOK_PF_OUT"
+  pf_stop "$_name" "$_pidf" "$_outf"
+}
+
 # Main commands function
 
 pf_command() {
@@ -417,6 +487,7 @@ pf_command() {
       pf_info_mongodb "$_deployment" "$_cluster"
       pf_info_myssh "$_deployment" "$_cluster"
       pf_info_nats "$_deployment" "$_cluster"
+      pf_info_webhook "$_deployment" "$_cluster"
       for _pidf in "$ELASTICSEARCH_PF_PID" "$MONGODB_PF_PID" \
         "$KYSO_SCS_MYSSH_PF_PID" "$NATS_PF_PID"; do
         if pf_running "$_pidf"; then
@@ -440,6 +511,10 @@ pf_command() {
       pf_info_nats "$_deployment" "$_cluster"
       if pf_running "$NATS_PF_PID"; then pf_note; fi
       ;;
+    webhook)
+      pf_info_webhook "$_deployment" "$_cluster"
+      if pf_running "$NATS_PF_PID"; then pf_note; fi
+      ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -450,11 +525,13 @@ pf_command() {
       pf_start_mongodb "$_deployment" "$_cluster"
       pf_start_myssh "$_deployment" "$_cluster"
       pf_start_nats "$_deployment" "$_cluster"
+      pf_start_webhook "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_start_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_start_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_start_myssh "$_deployment" "$_cluster" ;;
     nats) pf_start_nats "$_deployment" "$_cluster" ;;
+    webhook) pf_start_webhook "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -465,11 +542,13 @@ pf_command() {
       pf_stop_mongodb "$_deployment" "$_cluster"
       pf_stop_myssh "$_deployment" "$_cluster"
       pf_stop_nats "$_deployment" "$_cluster"
+      pf_stop_webhook "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_stop_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_stop_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_stop_myssh "$_deployment" "$_cluster" ;;
     nats) pf_stop_nats "$_deployment" "$_cluster" ;;
+    webhook) pf_stop_webhook "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -480,11 +559,13 @@ pf_command() {
       pf_status_mongodb "$_deployment" "$_cluster"
       pf_status_myssh "$_deployment" "$_cluster"
       pf_status_nats "$_deployment" "$_cluster"
+      pf_status_webhook "$_deployment" "$_cluster"
       ;;
     elastic|elasticsearch) pf_status_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_status_mongodb "$_deployment" "$_cluster" ;;
     myssh|sftp) pf_status_myssh "$_deployment" "$_cluster" ;;
     nats) pf_status_nats "$_deployment" "$_cluster" ;;
+    webhook) pf_status_webhook "$_deployment" "$_cluster" ;;
     *) echo "Unknown service '$_arg'"; exit 1;;
     esac
     ;;
@@ -512,6 +593,7 @@ elastic|elastisearch: operate on the elasticsearch web port
 mongodb: operate on the mongodb database port
 myssh|sftp: operate on the the kyso-scs sftp port
 nats: operate on the nats client port
+webhook: operate on the webhook http server port
 EOF
 }
 
