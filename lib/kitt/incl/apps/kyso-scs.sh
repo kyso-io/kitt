@@ -33,6 +33,10 @@ export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_ACCESS_MODES="ReadWriteOnce"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_SIZE="10Gi"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_RESTIC_BACKUP="false"
+_schedule="0 0 * * *"
+export DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE="$_schedule"
+_alpine_image="registry.kyso.io/docker/alpine:latest"
+export DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE="$_alpine_image"
 
 # Fixed values
 export KYSO_SCS_USER="scs"
@@ -80,6 +84,7 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_INGRESS_TMPL="$KYSO_SCS_TMPL_DIR/ingress.yaml"
   export \
     KYSO_SCS_INDEXER_APP_YAML_TMPL="$KYSO_SCS_TMPL_DIR/indexer-application.yaml"
+  export KYSO_SCS_CRONJOBS_TMPL="$KYSO_SCS_TMPL_DIR/cronjobs.yaml"
   # Files
   export KYSO_SCS_DEPLOY_YAML="$KYSO_SCS_KUBECTL_DIR/deploy.yaml"
   export KYSO_SCS_STATEFULSET_YAML="$KYSO_SCS_KUBECTL_DIR/statefulset.yaml"
@@ -96,6 +101,7 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_USERS_TAR="$KYSO_SCS_SECRETS_DIR/user_data$SOPS_EXT.tar"
   _config_map="$KYSO_SCS_SECRETS_DIR/configmap$SOPS_EXT.yaml"
   export KYSO_SCS_INDEXER_CONFIGMAP_YAML="$_config_map"
+  export KYSO_SCS_CRONJOBS_YAML="$KYSO_SCS_KUBECTL_DIR/cronjobs.yaml"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_SCS_MYSSH_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_IMAGE" ]; then
@@ -161,6 +167,24 @@ apps_kyso_scs_export_variables() {
     KYSO_SCS_RESTIC_BACKUP="$DEPLOYMENT_DEFAULT_KYSO_SCS_RESTIC_BACKUP"
   fi
   export KYSO_SCS_RESTIC_BACKUP
+  if [ -z "$KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE" ]; then
+    if [ "$DEPLOYMENT_KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE" ]; then
+      _cronjob_schedule="$DEPLOYMENT_KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE"
+    else
+      _cronjob_schedule="$DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE"
+    fi
+    KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE="$_cronjob_schedule"
+  fi
+  export KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE
+  if [ -z "$KYSO_SCS_HARDLINK_CRONJOB_IMAGE" ]; then
+    if [ "$DEPLOYMENT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE" ]; then
+      _cronjob_image="$DEPLOYMENT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE"
+    else
+      _cronjob_image="$DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE"
+    fi
+    KYSO_SCS_HARDLINK_CRONJOB_IMAGE="$_cronjob_image"
+  fi
+  export KYSO_SCS_HARDLINK_CRONJOB_IMAGE
   if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_PF_PORT" ]; then
     KYSO_SCS_MYSSH_PF_PORT="$DEPLOYMENT_KYSO_SCS_MYSSH_PF_PORT"
   else
@@ -264,6 +288,12 @@ apps_kyso_scs_read_variables() {
   KYSO_SCS_STORAGE_SIZE=${READ_VALUE}
   read_bool "Kyso SCS backups use restic" "${KYSO_SCS_RESTIC_BACKUP}"
   KYSO_SCS_RESTIC_BACKUP=${READ_VALUE}
+  read_value "Kyso SCS Hardlink Cronjob Schedule" \
+    "${KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE}"
+  KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE="${READ_VALUE}"
+  read_value "Kyso SCS Hardlink Cronjob Image URI" \
+    "${KYSO_SCS_HARDLINK_CRONJOB_IMAGE}"
+  KYSO_SCS_HARDLINK_CRONJOB_IMAGE="${READ_VALUE}"
   read_value "Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random)" \
     "${KYSO_SCS_MYSSH_PF_PORT}"
   KYSO_SCS_MYSSH_PF_PORT=${READ_VALUE}
@@ -299,6 +329,10 @@ KYSO_SCS_STORAGE_CLASS=$KYSO_SCS_STORAGE_CLASS
 KYSO_SCS_STORAGE_SIZE=$KYSO_SCS_STORAGE_SIZE
 # Kyso SCS backups use restic (adds annotations to use it or not)
 KYSO_SCS_RESTIC_BACKUP=$KYSO_SCS_RESTIC_BACKUP
+# Kyso SCS Hardlink Cronjob Schedule
+KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE=$KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE
+# Kyso SCS Hardlink Cronjob Image URI
+KYSO_SCS_HARDLINK_CRONJOB_IMAGE=$KYSO_SCS_HARDLINK_CRONJOB_IMAGE
 # Fixed port for mysecureshell pf (recommended is 2020, random if empty)
 KYSO_SCS_MYSSH_PF_PORT=$KYSO_SCS_MYSSH_PF_PORT
 # Fixed port for webhook pf (recommended is 9000, random if empty)
@@ -307,13 +341,48 @@ KYSO_SCS_WEBHOOK_PF_PORT=$KYSO_SCS_WEBHOOK_PF_PORT
 EOF
 }
 
-apps_kyso_scs_logs() {
+# To get the last job logs we have added the cronjob=hardlink label to the pods
+# and look for the last created one.
+# ---
+# Originally seen in this blog post
+# https://medium.com/@pranay.shah/how-to-get-logs-from-cron-job-in-kubernetes-last-completed-job-7957327c7e76
+# ---
+apps_kyso_scs_cron() {
   _deployment="$1"
   _cluster="$2"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_SCS_NAMESPACE"
+  _label="cronjob=hardlink"
+  _cronjob_name="$(kubectl -n "$_ns" get -l "$_label" cronjob -o name)"
+  if [ "$_cronjob_name" ]; then
+    echo "--- Status for CronJob ('${_cronjob_name#cronjob.batch/}') ---"
+    kubectl -n "$_ns" get "$_cronjob_name" -o 'jsonpath={.status}' |
+      jq -c "({lastScheduleTime},{lastSuccessfulTime})" |
+      sed -e 's/"//g;s/{//;s/}//;s/:/: /;s/^/- /'
+  else
+    echo "No cronjob found!"
+    return
+  fi
+  _last_job_pod="$(
+    kubectl get pods -n "$_ns" -l "$_label" \
+      --sort-by='.metadata.creationTimestamp' \
+      -o 'jsonpath={.items[-1].metadata.name}'
+  )"
+  if [ "$_last_job_pod" ]; then
+    echo "--- Logs from last pod executed ('$_last_job_pod') ---"
+    kubectl -n "$_ns" logs "pod/$_last_job_pod"
+  else
+    echo "No last job found!"
+  fi
+}
+
+apps_kyso_scs_logs() {
+  _deployment="$1"
+  _cluster="$2"
+  _container="$3"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_SCS_NAMESPACE"
   _label="app=kyso-scs"
-  _container="kyso-indexer"
   kubectl -n "$_ns" logs -l "$_label" -c "$_container" -f
 }
 
@@ -363,6 +432,8 @@ apps_kyso_scs_install() {
   _indexer_app_yaml_tmpl="$KYSO_SCS_INDEXER_APP_YAML_TMPL"
   _indexer_configmap_name="kyso-indexer-config"
   _indexer_configmap_yaml="$KYSO_SCS_INDEXER_CONFIGMAP_YAML"
+  _cronjobs_tmpl="$KYSO_SCS_CRONJOBS_TMPL"
+  _cronjobs_yaml="$KYSO_SCS_CRONJOBS_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$KYSO_SCS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -475,10 +546,20 @@ apps_kyso_scs_install() {
     -e "s%__AUTH_REQUEST_URI__%$_auth_request_uri%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \
     "$_statefulset_tmpl" >"$_statefulset_yaml"
+  # Create cronjob file
+  _hardlink_url="http://kyso-scs-svc.$_ns.svc.cluster.local:9000/hooks/hardlink"
+  sed \
+    -e "s%__APP__%$_app%" \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__HARDLINK_CRONJOB_SCHEDULE__%$KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE%" \
+    -e "s%__HARDLINK_CRONJOB_IMAGE__%$KYSO_SCS_HARDLINK_CRONJOB_IMAGE%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
+    -e "s%__HARDLINK_WEBHOOK_URL__%$_hardlink_url%" \
+    "$_cronjobs_tmpl" >"$_cronjobs_yaml"
   # Apply YAML files
   for _yaml in "$_secret_yaml" "$_pv_yaml" "$_pvc_yaml" \
     "$_indexer_configmap_yaml" "$_svc_yaml" "$_ingress_yaml" \
-    $_cert_yamls; do
+    "$_cronjobs_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
   # Replace deployment with stateful set ... when we delete the deployment the
@@ -539,6 +620,7 @@ apps_kyso_scs_remove() {
   _statefulset_yaml="$KYSO_SCS_STATEFULSET_YAML"
   _ingress_yaml="$KYSO_SCS_INGRESS_YAML"
   _indexer_configmap_yaml="$KYSO_SCS_INDEXER_CONFIGMAP_YAML"
+  _cronjobs_yaml="$KYSO_SCS_CRONJOBS_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$KYSO_SCS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -547,9 +629,9 @@ apps_kyso_scs_remove() {
   apps_kyso_scs_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_secret_yaml" "$_statefulset_yaml" "$_deploy_yaml" \
-      "$_indexer_configmap_yaml" "$_svc_yaml" "$_pvc_yaml" "$_pv_yaml" \
-      "$_ingress_yaml" $_cert_yamls; do
+    for _yaml in "$_cronjobs_yaml" "$_secret_yaml" "$_statefulset_yaml" \
+      "$_deploy_yaml" "$_indexer_configmap_yaml" "$_svc_yaml" "$_pvc_yaml" \
+      "$_ingress_yaml" $_cert_yamls "$_pv_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -603,7 +685,7 @@ apps_kyso_scs_status() {
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   if find_namespace "$_ns"; then
-    kubectl get all,endpoints,ingress,secrets -n "$_ns"
+    kubectl get all,cronjobs,endpoints,ingress,secrets -n "$_ns"
   else
     echo "Namespace '$_ns' for '$_app' not found!"
   fi
@@ -615,7 +697,17 @@ apps_kyso_scs_summary() {
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_SCS_NAMESPACE"
   _app="kyso-scs"
+  echo "--- StatefulSet ---"
   statefulset_summary "$_ns" "$_app"
+  echo "--- CronJobs ---"
+  _cronjobs="$(kubectl -n "$_ns" get cronjob.batch -o name)"
+  if [ "$_cronjobs" ]; then
+    for _cj in $_cronjobs; do
+      echo "- ${_cj#cronjob.batch/}"
+    done
+  else
+    echo "No cronjobs found on namespace '$_ns'!"
+  fi
 }
 
 apps_kyso_scs_env_edit() {
@@ -694,6 +786,9 @@ apps_kyso_scs_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
+  cron)
+    apps_kyso_scs_cron "$_deployment" "$_cluster"
+    ;;
   env-edit | env_edit)
     apps_kyso_scs_env_edit "$_deployment" "$_cluster"
     ;;
@@ -706,7 +801,21 @@ apps_kyso_scs_command() {
   env-update | env_update)
     apps_kyso_scs_env_update "$_deployment" "$_cluster"
     ;;
-  logs) apps_kyso_scs_logs "$_deployment" "$_cluster" ;;
+  logs)
+    case "$SCS_CONTAINER" in
+    indexer | kyso-indexer)
+      apps_kyso_scs_logs "$_deployment" "$_cluster" "kyso-indexer"
+      ;;
+    myssh | mysecureshell)
+      apps_kyso_scs_logs "$_deployment" "$_cluster" "mysecureshell"
+      ;;
+    nginx) apps_kyso_scs_logs "$_deployment" "$_cluster" "nginx" ;;
+    webhook) apps_kyso_scs_logs "$_deployment" "$_cluster" "webhook" ;;
+    *)
+      echo "Export SCS_CONTAINER with value {indexer|myshh|nginx|webhook}"
+      ;;
+    esac
+    ;;
   install) apps_kyso_scs_install "$_deployment" "$_cluster" ;;
   reinstall) apps_kyso_scs_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
@@ -723,8 +832,8 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart rmvols status summary"
+  _cmnds="cron env-edit env-path env-show env-update install logs reinstall"
+  _cmnds="$_cmnds remove restart rmvols status summary"
   echo "$_cmnds"
 }
 
