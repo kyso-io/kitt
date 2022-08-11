@@ -347,7 +347,7 @@ EOF
 # Originally seen in this blog post
 # https://medium.com/@pranay.shah/how-to-get-logs-from-cron-job-in-kubernetes-last-completed-job-7957327c7e76
 # ---
-apps_kyso_scs_cron() {
+apps_kyso_scs_cron_status() {
   _deployment="$1"
   _cluster="$2"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
@@ -373,6 +373,29 @@ apps_kyso_scs_cron() {
     kubectl -n "$_ns" logs "pod/$_last_job_pod"
   else
     echo "No last job found!"
+  fi
+}
+
+apps_kyso_scs_cron_test() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _label="cronjob=hardlink"
+  _cronjob_name="$(kubectl -n "$_ns" get -l "$_label" cronjob -o name)"
+  if [ "$_cronjob_name" ]; then
+    _job_name="${_cronjob_name#cronjob.batch/}-test"
+    echo "Creating job '$_job_name'"
+    kubectl -n "$_ns" create job --from "$_cronjob_name" "$_job_name"
+    echo "Waiting until it finishes"
+    kubectl -n "$_ns" wait job "$_job_name" --for=condition=complete
+    echo "Logs"
+    kubectl -n "$_ns" logs "job/$_job_name"
+    echo "Removing it"
+    kubectl -n "$_ns" delete job "$_job_name"
+  else
+    echo "No cronjob found!"
+    return
   fi
 }
 
@@ -786,8 +809,11 @@ apps_kyso_scs_command() {
   _deployment="$2"
   _cluster="$3"
   case "$_command" in
-  cron)
-    apps_kyso_scs_cron "$_deployment" "$_cluster"
+  cron-status)
+    apps_kyso_scs_cron_status "$_deployment" "$_cluster"
+    ;;
+  cron-test)
+    apps_kyso_scs_cron_test "$_deployment" "$_cluster"
     ;;
   env-edit | env_edit)
     apps_kyso_scs_env_edit "$_deployment" "$_cluster"
@@ -832,8 +858,8 @@ apps_kyso_scs_command() {
 }
 
 apps_kyso_scs_command_list() {
-  _cmnds="cron env-edit env-path env-show env-update install logs reinstall"
-  _cmnds="$_cmnds remove restart rmvols status summary"
+  _cmnds="cron-status cron-test env-edit env-path env-show env-update install"
+  _cmnds="$_cmnds logs reinstall remove restart rmvols status summary"
   echo "$_cmnds"
 }
 
