@@ -353,7 +353,8 @@ apps_kyso_scs_cron_runjob() {
     echo "--- Creating job '$_job_name' ---"
     kubectl -n "$_ns" create job --from "$_cronjob_name" "$_job_name"
     echo "--- Waiting until job '$_job_name' ends ---"
-    kubectl -n "$_ns" wait job "$_job_name" --for=condition=complete
+    kubectl -n "$_ns" wait job "$_job_name" --for=condition=complete \
+      --timeout=300s
     echo "--- Logs for job '$_job_name' ---"
     kubectl -n "$_ns" logs "job/$_job_name"
     echo "--- Removing job '$_job_name' ---"
