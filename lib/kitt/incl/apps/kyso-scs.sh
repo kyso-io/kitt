@@ -24,6 +24,8 @@ export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_IMAGE="$_myssh_image"
 _nginx_image="registry.kyso.io/docker/nginx-scs:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_NGINX_IMAGE="$_nginx_image"
 export DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE=""
+_webhook_image="registry.kyso.io/docker/webhook-scs:latest"
+export DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_IMAGE="$_webhook_image"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_PF_PORT=""
 export DEPLOYMENT_DEFAULT_KYSO_SCS_STORAGE_ACCESS_MODES="ReadWriteOnce"
@@ -116,6 +118,14 @@ apps_kyso_scs_export_variables() {
     fi
   fi
   export KYSO_INDEXER_IMAGE
+  if [ -z "$KYSO_SCS_WEBHOOK_IMAGE" ]; then
+    if [ "$DEPLOYMENT_KYSO_SCS_WEBHOOK_IMAGE" ]; then
+      KYSO_SCS_WEBHOOK_IMAGE="$DEPLOYMENT_KYSO_SCS_WEBHOOK_IMAGE"
+    else
+      KYSO_SCS_WEBHOOK_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_IMAGE"
+    fi
+  fi
+  export KYSO_SCS_WEBHOOK_IMAGE
   if [ "$DEPLOYMENT_KYSO_SCS_REPLICAS" ]; then
     KYSO_SCS_REPLICAS="$DEPLOYMENT_KYSO_SCS_REPLICAS"
   else
@@ -231,6 +241,8 @@ apps_kyso_scs_read_variables() {
     "Indexer Image URI (i.e. '$_ex_img' or export KYSO_INDEXER_IMAGE env var)" \
     "${KYSO_INDEXER_IMAGE}"
   KYSO_INDEXER_IMAGE=${READ_VALUE}
+  read_value "Webhook Image URI" "${KYSO_SCS_WEBHOOK_IMAGE}"
+  KYSO_SCS_WEBHOOK_IMAGE=${READ_VALUE}
   read_value "SCS Replicas" "${KYSO_SCS_REPLICAS}"
   KYSO_SCS_REPLICAS=${READ_VALUE}
   read_value "Kyso SCS Access Modes ('ReadWriteOnce', 'ReadWriteMany' if efs)" \
@@ -263,6 +275,8 @@ KYSO_SCS_NGINX_IMAGE=$KYSO_SCS_NGINX_IMAGE
 # If left empty the KYSO_INDEXER_IMAGE environment variable has to be set each
 # time the kyso-scs service is installed
 KYSO_INDEXER_IMAGE=$KYSO_INDEXER_IMAGE
+# Kyso SCS Webhook Image URI
+KYSO_SCS_WEBHOOK_IMAGE=$KYSO_SCS_WEBHOOK_IMAGE
 # Number of pods to run in parallel (for more than 1 the volumes must be EFS)
 KYSO_SCS_REPLICAS=$KYSO_SCS_REPLICAS
 # Kyso SCS Access Modes ('ReadWriteOnce', 'ReadWriteMany' if efs)
@@ -441,6 +455,7 @@ apps_kyso_scs_install() {
     -e "s%__SCS_MYSSH_IMAGE__%$KYSO_SCS_MYSSH_IMAGE%" \
     -e "s%__SCS_NGINX_IMAGE__%$KYSO_SCS_NGINX_IMAGE%" \
     -e "s%__INDEXER_IMAGE__%$KYSO_INDEXER_IMAGE%" \
+    -e "s%__SCS_WEBHOOK_IMAGE__%$KYSO_SCS_WEBHOOK_IMAGE%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     -e "s%__MYSSH_SECRET__%$KYSO_SCS_SECRETS_NAME%" \
     -e "s%__AUTH_REQUEST_URI__%$_auth_request_uri%" \
@@ -474,15 +489,20 @@ apps_kyso_scs_reinstall() {
     _cimages="$(statefulset_container_images "$_ns" "$_app")"
     _indexer_cname="kyso-indexer"
     KYSO_INDEXER_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_indexer_cname //p")"
-    _myssh_cname="myecureshell"
+    _myssh_cname="mysecureshell"
     KYSO_SCS_MYSSH_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_myssh_cname //p")"
     _nginx_cname="nginx"
     KYSO_SCS_NGINX_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_nginx_cname //p")"
+    _webhook_cname="webhook"
+    KYSO_SCS_WEBHOOK_IMAGE="$(
+      echo "$_cimages" | sed -ne "s/^$_webhook_cname //p"
+    )"
     if [ "$KYSO_INDEXER_IMAGE" ] && [ "$KYSO_SCS_MYSSH_IMAGE" ] &&
-      [ "$KYSO_SCS_NGINX_IMAGE" ]; then
+      [ "$KYSO_SCS_NGINX_IMAGE" ] && [ "$KYSO_SCS_WEBHOOK_IMAGE" ]; then
       export KYSO_INDEXER_IMAGE
       export KYSO_SCS_MYSSH_IMAGE
       export KYSO_SCS_NGINX_IMAGE
+      export KYSO_SCS_WEBHOOK_IMAGE
       apps_kyso_scs_install "$_deployment" "$_cluster"
     else
       echo "Images for '$_app' on '$_ns' missing!"

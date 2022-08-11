@@ -72,6 +72,18 @@ spec:
           readOnly: true
         - mountPath: /sftp
           name: __APP__-datadir
+      - name: webhook
+        image: __SCS_WEBHOOK_IMAGE__
+        imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        ports:
+        - containerPort: 9000
+          name: webhook-http
+        env:
+        - name: WEBHOOK_WORKDIR
+          value: /sftp/data/scs
+        volumeMounts:
+        - mountPath: /sftp
+          name: __APP__-datadir
       volumes:
       - name: __APP__-file-secrets
         secret:
