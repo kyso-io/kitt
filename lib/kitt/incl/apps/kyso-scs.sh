@@ -391,8 +391,8 @@ apps_kyso_scs_cron_status() {
       --sort-by='.metadata.creationTimestamp' \
       -o 'jsonpath={.items[-1].metadata.name}' 2>/dev/null
   )" || true
+  echo "--- Logs from last pod executed ('$_last_job_pod') ---"
   if [ "$_last_job_pod" ]; then
-    echo "--- Logs from last pod executed ('$_last_job_pod') ---"
     kubectl -n "$_ns" logs "pod/$_last_job_pod"
   else
     echo "No last job found!"
