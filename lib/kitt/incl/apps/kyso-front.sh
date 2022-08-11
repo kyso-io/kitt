@@ -21,6 +21,7 @@ INCL_APPS_KYSO_FRONT_SH="1"
 # Defaults
 export DEPLOYMENT_DEFAULT_KYSO_FRONT_ENDPOINT=""
 export DEPLOYMENT_DEFAULT_KYSO_FRONT_IMAGE=""
+export DEPLOYMENT_DEFAULT_KYSO_FRONT_PATH_PREFIX="/"
 export DEPLOYMENT_DEFAULT_KYSO_FRONT_REPLICAS="1"
 
 # Fixed values
@@ -80,6 +81,14 @@ apps_kyso_front_export_variables() {
     fi
   fi
   export KYSO_FRONT_IMAGE
+  if [ -z "$KYSO_FRONT_PATH_PREFIX" ]; then
+    if [ "$DEPLOYMENT_KYSO_FRONT_PATH_PREFIX" ]; then
+      KYSO_FRONT_PATH_PREFIX="$DEPLOYMENT_KYSO_FRONT_PATH_PREFIX"
+    else
+      KYSO_FRONT_PATH_PREFIX="$DEPLOYMENT_DEFAULT_KYSO_FRONT_PATH_PREFIX"
+    fi
+  fi
+  export KYSO_FRONT_PATH_PREFIX
   if [ "$DEPLOYMENT_KYSO_FRONT_REPLICAS" ]; then
     KYSO_FRONT_REPLICAS="$DEPLOYMENT_KYSO_FRONT_REPLICAS"
   else
@@ -117,6 +126,8 @@ apps_kyso_front_read_variables() {
     "Kyso Front Image URI (i.e. '$_ex_img' or export KYSO_FRONT_IMAGE env var)" \
     "${KYSO_FRONT_IMAGE}"
   KYSO_FRONT_IMAGE=${READ_VALUE}
+  read_value "Kyso PATH Prefix" "${KYSO_FRONT_PATH_PREFIX}"
+  KYSO_FRONT_PATH_PREFIX=${READ_VALUE}
   read_value "Kyso Front Replicas" "${KYSO_FRONT_REPLICAS}"
   KYSO_FRONT_REPLICAS=${READ_VALUE}
 }
@@ -137,6 +148,8 @@ KYSO_FRONT_ENDPOINT=$KYSO_FRONT_ENDPOINT
 # If left empty the KYSO_FRONT_IMAGE environment variable has to be set each time
 # the kyso-front service is installed
 KYSO_FRONT_IMAGE=$KYSO_FRONT_IMAGE
+# Kyso Front PATH Prefix
+KYSO_FRONT_PATH_PREFIX=$KYSO_FRONT_PATH_PREFIX
 # Number of pods to run in parallel
 KYSO_FRONT_REPLICAS=$KYSO_FRONT_REPLICAS
 # ---
@@ -236,6 +249,7 @@ apps_kyso_front_install() {
   # Create ingress definition
   create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
     "" ""
+  sed -i -e "s%__PATH_PREFIX__%$KYSO_FRONT_PATH_PREFIX%" "$_ingress_yaml"
   # Prepare service_yaml
   sed \
     -e "s%__APP__%$_app%" \
