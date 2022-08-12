@@ -811,7 +811,7 @@ apps_kyso_scs_command() {
   _cluster="$3"
   case "$_command" in
   cron-runjob)
-    apps_kyso_scs_cron_runjob"$_deployment" "$_cluster"
+    apps_kyso_scs_cron_runjob "$_deployment" "$_cluster"
     ;;
   cron-status)
     apps_kyso_scs_cron_status "$_deployment" "$_cluster"
