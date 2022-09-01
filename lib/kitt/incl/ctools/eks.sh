@@ -147,12 +147,12 @@ ctool_eks_read_variables() {
   read_value "Cluster EKS Node Group 1 Availability Zone" \
     "${CLUSTER_EKS_MNG1_AZ}"
   CLUSTER_EKS_MNG1_AZ=${READ_VALUE}
-  read_value "Cluster EKS Node Group 2" "${CLUSTER_EKS_MNG1}"
+  read_value "Cluster EKS Node Group 2" "${CLUSTER_EKS_MNG2}"
   CLUSTER_EKS_MNG2=${READ_VALUE}
   read_value "Cluster EKS Node Group 2 Availability Zone" \
     "${CLUSTER_EKS_MNG2_AZ}"
   CLUSTER_EKS_MNG2_AZ=${READ_VALUE}
-  read_value "Cluster EKS Node Group 3" "${CLUSTER_EKS_MNG1}"
+  read_value "Cluster EKS Node Group 3" "${CLUSTER_EKS_MNG3}"
   CLUSTER_EKS_MNG3=${READ_VALUE}
   read_value "Cluster EKS Node Group 3 Availability Zone" \
     "${CLUSTER_EKS_MNG3_AZ}"
