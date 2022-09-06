@@ -83,6 +83,8 @@ spec:
         env:
         - name: WEBHOOK_WORKDIR
           value: /sftp/data/scs
+        - name: KYSO_URL
+          value: "__KYSO_URL__"
         volumeMounts:
         - name: devfuse
           mountPath: /dev/fuse

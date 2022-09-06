@@ -568,6 +568,7 @@ apps_kyso_scs_install() {
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     -e "s%__MYSSH_SECRET__%$KYSO_SCS_SECRETS_NAME%" \
     -e "s%__AUTH_REQUEST_URI__%$_auth_request_uri%" \
+    -e "s%__KYSO_URL__%http://$_kyso_api_host%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \
     "$_statefulset_tmpl" >"$_statefulset_yaml"
   # Create cronjob file
