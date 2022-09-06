@@ -75,6 +75,8 @@ spec:
       - name: webhook
         image: __SCS_WEBHOOK_IMAGE__
         imagePullPolicy: "__IMAGE_PULL_POLICY__"
+        securityContext:
+          privileged: true
         ports:
         - containerPort: 9000
           name: webhook-http
@@ -82,9 +84,14 @@ spec:
         - name: WEBHOOK_WORKDIR
           value: /sftp/data/scs
         volumeMounts:
+        - name: devfuse
+          mountPath: /dev/fuse
         - mountPath: /sftp
           name: __APP__-datadir
       volumes:
+      - name: devfuse
+        hostPath:
+          path: /dev/fuse
       - name: __APP__-file-secrets
         secret:
           secretName: __MYSSH_SECRET__
