@@ -214,6 +214,9 @@ apps_kyso_update_api_settings() {
   _static_content_prefix="/scs"
   # NATS Vars
   _nats_url="nats://$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local:$NATS_PORT"
+  # WEBHOOK Vars
+  _webhook_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  _webhook_url="http://$_webhook_host:9000"
   # Replace values
   sed \
     -e "s%^\(BASE_URL\),.*%\1,$_base_url%" \
@@ -226,6 +229,7 @@ apps_kyso_update_api_settings() {
     -e "s%^\(STATIC_CONTENT_PREFIX\),.*$%\1,$_static_content_prefix%" \
     -e "s%^\(KYSO_INDEXER_API_BASE_URL\),.*$%\1,$_kyso_indexer_api_base_url%" \
     -e "s%^\(KYSO_NATS_URL\),.*$%\1,$_nats_url%" \
+    -e "s%^\(KYSO_WEBHOOK_URL\),.*$%\1,$_webhook_url%" \
     "$_settings_csv" >"$_settings_new"
   DIFF_OUT="$(diff -U 0 "$_settings_csv" "$_settings_new")" || true
   if [ "$DIFF_OUT" ]; then
