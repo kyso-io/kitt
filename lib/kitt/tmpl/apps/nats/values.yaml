@@ -1,3 +1,5 @@
+imagePullSecrets:
+  - name: "__PULL_SECRETS_NAME__"
 nats:
   image: __NATS_IMAGE__
   jetstream:
@@ -9,20 +11,18 @@ nats:
       enabled: true
       size: "__STORAGE_SIZE__"
       storageClassName: "__STORAGE_CLASS__"
-  imagePullSecrets:
-  - "__PULL_SECRETS_NAME__"
 natsbox:
   image: __NATSBOX_IMAGE__
   imagePullSecrets:
-  - "__PULL_SECRETS_NAME__"
+    - name: "__PULL_SECRETS_NAME__"
 reloader:
   image: __NATS_RELOADER_IMAGE__
   imagePullSecrets:
-  - "__PULL_SECRETS_NAME__"
+    - name: "__PULL_SECRETS_NAME__"
 exporter:
   image: __NATS_EXPORTER_IMAGE__
   imagePullSecrets:
-  - "__PULL_SECRETS_NAME__"
+    - name: "__PULL_SECRETS_NAME__"
 cluster:
   enabled: __CLUSTER_ENABLED__
   name: "__RELEASE_NAME__"
