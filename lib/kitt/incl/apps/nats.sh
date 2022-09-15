@@ -255,6 +255,7 @@ apps_nats_install() {
     -e "s%__RELEASE_NAME__%$_release%" \
     -e "s%__CLUSTER_ENABLED__%$_cluster_enabled%" \
     -e "s%__REPLICAS__%$NATS_REPLICAS%" \
+    -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
     -e "$_storage_class_sed" \
     "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Check helm repo
