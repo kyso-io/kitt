@@ -20,6 +20,13 @@ INCL_TOOLS_SH="1"
 BASH_COMPLETION="/etc/bash_completion.d"
 ZSH_COMPLETIONS="/usr/share/zsh/vendor-completions"
 
+# Versions
+AWS_IAM_AUTHENTICATOR_VERSION="1.21.2"
+# GET_HELM_URL ... set it to get the latest helm version
+# - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+HELM_VERSION="3.8.2"
+KUBECTL_VERSION="1.22.13"
+
 # --------
 # Includes
 # --------
@@ -92,6 +99,23 @@ tools_check_aws() {
   fi
 }
 
+tools_check_aws_iam_authenticator() {
+  app="aws-iam-authenticator"
+  if tools_install_app "$app"; then
+    tmp_dir="$(mktemp -d)"
+      os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+      case "$(uname -m)" in
+      x86_64) arch="amd64" ;;
+      esac
+      url="https://s3.us-west-2.amazonaws.com/amazon-eks"
+      url="$url/$AWS_IAM_AUTHENTICATOR_VERSION/2021-07-05/bin/$os/$arch/$app"
+      curl -fsSL -o "$tmp_dir/$app" "$url"
+      sudo install "$tmp_dir/$app" /usr/local/bin
+    rm -rf "$tmp_dir"
+    $app version
+  fi
+}
+
 tools_check_docker() {
   if tools_install_app "docker"; then
     tmp_dir="$(mktemp -d)"
@@ -128,9 +152,19 @@ tools_check_eksctl() {
 tools_check_helm() {
   if tools_install_app "helm"; then
     tmp_dir="$(mktemp -d)"
-    curl -fsSL -o "$tmp_dir/get_helm.sh" \
-      https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-    bash "$tmp_dir/get_helm.sh"
+    if [ "$GET_HELM" ]; then
+      curl -fsSL -o "$tmp_dir/get_helm.sh" "$GET_HELM"
+      bash "$tmp_dir/get_helm.sh"
+    else
+      os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+      case "$(uname -m)" in
+      x86_64) arch="amd64" ;;
+      esac
+      url="https://get.helm.sh/helm-v$HELM_VERSION-$os-$arch.tar.gz"
+      curl -fsSL -o "$tmp_dir/helm.tar.gz" "$url"
+      tar xvf "$tmp_dir/helm.tar.gz" -C "$tmp_dir" "$os-$arch/helm"
+      sudo install "$tmp_dir/$os-$arch/helm" /usr/local/bin
+    fi
     rm -rf "$tmp_dir"
     helm version
     if [ -d "$BASH_COMPLETION" ]; then
@@ -152,12 +186,12 @@ tools_check_jq() {
   if tools_install_app "jq"; then
     repo_path="stedolan/jq"
     case "$(uname)" in
-      Linux) os_arch="linux64" ;;
-      Darwin) os_arch="osx-amd64" ;;
+    Linux) os_arch="linux64" ;;
+    Darwin) os_arch="osx-amd64" ;;
     esac
     download_url="$(
       curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
-      sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
     )"
     [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
     tmp_dir="$(mktemp -d)"
@@ -178,12 +212,12 @@ tools_check_jq() {
   if tools_install_app "jq"; then
     repo_path="stedolan/jq"
     case "$(uname)" in
-      Linux) os_arch="linux64" ;;
-      Darwin) os_arch="osx-amd64" ;;
+    Linux) os_arch="linux64" ;;
+    Darwin) os_arch="osx-amd64" ;;
     esac
     download_url="$(
       curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
-      sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
     )"
     [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
     tmp_dir="$(mktemp -d)"
@@ -193,7 +227,6 @@ tools_check_jq() {
     jq --version
   fi
 }
-
 
 tools_check_k3d() {
   if tools_install_app "k3d"; then
@@ -215,8 +248,8 @@ tools_check_krew() {
   if tools_install_app "$app"; then
     repo_path="kubernetes-sigs/krew"
     case "$(uname)" in
-      Linux) os_arch="linux_amd64" ;;
-      Darwin) os_arch="darwin_amd64" ;;
+    Linux) os_arch="linux_amd64" ;;
+    Darwin) os_arch="darwin_amd64" ;;
     esac
     download_url="$(
       curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
@@ -238,13 +271,14 @@ tools_check_krew() {
 
 tools_check_kubectl() {
   if tools_install_app "kubectl"; then
-    base_url="https://storage.googleapis.com/kubernetes-release/release"
-    release="$(curl -s $base_url/stable.txt)"
     os="$(uname | tr '[:upper:]' '[:lower:]')"
-    arch="amd64"
+    case "$(uname -m)" in
+    x86_64) arch="amd64" ;;
+    esac
+    url="https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/$os/$arch/kubectl"
     [ -d /usr/local/bin ] || sudo mkdir /usr/local/bin
     tmp_dir="$(mktemp -d)"
-    curl -fsSL -o "$tmp_dir/kubectl" "$base_url/$release/bin/$os/$arch/kubectl"
+    curl -fsSL -o "$tmp_dir/kubectl" "$url"
     sudo install "$tmp_dir/kubectl" /usr/local/bin/
     rm -rf "$tmp_dir"
     kubectl version --client --output=yaml
@@ -260,12 +294,12 @@ tools_check_kubectl() {
 tools_check_kubectx() {
   if tools_install_app "kubectx"; then
     repo_path="ahmetb/kubectx"
-    os="$(uname | tr '[:upper:]' '[:lower:]')"
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
     arch="$(uname -m)"
     ext="${os}_${arch}.tar.gz"
     download_urls="$(
       curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
-      sed -n "s/^.*\"browser_download_url\": \"\(.*.$ext\)\"/\1/p"
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$ext\)\"/\1/p"
     )"
     _compl_url="https://raw.githubusercontent.com/$repo_path/master/completion"
     [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
@@ -298,7 +332,7 @@ tools_check_kubelogin() {
     orig_pwd="$(pwd)"
     tmp_dir="$(mktemp -d)"
     cd "$tmp_dir"
-    os="$(uname | tr '[:upper:]' '[:lower:]')"
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
     arch="amd64"
     zip="kubelogin-${os}-${arch}.zip"
     curl -fsSL -o "./$zip" \
@@ -319,12 +353,12 @@ tools_check_mkcert() {
 tools_check_sops() {
   if tools_install_app "sops"; then
     repo_path="mozilla/sops"
-    os="$(uname | tr '[:upper:]' '[:lower:]')"
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
     arch="$(uname -m)"
     ext="${os}_${arch}.tar.gz"
     download_url="$(
       curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
-      sed -n "s/^.*\"browser_download_url\": \"\(.*.$os\)\"/\1/p"
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os\)\"/\1/p"
     )"
     [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
     orig_pwd="$(pwd)"
@@ -353,7 +387,7 @@ tools_check_uuid() {
 tools_check_velero() {
   if tools_install_app "velero"; then
     repo_path="vmware-tanzu/velero"
-    os="$(uname | tr '[:upper:]' '[:lower:]')"
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
     arch="$(uname -m)"
     case "$arch" in
     x86_64) arch="amd64" ;;
@@ -386,12 +420,13 @@ tools_check() {
   for _app in "$@"; do
     case "$_app" in
     aws) tools_check_aws ;;
+    aws-iam-authenticator) tools_check_aws_iam_authenticator ;;
     docker) tools_check_docker ;;
     eksctl) tools_check_eksctl ;;
     helm) tools_check_helm ;;
     inotifywait) tools_check_inotifywait ;;
     jq) tools_check_jq ;;
-    json2file|json2file-go) tools_check_json2file ;;
+    json2file | json2file-go) tools_check_json2file ;;
     k3d) tools_check_k3d ;;
     krew) tools_check_krew ;;
     kubectl) tools_check_kubectl ;;
@@ -408,8 +443,8 @@ tools_check() {
 }
 
 tools_apps_list() {
-  tools="aws docker eksctl helm jq k3d krew kubectl kubectx kubelogin"
-  tools="$tools sops velero"
+  tools="aws aws-iam-authenticator docker eksctl helm jq k3d krew kubectl"
+  tools="$tools kubectx kubelogin sops velero"
   echo "$tools"
 }
 
