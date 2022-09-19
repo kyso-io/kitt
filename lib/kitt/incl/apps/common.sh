@@ -195,6 +195,9 @@ apps_kyso_update_api_settings() {
   # Common variables
   _base_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
   _frontend_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
+  # Elastic vars
+  _elastic_url="http://elasticsearch-master.elasticsearch-$DEPLOYMENT_NAME"
+  _elastic_url="$_elastic_url.svc.cluster.local:9200"
   # SCS Vars
   _sftp_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
   _sftp_port="22"
@@ -221,6 +224,7 @@ apps_kyso_update_api_settings() {
   sed \
     -e "s%^\(BASE_URL\),.*%\1,$_base_url%" \
     -e "s%^\(FRONTEND_URL\),.*%\1,$_frontend_url%" \
+    -e "s%^\(ELASTICSEARCH_URL\),.*%\1,$_elastic_url%" \
     -e "s%^\(SFTP_HOST\),.*$%\1,$_sftp_host%" \
     -e "s%^\(SFTP_PORT\),.*$%\1,$_sftp_port%" \
     -e "s%^\(SFTP_USERNAME\),.*$%\1,$_sftp_username%" \

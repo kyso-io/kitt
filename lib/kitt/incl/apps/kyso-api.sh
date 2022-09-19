@@ -261,8 +261,6 @@ apps_kyso_api_install() {
     _cert_yaml="$KYSO_API_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
     _cert_yamls="$_cert_yamls $_cert_yaml"
   done
-  _elastic_url="http://elasticsearch-master.elasticsearch-$DEPLOYMENT_NAME"
-  _elastic_url="$_elastic_url.svc.cluster.local:9200"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
@@ -311,7 +309,6 @@ apps_kyso_api_install() {
       -e "s%__API_REPLICAS__%$KYSO_API_REPLICAS%" \
       -e "s%__API_IMAGE__%$KYSO_API_IMAGE%" \
       -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
-      -e "s%__ELASTIC_URL__%$_elastic_url%" \
       "$_deploy_tmpl" >"$_deploy_yaml"
     # Prepare secrets
     : >"$_secret_env"
