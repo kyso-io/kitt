@@ -156,6 +156,47 @@ pf_stop_elastic() {
   pf_stop "$_name" "$_pidf" "$_outf"
 }
 
+# kyso-indexer
+
+pf_start_indexer() {
+  _name="indexer"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _svc="svc/kyso-scs-svc"
+  _addr="$DEPLOYMENT_PF_ADDR"
+  _pf_port="$KYSO_INDEXER_PF_PORT"
+  _svc_port="8080"
+  _pidf="$KYSO_INDEXER_PF_PID"
+  _outf="$KYSO_INDEXER_PF_OUT"
+  if ! pf_running "$_pidf"; then
+    _pf_dir="$(dirname "$_pidf")"
+    if [ -z "$_pidf" ] || [ ! -d "$_pf_dir" ]; then
+      echo "Directory '$_pf_dir' not found!"
+      echo "Have you installed '$_name'?"
+      exit 1
+    fi
+    echo "Starting $_name port-forward"
+    nohup kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
+      "$_pf_port:$_svc_port" >"$_outf" 2>/dev/null &
+    echo "$!" >"$_pidf"
+    sleep 1
+  fi
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_status_indexer() {
+  _name="indexer"
+  _pidf="$KYSO_INDEXER_PF_PID"
+  _outf="$KYSO_INDEXER_PF_OUT"
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_stop_indexer() {
+  _name="indexer"
+  _pidf="$KYSO_INDEXER_PF_PID"
+  _outf="$KYSO_INDEXER_PF_OUT"
+  pf_stop "$_name" "$_pidf" "$_outf"
+}
+
 # Mongodb
 
 pf_info_mongodb() {
@@ -482,8 +523,9 @@ pf_command() {
   case "$_cmnd" in
   info)
     case "$_arg" in
-    all|"")
+    all | "")
       pf_info_elastic "$_deployment" "$_cluster"
+      pf_info_indexer "$_deployment" "$_cluster"
       pf_info_mongodb "$_deployment" "$_cluster"
       pf_info_myssh "$_deployment" "$_cluster"
       pf_info_nats "$_deployment" "$_cluster"
@@ -491,19 +533,24 @@ pf_command() {
       for _pidf in "$ELASTICSEARCH_PF_PID" "$MONGODB_PF_PID" \
         "$KYSO_SCS_MYSSH_PF_PID" "$NATS_PF_PID"; do
         if pf_running "$_pidf"; then
-          pf_note; break
+          pf_note
+          break
         fi
       done
       ;;
-    elastic|elasticsearch)
+    elastic | elasticsearch)
       pf_info_elastic "$_deployment" "$_cluster"
       if pf_running "$ELASTICSEARCH_PF_PID"; then pf_note; fi
+      ;;
+    indexer)
+      pf_info_indexer "$_deployment" "$_cluster"
+      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
       ;;
     mongodb)
       pf_info_mongodb "$_deployment" "$_cluster"
       if pf_running "$MONGODB_PF_PID"; then pf_note; fi
       ;;
-    myssh|sftp)
+    myssh | sftp)
       pf_info_myssh "$_deployment" "$_cluster"
       if pf_running "$KYSO_SCS_MYSSH_PF_PID"; then pf_note; fi
       ;;
@@ -515,65 +562,85 @@ pf_command() {
       pf_info_webhook "$_deployment" "$_cluster"
       if pf_running "$NATS_PF_PID"; then pf_note; fi
       ;;
-    *) echo "Unknown service '$_arg'"; exit 1;;
+    *)
+      echo "Unknown service '$_arg'"
+      exit 1
+      ;;
     esac
     ;;
   start)
     case "$_arg" in
-    all|"")
+    all | "")
       pf_start_elastic "$_deployment" "$_cluster"
+      pf_start_indexer "$_deployment" "$_cluster"
       pf_start_mongodb "$_deployment" "$_cluster"
       pf_start_myssh "$_deployment" "$_cluster"
       pf_start_nats "$_deployment" "$_cluster"
       pf_start_webhook "$_deployment" "$_cluster"
       ;;
-    elastic|elasticsearch) pf_start_elastic "$_deployment" "$_cluster" ;;
+    elastic | elasticsearch) pf_start_elastic "$_deployment" "$_cluster" ;;
     mongodb) pf_start_mongodb "$_deployment" "$_cluster" ;;
-    myssh|sftp) pf_start_myssh "$_deployment" "$_cluster" ;;
+    myssh | sftp) pf_start_myssh "$_deployment" "$_cluster" ;;
     nats) pf_start_nats "$_deployment" "$_cluster" ;;
     webhook) pf_start_webhook "$_deployment" "$_cluster" ;;
-    *) echo "Unknown service '$_arg'"; exit 1;;
+    *)
+      echo "Unknown service '$_arg'"
+      exit 1
+      ;;
     esac
     ;;
   stop)
     case "$_arg" in
-    all|"")
+    all | "")
       pf_stop_elastic "$_deployment" "$_cluster"
+      pf_stop_indexer "$_deployment" "$_cluster"
       pf_stop_mongodb "$_deployment" "$_cluster"
       pf_stop_myssh "$_deployment" "$_cluster"
       pf_stop_nats "$_deployment" "$_cluster"
       pf_stop_webhook "$_deployment" "$_cluster"
       ;;
-    elastic|elasticsearch) pf_stop_elastic "$_deployment" "$_cluster" ;;
+    elastic | elasticsearch) pf_stop_elastic "$_deployment" "$_cluster" ;;
+    indexer) pf_stop_indexer "$_deployment" "$_cluster" ;;
     mongodb) pf_stop_mongodb "$_deployment" "$_cluster" ;;
-    myssh|sftp) pf_stop_myssh "$_deployment" "$_cluster" ;;
+    myssh | sftp) pf_stop_myssh "$_deployment" "$_cluster" ;;
     nats) pf_stop_nats "$_deployment" "$_cluster" ;;
     webhook) pf_stop_webhook "$_deployment" "$_cluster" ;;
-    *) echo "Unknown service '$_arg'"; exit 1;;
+    *)
+      echo "Unknown service '$_arg'"
+      exit 1
+      ;;
     esac
     ;;
   status)
     case "$_arg" in
-    all|"")
+    all | "")
       pf_status_elastic "$_deployment" "$_cluster"
+      pf_status_indexer "$_deployment" "$_cluster"
       pf_status_mongodb "$_deployment" "$_cluster"
       pf_status_myssh "$_deployment" "$_cluster"
       pf_status_nats "$_deployment" "$_cluster"
       pf_status_webhook "$_deployment" "$_cluster"
       ;;
-    elastic|elasticsearch) pf_status_elastic "$_deployment" "$_cluster" ;;
+    elastic | elasticsearch) pf_status_elastic "$_deployment" "$_cluster" ;;
+    indexer) pf_status_indexer "$_deployment" "$_cluster" ;;
     mongodb) pf_status_mongodb "$_deployment" "$_cluster" ;;
-    myssh|sftp) pf_status_myssh "$_deployment" "$_cluster" ;;
+    myssh | sftp) pf_status_myssh "$_deployment" "$_cluster" ;;
     nats) pf_status_nats "$_deployment" "$_cluster" ;;
     webhook) pf_status_webhook "$_deployment" "$_cluster" ;;
-    *) echo "Unknown service '$_arg'"; exit 1;;
+    *)
+      echo "Unknown service '$_arg'"
+      exit 1
+      ;;
     esac
     ;;
-  *) echo "Unknown pf subcommand '$_cmnd'"; exit 1 ;;
+  *)
+    echo "Unknown pf subcommand '$_cmnd'"
+    exit 1
+    ;;
   esac
   case "$_cmnd" in
-    info|status) ;;
-    *) cluster_git_update ;;
+  info | status) ;;
+  *) cluster_git_update ;;
   esac
 }
 
@@ -590,6 +657,7 @@ pf_service_list() {
   cat <<EOF
 all: work on all the port-forwards
 elastic|elastisearch: operate on the elasticsearch web port
+indexer: operate on the kyso-indexer port
 mongodb: operate on the mongodb database port
 myssh|sftp: operate on the the kyso-scs sftp port
 nats: operate on the nats client port

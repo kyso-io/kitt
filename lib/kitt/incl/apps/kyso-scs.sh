@@ -24,6 +24,7 @@ export DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_IMAGE="$_myssh_image"
 _nginx_image="registry.kyso.io/docker/nginx-scs:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_NGINX_IMAGE="$_nginx_image"
 export DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE=""
+export DEPLOYMENT_DEFAULT_KYSO_INDEXER_PF_PORT=""
 _webhook_image="registry.kyso.io/docker/webhook-scs:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_IMAGE="$_webhook_image"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_REPLICAS="1"
@@ -93,6 +94,8 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_SERVICE_YAML="$KYSO_SCS_KUBECTL_DIR/service.yaml"
   export KYSO_SCS_PVC_YAML="$KYSO_SCS_KUBECTL_DIR/pvc.yaml"
   export KYSO_SCS_PV_YAML="$KYSO_SCS_KUBECTL_DIR/pv.yaml"
+  export KYSO_INDEXER_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-indexer.out"
+  export KYSO_INDEXER_PF_PID="$KYSO_SCS_PF_DIR/kubectl-indexer.pid"
   export KYSO_SCS_MYSSH_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-sftp.out"
   export KYSO_SCS_MYSSH_PF_PID="$KYSO_SCS_PF_DIR/kubectl-sftp.pid"
   export KYSO_SCS_WEBHOOK_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-webhook.out"
@@ -127,6 +130,12 @@ apps_kyso_scs_export_variables() {
     fi
   fi
   export KYSO_INDEXER_IMAGE
+  if [ "$DEPLOYMENT_KYSO_INDEXER_PF_PORT" ]; then
+    KYSO_INDEXER_PF_PORT="$DEPLOYMENT_KYSO_INDEXER_PF_PORT"
+  else
+    KYSO_INDEXER_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_INDEXER_PF_PORT"
+  fi
+  export KYSO_INDEXER_PF_PORT
   if [ -z "$KYSO_SCS_WEBHOOK_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_SCS_WEBHOOK_IMAGE" ]; then
       KYSO_SCS_WEBHOOK_IMAGE="$DEPLOYMENT_KYSO_SCS_WEBHOOK_IMAGE"
@@ -294,6 +303,9 @@ apps_kyso_scs_read_variables() {
   read_value "Kyso SCS Hardlink Cronjob Image URI" \
     "${KYSO_SCS_HARDLINK_CRONJOB_IMAGE}"
   KYSO_SCS_HARDLINK_CRONJOB_IMAGE="${READ_VALUE}"
+  read_value "Fixed port for kyso-indexer pf? (i.e. 8080 or '-' for random)" \
+    "${KYSO_INDEXER_PF_PORT}"
+  KYSO_INDEXER_PF_PORT=${READ_VALUE}
   read_value "Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random)" \
     "${KYSO_SCS_MYSSH_PF_PORT}"
   KYSO_SCS_MYSSH_PF_PORT=${READ_VALUE}
@@ -333,6 +345,8 @@ KYSO_SCS_RESTIC_BACKUP=$KYSO_SCS_RESTIC_BACKUP
 KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE=$KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE
 # Kyso SCS Hardlink Cronjob Image URI
 KYSO_SCS_HARDLINK_CRONJOB_IMAGE=$KYSO_SCS_HARDLINK_CRONJOB_IMAGE
+# Fixed port for kyso-indexer pf (recommended is 8080, random if empty)
+KYSO_INDEXER_PF_PORT=$KYSO_INDEXER_PF_PORT
 # Fixed port for mysecureshell pf (recommended is 2020, random if empty)
 KYSO_SCS_MYSSH_PF_PORT=$KYSO_SCS_MYSSH_PF_PORT
 # Fixed port for webhook pf (recommended is 9000, random if empty)
