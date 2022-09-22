@@ -194,7 +194,7 @@ NATS_EXPORTER_IMAGE=$NATS_EXPORTER_IMAGE
 NATS_STORAGE_CLASS=$NATS_STORAGE_CLASS
 # Nats Volume Size (if storage is local or NFS the value is ignored)
 NATS_STORAGE_SIZE=$NATS_STORAGE_SIZE
-# Fixed port for nats pf (standard is 9200, empty for random)
+# Fixed port for nats pf (standard is 4222, empty for random)
 NATS_PF_PORT=$NATS_PF_PORT
 # ---
 EOF
