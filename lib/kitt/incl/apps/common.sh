@@ -32,6 +32,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
   # shellcheck source=../mongo.sh
   [ "$INCL_MONGO_SH" = "1" ] || . "$INCL_DIR/mongo.sh"
+    # shellcheck source=./kyso-api.sh
+  [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
   # shellcheck source=./kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./nats.sh
@@ -178,6 +180,11 @@ apps_kyso_update_api_settings() {
   ret="0"
   _deployment="$1"
   _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  if [ "$KYSO_API_ENDPOINT" ]; then
+    echo "Not updating 'KysoSettings', kyso-api is using an entrypoint!"
+    return
+  fi
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_nats_export_variables "$_deployment" "$_cluster"
   _tmp_dir="$(mktemp -d)"
