@@ -34,7 +34,7 @@ fi
 scs_reindex() {
   _hostname="$(echo "$DEPLOYMENT_HOSTNAMES" | head -1)"
   _api_base="https://${_hostname}/api/v1"
-  _user_data="\"email\":\"lo+palpatine@dev.kyso.io\",\"password\":\"n0tiene\""
+  _user_data="\"email\":\"lo+baby_yoda@dev.kyso.io\",\"password\":\"n0tiene\""
   _user_data="$_user_data,\"provider\":\"kyso\""
   _auth_json="$(
     curl -s -X 'POST' "${_api_base}/auth/login" \
