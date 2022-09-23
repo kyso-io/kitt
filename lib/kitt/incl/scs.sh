@@ -33,9 +33,10 @@ fi
 # FIXME: use a configuration file to get the token for the right user
 scs_reindex() {
   _suffix="$1"
+  _user="${2:-baby_yoda}"
   _hostname="$(echo "$DEPLOYMENT_HOSTNAMES" | head -1)"
   _api_base="https://${_hostname}/api/v1"
-  _user_data="\"email\":\"lo+baby_yoda@dev.kyso.io\",\"password\":\"n0tiene\""
+  _user_data="\"email\":\"lo+$_user@dev.kyso.io\",\"password\":\"n0tiene\""
   _user_data="$_user_data,\"provider\":\"kyso\""
   _auth_json="$(
     curl -s -X 'POST' "${_api_base}/auth/login" \
@@ -73,9 +74,9 @@ scs_command() {
       _file="$_arg"
     fi
     ;;
-  reindex) scs_reindex ""; exit 0 ;;
-  reindex-reports) scs_reindex "-reports"; exit 0 ;;
-  reindex-comments) scs_reindex "-comments"; exit 0 ;;
+  reindex) scs_reindex "" "$_arg"; exit 0 ;;
+  reindex-reports) scs_reindex "-reports" "$_arg"; exit 0 ;;
+  reindex-comments) scs_reindex "-comments" "$_arg"; exit 0 ;;
   restore)
     if [ "$_arg" ]; then
       _cmnd="cd /sftp/data && tar xf -"
