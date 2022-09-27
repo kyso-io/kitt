@@ -158,6 +158,35 @@ pf_stop_elastic() {
 
 # kyso-indexer
 
+pf_info_indexer() {
+  _name="indexer"
+  _pidf="$KYSO_INDEXER_PF_PID"
+  _outf="$KYSO_INDEXER_PF_OUT"
+  header "$_name port-forward info"
+  if ! pf_running "$_pidf"; then
+    cat <<EOF
+
+The '$_name' port-forward for the '$DEPLOYMENT_NAME' deployment is not running.
+
+EOF
+    return 0
+  fi
+  host_port="$(pf_host_port "$_pidf" "$_outf")"
+  cat <<EOF
+
+Use the URL 'http://$host_port' to connect to the indexer locally.
+
+If you are working from a remote host redirect the ports using ssh:
+
+  LOCAL_IP_AND_PORT="127.0.0.1:8080"
+  ssh $(hostname) -L \$LOCAL_IP_AND_PORT:$host_port sleep infinity
+
+While the ssh session is running you can connect to the indexer using the URL
+'http://\$LOCAL_IP_AND_PORT'
+
+EOF
+}
+
 pf_start_indexer() {
   _name="indexer"
   _ns="$KYSO_SCS_NAMESPACE"
@@ -306,16 +335,19 @@ EOF
   host_port="$(pf_host_port "$_pidf" "$_outf")"
   sftp_host="${host_port%:*}"
   sftp_port="${host_port#*:}"
-  user_pass="$(file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt)"
-  sftp_user="$(echo "$user_pass" | sed -ne 's/:.*$//p;q')"
-  sftp_pass="$(echo "$user_pass" | sed -ne 's/^.*://p;q')"
+  user_pass="$(
+    file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
+    sed -e 's/^/  - /'
+  )"
   cat <<EOF
 
 To connect to the sftp server locally do:
 
-  sftp -P ${sftp_port} ${sftp_user}@${sftp_host} 
+  sftp -P ${sftp_port} \$sftp_user@${sftp_host}
 
-using the password '$sftp_pass'.
+using one of the following users and its password:
+
+$user_pass
 
 If you are working from a remote host redirect the ports using ssh:
 
@@ -325,7 +357,7 @@ If you are working from a remote host redirect the ports using ssh:
 While the ssh session is running you can connect to the sftp as follows using
 the same password or key used locally:
 
-  sftp -P \$LOCAL_PORT $sftp_user@\$LOCAL_IP
+  sftp -P \$LOCAL_PORT \$sftp_user@\$LOCAL_IP
 
 EOF
 }

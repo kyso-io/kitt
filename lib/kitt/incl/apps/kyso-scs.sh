@@ -40,7 +40,8 @@ _alpine_image="registry.kyso.io/docker/alpine:latest"
 export DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE="$_alpine_image"
 
 # Fixed values
-export KYSO_SCS_USER="scs"
+export KYSO_SCS_REPORTS_USER="scs"
+export KYSO_SCS_THEMES_USER="themes"
 export KYSO_SCS_API_AUTH_EP="auth/check-permissions"
 export KYSO_SCS_SECRETS_NAME="kyso-scs-secrets"
 
@@ -242,10 +243,11 @@ apps_kyso_scs_create_myssh_secrets() {
   fi
   if [ ! -f "$KYSO_SCS_USERS_TAR" ]; then
     ret="0"
+    # shellcheck disable=SC2086
     kubectl run --namespace "$_ns" "mysecureshell" \
       --restart='Never' --quiet --rm --stdin --image "$KYSO_SCS_MYSSH_IMAGE" \
-      -- users-tar "$KYSO_SCS_USER" | stdout_to_file "$KYSO_SCS_USERS_TAR" ||
-      ret="$?"
+      -- users-tar "$KYSO_SCS_REPORTS_USER" "$KYSO_SCS_THEMES_USER" |
+      stdout_to_file "$KYSO_SCS_USERS_TAR" || ret="$?"
     if [ "$ret" -ne "0" ]; then
       rm -f "$KYSO_SCS_USERS_TAR"
       return "$ret"
@@ -570,6 +572,7 @@ apps_kyso_scs_install() {
   else
     _auth_request_uri=""
   fi
+  _no_auth_prefix="/$KYSO_SCS_THEMES_USER"
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
@@ -582,6 +585,7 @@ apps_kyso_scs_install() {
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     -e "s%__MYSSH_SECRET__%$KYSO_SCS_SECRETS_NAME%" \
     -e "s%__AUTH_REQUEST_URI__%$_auth_request_uri%" \
+    -e "s%__NO_AUTH_PREFIX__%$_no_auth_prefix%" \
     -e "s%__KYSO_URL__%http://$_kyso_api_host%" \
     -e "s%__PVC_NAME__%$_pvc_name%" \
     "$_statefulset_tmpl" >"$_statefulset_yaml"

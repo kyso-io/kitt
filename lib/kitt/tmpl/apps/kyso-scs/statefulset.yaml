@@ -28,6 +28,8 @@ spec:
         env:
         - name: AUTH_REQUEST_URI
           value: __AUTH_REQUEST_URI__
+        - name: NO_AUTH_PREFIX
+          value: __NO_AUTH_PREFIX__
         - name: HTML_ROOT
           value: /sftp/data
         volumeMounts:

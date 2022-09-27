@@ -212,10 +212,11 @@ apps_kyso_update_api_settings() {
   _kyso_indexer_api_base_url="http://$_kyso_indexer_api_host:8080"
   if [ -f "$KYSO_SCS_USERS_TAR" ]; then
     _user_and_pass="$(
-      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt
-    )"
-    _sftp_username="$(echo "$_user_and_pass" | cut -d':' -f1)"
-    _sftp_password="$(echo "$_user_and_pass" | cut -d':' -f2)"
+      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
+        grep "^$KYSO_SCS_REPORTS_USER:"
+    )" || true
+    _sftp_username="${_user_and_pass%%:*}"
+    _sftp_password="${_user_and_pass#*:}"
   else
     _sftp_username=""
     _sftp_password=""

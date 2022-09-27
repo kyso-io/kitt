@@ -21,6 +21,13 @@ spec:
             name: __APP__-svc
             port:
               number: 80
+      - path: /themes
+        pathType: Prefix
+        backend:
+          service:
+            name: __APP__-svc
+            port:
+              number: 80
 # END: HOSTNAME_RULE
   tls:
 # BEG: HOSTNAME_TLS
