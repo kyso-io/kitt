@@ -20,7 +20,7 @@ INCL_APPS_ONLYOFFICE_DS_SH="1"
 # CMND_DSC="onlyoffice-ds: manage onlyoffice-ds deployment for kyso"
 
 # Defaults
-_image="registry.kyso.io/docker/onlyoffice-documentserver:7.2.0-204"
+_image="registry.kyso.io/docker/onlyoffice-documentserver:7.2.0.204"
 export DEPLOYMENT_DEFAULT_ONLYOFFICE_DS_IMAGE="$_image"
 
 # --------
