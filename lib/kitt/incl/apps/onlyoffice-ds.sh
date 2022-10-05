@@ -32,6 +32,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
   # shellcheck source=./common.sh
   [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
+  # shellcheck source=./kyso-scs.sh
+  [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
 fi
 
 # ---------
@@ -43,6 +45,7 @@ apps_onlyoffice_ds_export_variables() {
   _deployment="$1"
   _cluster="$2"
   apps_common_export_variables "$_deployment" "$_cluster"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   # Values
   export ONLYOFFICE_DS_NAMESPACE="onlyoffice-ds-$DEPLOYMENT_NAME"
   # Directories
@@ -146,9 +149,11 @@ apps_onlyoffice_ds_install() {
   create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
     "" ""
   # Prepare service_yaml
+  _kyso_scs_nginx="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__KYSO_SCS_NGINX__%$_kyso_scs_nginx%" \
     "$_svc_tmpl" >"$_svc_yaml"
   # Prepare deployment file
   sed \

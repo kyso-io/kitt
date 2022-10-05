@@ -10,3 +10,14 @@ spec:
     targetPort: 80
   selector:
     app: __APP__
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: __NAMESPACE__
+spec:
+  type: ExternalName
+  externalName: __KYSO_SCS_NGINX__
+  ports:
+  - port: 80
