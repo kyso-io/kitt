@@ -38,8 +38,8 @@ fi
 # Functions
 # ---------
 
-addon_loki_export_variables() {
-  [ -z "$_addon_loki_export_variables" ] || return 0
+addons_loki_export_variables() {
+  [ -z "$_addons_loki_export_variables" ] || return 0
   # Directories
   export LOKI_TMPL_DIR="$TMPL_DIR/addons/loki"
   export LOKI_HELM_DIR="$CLUST_HELM_DIR/loki"
@@ -48,16 +48,16 @@ addon_loki_export_variables() {
   # Files
   export LOKI_HELM_VALUES_YAML="$LOKI_HELM_DIR/values.yaml"
   # Set variable to avoid loading variables twice
-  _addon_loki_export_variables="1"
+  _addons_loki_export_variables="1"
 }
 
-addon_loki_check_directories() {
+addons_loki_check_directories() {
   for _d in $LOKI_HELM_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_loki_clean_directories() {
+addons_loki_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in $LOKI_HELM_DIR; do
     if [ -d "$_d" ]; then
@@ -66,9 +66,9 @@ addon_loki_clean_directories() {
   done
 }
 
-addon_loki_install() {
-  addon_loki_export_variables
-  addon_loki_check_directories
+addons_loki_install() {
+  addons_loki_export_variables
+  addons_loki_check_directories
   _addon="loki"
   _ns="$LOKI_NAMESPACE"
   _repo_name="$LOKI_HELM_REPO_NAME"
@@ -91,8 +91,8 @@ addon_loki_install() {
   footer
 }
 
-addon_loki_remove() {
-  addon_loki_export_variables
+addons_loki_remove() {
+  addons_loki_export_variables
   _addon="loki"
   _ns="$LOKI_NAMESPACE"
   _values_yaml="$LOKI_HELM_VALUES_YAML"
@@ -112,11 +112,11 @@ addon_loki_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_loki_clean_directories
+  addons_loki_clean_directories
 }
 
-addon_loki_status() {
-  addon_loki_export_variables
+addons_loki_status() {
+  addons_loki_export_variables
   _addon="loki"
   _ns="$LOKI_NAMESPACE"
   _release="$LOKI_HELM_RELEASE"
@@ -128,25 +128,25 @@ addon_loki_status() {
   fi
 }
 
-addon_loki_summary() {
-  addon_loki_export_variables
+addons_loki_summary() {
+  addons_loki_export_variables
   _addon="loki"
   _ns="$LOKI_NAMESPACE"
   _release="$LOKI_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_loki_command() {
+addons_loki_command() {
   case "$1" in
-    install) addon_loki_install ;;
-    remove) addon_loki_remove ;;
-    status) addon_loki_status ;;
-    summary) addon_loki_summary ;;
+    install) addons_loki_install ;;
+    remove) addons_loki_remove ;;
+    status) addons_loki_status ;;
+    summary) addons_loki_summary ;;
     *) echo "Unknown loki subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_loki_command_list() {
+addons_loki_command_list() {
   echo "install remove status summary"
 }
 

@@ -41,8 +41,8 @@ fi
 # Functions
 # ---------
 
-addon_dashboard_export_variables() {
-  [ -z "$__addon_dashboard_export_variables" ] || return 0
+addons_dashboard_export_variables() {
+  [ -z "$__addons_dashboard_export_variables" ] || return 0
   # Directories
   export DASHBOARD_TMPL_DIR="$TMPL_DIR/addons/dashboard"
   export DASHBOARD_HELM_DIR="$CLUST_HELM_DIR/dashboard"
@@ -58,17 +58,17 @@ addon_dashboard_export_variables() {
   export DASHBOARD_AUTH_FILE="$DASHBOARD_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
   export DASHBOARD_AUTH_YAML="$DASHBOARD_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   # Set variable to avoid loading variables twice
-  __addon_dashboard_export_variables="1"
+  __addons_dashboard_export_variables="1"
 }
 
-addon_dashboard_check_directories() {
+addons_dashboard_check_directories() {
   for _d in "$DASHBOARD_HELM_DIR"  "$DASHBOARD_KUBECTL_DIR" \
     "$DASHBOARD_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_dashboard_clean_directories() {
+addons_dashboard_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$DASHBOARD_HELM_DIR"  "$DASHBOARD_KUBECTL_DIR" \
     "$DASHBOARD_SECRETS_DIR"; do
@@ -78,9 +78,9 @@ addon_dashboard_clean_directories() {
   done
 }
 
-addon_dashboard_install() {
-  addon_dashboard_export_variables
-  addon_dashboard_check_directories
+addons_dashboard_install() {
+  addons_dashboard_export_variables
+  addons_dashboard_check_directories
   _addon="dashboard"
   _ns="$DASHBOARD_NAMESPACE"
   _repo_name="$DASHBOARD_HELM_REPO_NAME"
@@ -120,7 +120,7 @@ addon_dashboard_install() {
     kubectl_delete "$_auth_yaml" || true
   fi
   # Create ingress definition
-  create_addon_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
+  create_addons_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
     "$_auth_name" "$_release"
   # Apply the YAML files
   for _yaml in "$_auth_yaml" "$_ingress_yaml"; do
@@ -156,8 +156,8 @@ addon_dashboard_install() {
   footer
 }
 
-addon_dashboard_remove() {
-  addon_dashboard_export_variables
+addons_dashboard_remove() {
+  addons_dashboard_export_variables
   _addon="dashboard"
   _ns="$DASHBOARD_NAMESPACE"
   _secrets=""
@@ -194,11 +194,11 @@ addon_dashboard_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_dashboard_clean_directories
+  addons_dashboard_clean_directories
 }
 
-addon_dashboard_status() {
-  addon_dashboard_export_variables
+addons_dashboard_status() {
+  addons_dashboard_export_variables
   _addon="dashboard"
   _ns="$DASHBOARD_NAMESPACE"
   if find_namespace "$_ns"; then
@@ -208,16 +208,16 @@ addon_dashboard_status() {
   fi
 }
 
-addon_dashboard_summary() {
-  addon_dashboard_export_variables
+addons_dashboard_summary() {
+  addons_dashboard_export_variables
   _addon="dashboard"
   _ns="$DASHBOARD_NAMESPACE"
   _release="$DASHBOARD_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_dashboard_uris() {
-  addon_dashboard_export_variables
+addons_dashboard_uris() {
+  addons_dashboard_export_variables
   _hostname="dashboard.$CLUSTER_DOMAIN"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
     [ -f "$DASHBOARD_AUTH_FILE" ]; then
@@ -228,18 +228,18 @@ addon_dashboard_uris() {
   fi
 }
 
-addon_dashboard_command() {
+addons_dashboard_command() {
   case "$1" in
-    install) addon_dashboard_install ;;
-    remove) addon_dashboard_remove ;;
-    status) addon_dashboard_status ;;
-    summary) addon_dashboard_summary ;;
-    uris) addon_dashboard_uris ;;
+    install) addons_dashboard_install ;;
+    remove) addons_dashboard_remove ;;
+    status) addons_dashboard_status ;;
+    summary) addons_dashboard_summary ;;
+    uris) addons_dashboard_uris ;;
     *) echo "Unknown dashboard subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_dashboard_command_list() {
+addons_dashboard_command_list() {
   echo "install remove status summary uris"
 }
 

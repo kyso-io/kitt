@@ -40,8 +40,8 @@ fi
 # Functions
 # ---------
 
-addon_efs_export_variables() {
-  [ -z "$__addon_efs_export_variables" ] || return 0
+addons_efs_export_variables() {
+  [ -z "$__addons_efs_export_variables" ] || return 0
   # Load EKS variables
   ctool_eks_export_variables
   # Directories
@@ -56,16 +56,16 @@ addon_efs_export_variables() {
   export EFS_HELM_VALUES_YAML="$EFS_HELM_DIR/values.yaml"
   export EFS_STORAGECLASS_YAML="$EFS_KUBECTL_DIR/storageclass.yaml"
   # Set variable to avoid loading variables twice
-  __addon_efs_export_variables="1"
+  __addons_efs_export_variables="1"
 }
 
-addon_efs_check_directories() {
+addons_efs_check_directories() {
   for _d in "$EFS_HELM_DIR" "$EFS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_efs_clean_directories() {
+addons_efs_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$EFS_HELM_DIR" "$EFS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
@@ -74,8 +74,8 @@ addon_efs_clean_directories() {
   done
 }
 
-addon_efs_createfs() {
-  addon_efs_export_variables
+addons_efs_createfs() {
+  addons_efs_export_variables
   _orig_efs_filesystemid="$CLUSTER_EFS_FILESYSTEMID"
   aws_add_eks_efs_filesystem "$CLUSTER_NAME"
   if [ "$_orig_efs_filesystemid" = "$CLUSTER_EFS_FILESYSTEMID" ]; then
@@ -94,8 +94,8 @@ addon_efs_createfs() {
   fi
 }
 
-addon_efs_install() {
-  addon_efs_export_variables
+addons_efs_install() {
+  addons_efs_export_variables
   # Abort if there is no EKS_CLUSTER_EFS_FILESYSTEMID
   if [ -z "$CLUSTER_EFS_FILESYSTEMID" ]; then
     cat <<EOF
@@ -105,7 +105,7 @@ Create it with the 'createfs' subcommand and update the cluster configuration.
 EOF
     exit 1
   fi
-  addon_efs_check_directories
+  addons_efs_check_directories
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   _repo_name="$EFS_HELM_REPO_NAME"
@@ -135,8 +135,8 @@ EOF
   footer
 }
 
-addon_efs_remove() {
-  addon_efs_export_variables
+addons_efs_remove() {
+  addons_efs_export_variables
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   _release="$EFS_HELM_RELEASE"
@@ -146,11 +146,11 @@ addon_efs_remove() {
     rm -f "$_values_yaml"
   fi
   kubectl_delete "$EFS_STORAGECLASS_YAML" || true
-  addon_efs_clean_directories
+  addons_efs_clean_directories
 }
 
-addon_efs_status() {
-  addon_efs_export_variables
+addons_efs_status() {
+  addons_efs_export_variables
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   if find_namespace "$_ns"; then
@@ -160,26 +160,26 @@ addon_efs_status() {
   fi
 }
 
-addon_efs_summary() {
-  addon_efs_export_variables
+addons_efs_summary() {
+  addons_efs_export_variables
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   _release="$EFS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_efs_command() {
+addons_efs_command() {
   case "$1" in
-    createfs) addon_efs_createfs ;;
-    install) addon_efs_install ;;
-    remove) addon_efs_remove ;;
-    status) addon_efs_status ;;
-    summary) addon_efs_summary ;;
+    createfs) addons_efs_createfs ;;
+    install) addons_efs_install ;;
+    remove) addons_efs_remove ;;
+    status) addons_efs_status ;;
+    summary) addons_efs_summary ;;
     *) echo "Unknown efs subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_efs_command_list() {
+addons_efs_command_list() {
   echo "createfs install remove status summary"
 }
 

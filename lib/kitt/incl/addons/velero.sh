@@ -41,8 +41,8 @@ fi
 # Functions
 # ---------
 
-addon_velero_export_variables() {
-  [ -z "$__addon_velero_export_variables" ] || return 0
+addons_velero_export_variables() {
+  [ -z "$__addons_velero_export_variables" ] || return 0
   # Directories
   export VELERO_TMPL_DIR="$TMPL_DIR/addons/velero"
   export VELERO_HELM_DIR="$CLUST_HELM_DIR/velero"
@@ -55,7 +55,7 @@ addon_velero_export_variables() {
   export VELERO_S3_ENV="$VELERO_SECRETS_DIR/s3${SOPS_EXT}.env"
   export_env_file_vars "$VELERO_S3_ENV" "VELERO"
   if is_selected "$VELERO_USE_MINIO"; then
-    addon_minio_export_variables
+    addons_minio_export_variables
     export VELERO_USE_LOCAL_STORAGE="$CLUSTER_USE_LOCAL_STORAGE"
     export VELERO_AWS_ACCESS_KEY_ID="$MINIO_ROOT_USER"
     export VELERO_AWS_SECRET_ACCESS_KEY="$MINIO_ROOT_PASS"
@@ -68,16 +68,16 @@ addon_velero_export_variables() {
     export VELERO_DEFAULT_VOLUMES_TO_RESTIC="$CLUSTER_DEFAULT_VOLUMES_TO_RESTIC"
   fi
   # Set variable to avoid loading variables twice
-  __addon_velero_export_variables="1"
+  __addons_velero_export_variables="1"
 }
 
-addon_velero_check_directories() {
+addons_velero_check_directories() {
   for _d in "$VELERO_HELM_DIR" "$VELERO_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_velero_clean_directories() {
+addons_velero_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$VELERO_HELM_DIR" "$VELERO_SECRETS_DIR"; do
     if [ -d "$_d" ]; then
@@ -86,7 +86,7 @@ addon_velero_clean_directories() {
   done
 }
 
-addon_velero_print_vars() {
+addons_velero_print_vars() {
   cat <<EOF
 USE_MINIO=$VELERO_USE_MINIO
 AWS_ACCESS_KEY_ID=$VELERO_AWS_ACCESS_KEY_ID
@@ -99,12 +99,12 @@ S3_PUBLIC_URL=$VELERO_S3_PUBLIC_URL
 EOF
 }
 
-addon_velero_read_vars() {
+addons_velero_read_vars() {
   header "Configuring Velero Parameters"
   read_bool "Use minio for velero" "$VELERO_USE_MINIO"
   VELERO_USE_MINIO=${READ_VALUE}
   if is_selected "$VELERO_USE_MINIO"; then
-    addon_velero_export_variables
+    addons_velero_export_variables
     return 0
   fi
   read_bool "Configure velero on AWS" "false"
@@ -123,7 +123,7 @@ addon_velero_read_vars() {
     fi
     read_bool "Create velero s3 env" "false"
     if is_selected "${READ_VALUE}"; then
-      addon_velero_check_directories
+      addons_velero_check_directories
       aws_create_velero_s3_env "$VELERO_S3_ENV" || true
       export_env_file_vars "$VELERO_S3_ENV" "VELERO"
     fi
@@ -146,10 +146,10 @@ addon_velero_read_vars() {
   fi
 }
 
-addon_velero_config() {
-  addon_velero_export_variables
+addons_velero_config() {
+  addons_velero_export_variables
   header "Velero configuration variables"
-  addon_velero_print_vars
+  addons_velero_print_vars
   if [ -f "$VELERO_S3_ENV" ]; then
     footer
     read_bool "Update configuration?" "false"
@@ -158,15 +158,15 @@ addon_velero_config() {
   fi
   if is_selected "${READ_VALUE}"; then
     footer
-    addon_velero_read_vars
+    addons_velero_read_vars
     if [ -f "$VELERO_S3_ENV" ]; then
       read_bool "Save updated configuration?" "true"
     else
       READ_VALUE="true"
     fi
     if is_selected "${READ_VALUE}"; then
-      addon_velero_check_directories
-      addon_velero_print_vars | stdout_to_file "$VELERO_S3_ENV"
+      addons_velero_check_directories
+      addons_velero_print_vars | stdout_to_file "$VELERO_S3_ENV"
       footer
       echo "Configuration saved to '$VELERO_S3_ENV'"
       footer
@@ -174,13 +174,13 @@ addon_velero_config() {
   fi
 }
 
-addon_velero_install() {
-  addon_velero_export_variables
+addons_velero_install() {
+  addons_velero_export_variables
   if [ ! -f "$VELERO_S3_ENV" ]; then
     echo "Configure Velero calling the 'config' subcommand"
     exit 1
   fi
-  addon_velero_check_directories
+  addons_velero_check_directories
   _addon="velero"
   _ns="$VELERO_NAMESPACE"
   _repo_name="$VELERO_HELM_REPO_NAME"
@@ -233,8 +233,8 @@ addon_velero_install() {
   footer
 }
 
-addon_velero_remove() {
-  addon_velero_export_variables
+addons_velero_remove() {
+  addons_velero_export_variables
   _addon="velero"
   _ns="$VELERO_NAMESPACE"
   _values_yaml="$VELERO_HELM_VALUES_YAML"
@@ -254,11 +254,11 @@ addon_velero_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_velero_clean_directories
+  addons_velero_clean_directories
 }
 
-addon_velero_status() {
-  addon_velero_export_variables
+addons_velero_status() {
+  addons_velero_export_variables
   _addon="velero"
   _ns="$VELERO_NAMESPACE"
   _release="$VELERO_HELM_RELEASE"
@@ -270,8 +270,8 @@ addon_velero_status() {
   fi
 }
 
-addon_velero_summary() {
-  addon_velero_export_variables
+addons_velero_summary() {
+  addons_velero_export_variables
   _addon="velero"
   _ns="$VELERO_NAMESPACE"
   _release="$VELERO_HELM_RELEASE"
@@ -279,13 +279,13 @@ addon_velero_summary() {
 }
 
 
-addon_velero_command() {
+addons_velero_command() {
   case "$1" in
-  config) addon_velero_config ;;
-  install) addon_velero_install ;;
-  remove) addon_velero_remove ;;
-  status) addon_velero_status ;;
-  summary) addon_velero_summary ;;
+  config) addons_velero_config ;;
+  install) addons_velero_install ;;
+  remove) addons_velero_remove ;;
+  status) addons_velero_status ;;
+  summary) addons_velero_summary ;;
   *)
     echo "Unknown velero subcommand '$1'"
     exit 1
@@ -293,7 +293,7 @@ addon_velero_command() {
   esac
 }
 
-addon_velero_command_list() {
+addons_velero_command_list() {
   echo "config install remove status summary"
 }
 

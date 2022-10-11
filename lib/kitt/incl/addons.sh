@@ -82,6 +82,11 @@ if [ -d "$INCL_DIR" ]; then
     [ "$INCL_ADDONS_VPA_SH" = "1" ] || . "$INCL_DIR/addons/vpa.sh"
     ADDON_LIST="$ADDON_LIST vpa"
   fi
+  # shellcheck source=./addons/zabbix.sh
+  if [ -f "$INCL_DIR/addons/zabbix.sh" ]; then
+    [ "$INCL_ADDONS_ZABBIX_SH" = "1" ] || . "$INCL_DIR/addons/zabbix.sh"
+    ADDON_LIST="$ADDON_LIST zabbix"
+  fi
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -91,39 +96,51 @@ fi
 # Functions
 # ---------
 
-check_addon_directories() {
-  for _d in "$CLUST_HELM_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR" \
-    "$CLUST_SECRETS_DIR"; do
+addons_check_directories() {
+  for _d in "$CLUST_ENVS_DIR" "$CLUST_HELM_DIR" "$CLUST_KUBECTL_DIR" \
+    "$CLUST_NS_KUBECTL_DIR" "$CLUST_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_command() {
+addons_export_variables() {
+  # Check if we need to run the function
+  [ -z "$__addons_export_variables" ] || return 0
+  _cluster="$1"
+  cluster_export_variables "$_cluster"  
+  addons_zabbix_export_variables "$_cluster"
+  # set variable to avoid running the function twice
+  __apps_export_variables="1"
+}
+
+addons_command() {
   _addon="$1"
   _command="$2"
-  check_addon_directories
+  _cluster="$3"
+  addons_check_directories
   case "$_addon" in
-  dashboard) addon_dashboard_command "$_command" ;;
-  ebs) addon_ebs_command "$_command" ;;
-  efs) addon_efs_command "$_command" ;;
-  goldilocks) addon_goldilocks_command "$_command" ;;
-  ingress) addon_ingress_command "$_command" ;;
-  loki) addon_loki_command "$_command" ;;
-  minio) addon_minio_command "$_command" ;;
-  metrics-server) addon_metrics_server_command "$_command" ;;
-  prometheus) addon_prometheus_command "$_command" ;;
-  promtail) addon_promtail_command "$_command" ;;
-  velero) addon_velero_command "$_command" ;;
-  vpa) addon_vpa_command "$_command" ;;
+  dashboard) addons_dashboard_command "$_command" "$_cluster" ;;
+  ebs) addons_ebs_command "$_command" "$_cluster" ;;
+  efs) addons_efs_command "$_command" "$_cluster" ;;
+  goldilocks) addons_goldilocks_command "$_command" "$_cluster" ;;
+  ingress) addons_ingress_command "$_command" "$_cluster" ;;
+  loki) addons_loki_command "$_command" "$_cluster" ;;
+  minio) addons_minio_command "$_command" "$_cluster" ;;
+  metrics-server) addons_metrics_server_command "$_command" "$_cluster" ;;
+  prometheus) addons_prometheus_command "$_command" "$_cluster" ;;
+  promtail) addons_promtail_command "$_command" "$_cluster" ;;
+  velero) addons_velero_command "$_command" "$_cluster" ;;
+  vpa) addons_vpa_command "$_command" "$_cluster" ;;
+  zabbix) addons_zabbix_command "$_command" "$_cluster" ;;
   esac
   case "$_command" in
-    status|summary) ;;
-    *) cluster_git_update ;;
+  status | summary) ;;
+  *) cluster_git_update ;;
   esac
 }
 
-addon_list() {
-  _default_order="ingress dashboard ebs efs prometheus loki promtail"
+addons_list() {
+  _default_order="ingress dashboard ebs efs prometheus loki promtail zabbix"
   _default_order="$_default_order minio velero metrics-server vpa goldilocks"
   [ "$1" ] && _order="$1" || _order="$_default_order"
   for _a in $_order; do
@@ -133,70 +150,72 @@ addon_list() {
   done
 }
 
-addon_command_list() {
+addons_command_list() {
   _addon="$1"
   case "$_addon" in
-  dashboard) addon_dashboard_command_list ;;
-  ebs) addon_ebs_command_list ;;
-  efs) addon_efs_command_list ;;
-  goldilocks) addon_goldilocks_command_list ;;
-  ingress) addon_ingress_command_list ;;
-  loki) addon_loki_command_list ;;
-  minio) addon_minio_command_list ;;
-  metrics-server) addon_metrics_server_command_list ;;
-  prometheus) addon_prometheus_command_list ;;
-  promtail) addon_promtail_command_list ;;
-  velero) addon_velero_command_list ;;
-  vpa) addon_vpa_command_list ;;
+  dashboard) addons_dashboard_command_list ;;
+  ebs) addons_ebs_command_list ;;
+  efs) addons_efs_command_list ;;
+  goldilocks) addons_goldilocks_command_list ;;
+  ingress) addons_ingress_command_list ;;
+  loki) addons_loki_command_list ;;
+  minio) addons_minio_command_list ;;
+  metrics-server) addons_metrics_server_command_list ;;
+  prometheus) addons_prometheus_command_list ;;
+  promtail) addons_promtail_command_list ;;
+  velero) addons_velero_command_list ;;
+  vpa) addons_vpa_command_list ;;
+  zabbix) addons_zabbix_command_list ;;
   esac
 }
 
-addon_sets() {
+addons_sets() {
   echo "all eks-all eks-backups k3d-all k3d-backups monitoring"
 }
 
-addon_set_list() {
+addons_set_list() {
   case "$1" in
-  all) addon_list;;
+  all) addons_list ;;
   eks-all)
-    addon_list "ingress dashboard ebs efs prometheus loki promtail velero " \
-               "metrics-server vpa goldilocks"
+    addons_list "ingress dashboard ebs efs prometheus loki promtail zabbix " \
+      "velero metrics-server vpa goldilocks"
     ;;
-  eks-backups) addon_list "velero" ;;
+  eks-backups) addons_list "velero" ;;
   k3d-all)
-    addon_list "ingress dashboard prometheus loki promtail minio velero " \
-               "vpa goldilocks"
+    addons_list "ingress dashboard prometheus loki promtail zabbix minio " \
+      "velero vpa goldilocks"
     ;;
-  k3d-backups) addon_list "minio velero" ;;
-  monitoring) addon_list "prometheus loki promtail" ;;
+  k3d-backups) addons_list "minio velero" ;;
+  monitoring) addons_list "prometheus loki promtail zabbix" ;;
   esac
 }
 
-addon_set_command_list() {
-  _addon_set="$1"
-  _addon_cmnd_list=""
-  for _addon in $(addon_set_list "$_addon_set"); do
-    for _addon_cmnd in $(addon_command_list "$_addon"); do
-      if ! echo "$_addon_cmnd_list" | grep -q -w "${_addon_cmnd}"; then
-        _addon_cmnd_list="$_addon_cmnd_list ${_addon_cmnd}"
+addons_set_command_list() {
+  _addons_set="$1"
+  _addons_cmnd_list=""
+  for _addon in $(addons_set_list "$_addons_set"); do
+    for _addons_cmnd in $(addons_command_list "$_addon"); do
+      if ! echo "$_addons_cmnd_list" | grep -q -w "${_addons_cmnd}"; then
+        _addons_cmnd_list="$_addons_cmnd_list ${_addons_cmnd}"
       fi
     done
   done
-  echo "${_addon_cmnd_list% }"
-}    
+  echo "${_addons_cmnd_list% }"
+}
 
-addon_set_command() {
-  _addon_set="$1"
+addons_set_command() {
+  _addons_set="$1"
   _command="$2"
-  for _addon in $(addon_set_list "$_addon_set"); do
-    if addon_command_list "$_addon" | grep -q -w "${_command}"; then
+  _cluster="$3"
+  for _addon in $(addons_set_list "$_addons_set"); do
+    if addons_command_list "$_addon" | grep -q -w "${_command}"; then
       if [ "$_command" != "summary" ]; then
         read_bool "Execute command '$_command' for addon '$_addon'" "Yes"
       else
         READ_VALUE="true"
       fi
       if is_selected "${READ_VALUE}"; then
-        addon_command "$_addon" "$_command"
+        addons_command "$_addon" "$_command" "$_cluster"
       fi
     fi
   done

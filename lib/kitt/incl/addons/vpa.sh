@@ -38,8 +38,8 @@ fi
 # Functions
 # ---------
 
-addon_vpa_export_variables() {
-  [ -z "$__addon_vpa_export_variables" ] || return 0
+addons_vpa_export_variables() {
+  [ -z "$__addons_vpa_export_variables" ] || return 0
   # Directories
   export VPA_TMPL_DIR="$TMPL_DIR/addons/vpa"
   export VPA_HELM_DIR="$CLUST_HELM_DIR/vpa"
@@ -48,16 +48,16 @@ addon_vpa_export_variables() {
   # Files
   export VPA_HELM_VALUES_YAML="$VPA_HELM_DIR/values.yaml"
   # Set variable to avoid loading variables twice
-  __addon_vpa_export_variables="1"
+  __addons_vpa_export_variables="1"
 }
 
-addon_vpa_check_directories() {
+addons_vpa_check_directories() {
   for _d in $VPA_HELM_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_vpa_clean_directories() {
+addons_vpa_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in $VPA_HELM_DIR; do
     if [ -d "$_d" ]; then
@@ -66,9 +66,9 @@ addon_vpa_clean_directories() {
   done
 }
 
-addon_vpa_install() {
-  addon_vpa_export_variables
-  addon_vpa_check_directories
+addons_vpa_install() {
+  addons_vpa_export_variables
+  addons_vpa_check_directories
   _addon="vpa"
   _ns="$VPA_NAMESPACE"
   _repo_name="$VPA_HELM_REPO_NAME"
@@ -91,8 +91,8 @@ addon_vpa_install() {
   footer
 }
 
-addon_vpa_remove() {
-  addon_vpa_export_variables
+addons_vpa_remove() {
+  addons_vpa_export_variables
   _addon="vpa"
   _ns="$VPA_NAMESPACE"
   _values_yaml="$VPA_HELM_VALUES_YAML"
@@ -112,11 +112,11 @@ addon_vpa_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_vpa_clean_directories
+  addons_vpa_clean_directories
 }
 
-addon_vpa_status() {
-  addon_vpa_export_variables
+addons_vpa_status() {
+  addons_vpa_export_variables
   _addon="vpa"
   _ns="$VPA_NAMESPACE"
   _release="$VPA_HELM_RELEASE"
@@ -128,25 +128,25 @@ addon_vpa_status() {
   fi
 }
 
-addon_vpa_summary() {
-  addon_vpa_export_variables
+addons_vpa_summary() {
+  addons_vpa_export_variables
   _addon="vpa"
   _ns="$VPA_NAMESPACE"
   _release="$VPA_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_vpa_command() {
+addons_vpa_command() {
   case "$1" in
-    install) addon_vpa_install ;;
-    remove) addon_vpa_remove ;;
-    status) addon_vpa_status ;;
-    summary) addon_vpa_summary ;;
+    install) addons_vpa_install ;;
+    remove) addons_vpa_remove ;;
+    status) addons_vpa_status ;;
+    summary) addons_vpa_summary ;;
     *) echo "Unknown vpa subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_vpa_command_list() {
+addons_vpa_command_list() {
   echo "install remove status summary"
 }
 
