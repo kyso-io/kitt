@@ -5,6 +5,8 @@ zabbixProxy:
     repository: __ZABBIX_PROXY_IMAGE_REPOSITORY__
     # tag: alpine-6.2.0
     tag: __ZABBIX_PROXY_IMAGE_TAG__
+    imagePullSecrets:
+      - name: "__PULL_SECRETS_NAME__"
   env:
     - name: ZBX_PROXYMODE
       value: 0
@@ -20,3 +22,5 @@ zabbixAgent:
     repository: __ZABBIX_AGENT2_IMAGE_REPOSITORY__
     # tag: alpine-6.2.0
     tag: __ZABBIX_AGENT2_IMAGE_TAG__
+    imagePullSecrets:
+      - name: "__PULL_SECRETS_NAME__"
