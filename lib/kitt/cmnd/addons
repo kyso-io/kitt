@@ -30,7 +30,7 @@ fi
 # Functions
 # ---------
 
-usage_addon_dsc() {
+usage_addons_dsc() {
   _addon="$1"
   if [ -f "$INCL_DIR/addons/$_addon.sh" ]; then
     sed -ne "s/^\( *#.*\|\)CMND_DSC=\"\(.*\)\".*/\2/p" \
@@ -42,22 +42,22 @@ usage_addon_dsc() {
 
 # Usage function
 usage() {
-  _addon_list="$(addon_list)"
-  if [ "$_addon_list" ]; then
-    _addon_usage_list="$(
-      for _a in $_addon_list; do 
-        echo "  - $(usage_addon_dsc "$_a")";
+  _addons_list="$(addons_list)"
+  if [ "$_addons_list" ]; then
+    _addons_usage_list="$(
+      for _a in $_addons_list; do
+        echo "  - $(usage_addons_dsc "$_a")";
       done)"
   else
-    _addon_usage_list=""
+    _addons_usage_list=""
   fi
-  _addon_sets="$(addon_sets)"
-  if [ "$_addon_sets" ]; then
-    _addon_set_usage_list="$(
-      for _as in $_addon_sets; do echo "  - $_as"; done
+  _addons_sets="$(addons_sets)"
+  if [ "$_addons_sets" ]; then
+    _addons_set_usage_list="$(
+      for _as in $_addons_sets; do echo "  - $_as"; done
     )"
   else
-    _addon_set_usage_list=""
+    _addons_set_usage_list=""
   fi
   cat <<EOF
 Command to ${CMND_DSC#*: }.
@@ -69,15 +69,15 @@ Usage:
 Where TOOL can be:
 
 $(
-  if [ "$_addon_usage_list" ]; then
+  if [ "$_addons_usage_list" ]; then
     echo "- A single add-on:"
     echo ""
-    echo "$_addon_usage_list";
+    echo "$_addons_usage_list";
     echo ""
-    if [ "$_addon_set_usage_list" ]; then
+    if [ "$_addons_set_usage_list" ]; then
       echo "- A set of add-ons:"
       echo ""
-      echo "$_addon_set_usage_list";
+      echo "$_addons_set_usage_list";
       echo ""
     fi
   fi
@@ -101,33 +101,33 @@ Usage:
 
 Where SUBCOMMAND is one of:
 
-$(for _cmd in $(addon_command_list "$_addon"); do echo "- $_cmd"; done)
+$(for _cmd in $(addons_command_list "$_addon"); do echo "- $_cmd"; done)
 
 If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
 EOF
   exit "$2"
 }
 
-usage_addon_set() {
-  _addon_set="$1"
+usage_addons_set() {
+  _addons_set="$1"
   cat <<EOF
-Subcommand to manage the '$_addon_set' addon set on a kubernetes cluster.
+Subcommand to manage the '$_addons_set' addon set on a kubernetes cluster.
 
 Usage:
 
-  $APP_BASE_NAME $(basename "$0") $_addon_set SUBCOMMAND [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") $_addons_set SUBCOMMAND [CLUSTER_NAME]
 
 The addons included are:
 
 $(
-for _a in $(addon_set_list "$_addon_set"); do
-  echo "- $(usage_addon_dsc "$_a")";
+for _a in $(addons_set_list "$_addons_set"); do
+  echo "- $(usage_addons_dsc "$_a")";
 done
 )
 
 And SUBCOMMAND is one of:
 
-$(for _cmd in $(addon_set_command_list "$_addon_set"); do echo "- $_cmd"; done)
+$(for _cmd in $(addons_set_command_list "$_addons_set"); do echo "- $_cmd"; done)
 
 If CLUSTER_NAME is not passed '$CLUSTER_NAME' is used.
 EOF
@@ -139,31 +139,31 @@ EOF
 # ----
 
 _addon=""
-for _a in $(addon_list); do
+for _a in $(addons_list); do
   if [ "$1" = "$_a" ]; then
     _addon="$_a"
     break
   fi
 done
 
-_addon_set=""
-for _s in $(addon_sets); do
+_addons_set=""
+for _s in $(addons_sets); do
   if [ "$1" = "$_s" ]; then
-    _addon_set="$_s"
+    _addons_set="$_s"
     break
   fi
 done
 
 _command=""
 if [ "$_addon" ]; then
-  for _c in $(addon_command_list "$_addon"); do
+  for _c in $(addons_command_list "$_addon"); do
     if [ "$2" = "$_c" ]; then
       _command="$2"
       break
     fi
   done
-elif [ "$_addon_set" ]; then
-  for _c in $(addon_set_command_list "$_addon_set"); do
+elif [ "$_addons_set" ]; then
+  for _c in $(addons_set_command_list "$_addons_set"); do
     if [ "$2" = "$_c" ]; then
       _command="$2"
       break
@@ -172,19 +172,19 @@ elif [ "$_addon_set" ]; then
 fi
 
 _cluster="$3"
-cluster_export_variables "$_cluster"
+addons_export_variables "$_cluster"
 
 if [ "$_addon" ]; then
   if [ "$_command" ]; then
-    addon_command "$_addon" "$_command"
+    addons_command "$_addon" "$_command" "$_cluster"
   else
     usage_addon "$_addon" 0
   fi
-elif [ "$_addon_set" ]; then
+elif [ "$_addons_set" ]; then
   if [ "$_command" ]; then
-    addon_set_command "$_addon_set" "$_command"
+    addons_set_command "$_addons_set" "$_command" "$_cluster"
   else
-    usage_addon_set "$_addon_set" 0
+    usage_addons_set "$_addons_set" 0
   fi
 else
   usage 0

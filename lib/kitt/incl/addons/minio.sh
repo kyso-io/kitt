@@ -44,8 +44,8 @@ fi
 # Functions
 # ---------
 
-addon_minio_export_variables() {
-  [ -z "$__addon_minio_export_variables" ] || return 0
+addons_minio_export_variables() {
+  [ -z "$__addons_minio_export_variables" ] || return 0
   # Directories
   export MINIO_TMPL_DIR="$TMPL_DIR/addons/minio"
   export MINIO_HELM_DIR="$CLUST_HELM_DIR/minio"
@@ -66,16 +66,16 @@ addon_minio_export_variables() {
   export MINIO_PV_YAML="$MINIO_KUBECTL_DIR/pv.yaml"
   export MINIO_PVC_YAML="$MINIO_KUBECTL_DIR/pvc.yaml"
   # Set variable to avoid loading variables twice
-  __addon_minio_export_variables="1"
+  __addons_minio_export_variables="1"
 }
 
-addon_minio_check_directories() {
+addons_minio_check_directories() {
   for _d in "$MINIO_HELM_DIR"  "$MINIO_KUBECTL_DIR" "$MINIO_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_minio_clean_directories() {
+addons_minio_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$MINIO_HELM_DIR" "$MINIO_KUBECTL_DIR" "$MINIO_SECRETS_DIR"; do
     if [ -d "$_d" ]; then
@@ -84,9 +84,9 @@ addon_minio_clean_directories() {
   done
 }
 
-addon_minio_install() {
-  addon_minio_export_variables
-  addon_minio_check_directories
+addons_minio_install() {
+  addons_minio_export_variables
+  addons_minio_check_directories
   _addon="minio"
   _ns="$MINIO_NAMESPACE"
   _repo_name="$MINIO_HELM_REPO_NAME"
@@ -174,7 +174,7 @@ addon_minio_install() {
     kubectl_delete "$_auth_yaml" || true
   fi
   # Create ingress definition
-  create_addon_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
+  create_addons_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
     "$_auth_name" "$_release"
   # Apply the YAML files
   for _yaml in "$_auth_yaml" "$_ingress_yaml"; do
@@ -183,8 +183,8 @@ addon_minio_install() {
   footer
 }
 
-addon_minio_remove() {
-  addon_minio_export_variables
+addons_minio_remove() {
+  addons_minio_export_variables
   _addon="minio"
   _ns="$MINIO_NAMESPACE"
   _ingress_name="$MINIO_BASIC_AUTH_NAME"
@@ -217,11 +217,11 @@ addon_minio_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_minio_clean_directories
+  addons_minio_clean_directories
 }
 
-addon_minio_status() {
-  addon_minio_export_variables
+addons_minio_status() {
+  addons_minio_export_variables
   _addon="minio"
   _ns="$MINIO_NAMESPACE"
   _release="$MINIO_HELM_RELEASE"
@@ -233,16 +233,16 @@ addon_minio_status() {
   fi
 }
 
-addon_minio_summary() {
-  addon_minio_export_variables
+addons_minio_summary() {
+  addons_minio_export_variables
   _addon="minio"
   _ns="$MINIO_NAMESPACE"
   _release="$MINIO_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_minio_uris() {
-  addon_minio_export_variables
+addons_minio_uris() {
+  addons_minio_export_variables
   _hostname="minio.$CLUSTER_DOMAIN"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" && [ -f "$MINIO_AUTH_FILE" ]; then
     _uap="$(file_to_stdout "$MINIO_AUTH_FILE")"
@@ -252,18 +252,18 @@ addon_minio_uris() {
   fi
 }
 
-addon_minio_command() {
+addons_minio_command() {
   case "$1" in
-    install) addon_minio_install ;;
-    remove) addon_minio_remove ;;
-    status) addon_minio_status ;;
-    summary) addon_minio_summary ;;
-    uris) addon_minio_uris ;;
+    install) addons_minio_install ;;
+    remove) addons_minio_remove ;;
+    status) addons_minio_status ;;
+    summary) addons_minio_summary ;;
+    uris) addons_minio_uris ;;
     *) echo "Unknown minio subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_minio_command_list() {
+addons_minio_command_list() {
   echo "install remove status summary uris"
 }
 

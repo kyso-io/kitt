@@ -39,8 +39,8 @@ fi
 # Functions
 # ---------
 
-addon_ingress_export_variables() {
-  [ -z "$_addon_ingress_export_variables" ] || return 0
+addons_ingress_export_variables() {
+  [ -z "$_addons_ingress_export_variables" ] || return 0
   # Directories
   export INGRESS_TMPL_DIR="$TMPL_DIR/addons/ingress"
   export INGRESS_HELM_DIR="$CLUST_HELM_DIR/ingress"
@@ -54,16 +54,16 @@ addon_ingress_export_variables() {
   _cert_yaml="$INGRESS_KUBECTL_DIR/$INGRESS_CERT_NAME$SOPS_EXT.yaml"
   export INGRESS_CERT_YAML="$_cert_yaml"
   # Set variable to avoid loading variables twice
-  _addon_ingress_export_variables="1"
+  _addons_ingress_export_variables="1"
 }
 
-addon_ingress_check_directories() {
+addons_ingress_check_directories() {
   for _d in "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_ingress_clean_directories() {
+addons_ingress_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
@@ -72,7 +72,7 @@ addon_ingress_clean_directories() {
   done
 }
 
-addon_ingress_create_cert_yaml() {
+addons_ingress_create_cert_yaml() {
   _ns="$INGRESS_NAMESPACE"
   _cert_name="$INGRESS_CERT_NAME"
   _cert_crt="$INGRESS_CERT_CRT"
@@ -81,16 +81,16 @@ addon_ingress_create_cert_yaml() {
     "$_cert_yaml"
 }
 
-addon_ingress_newcert() {
-  addon_ingress_export_variables
+addons_ingress_newcert() {
+  addons_ingress_export_variables
   _cert_yaml="$INGRESS_CERT_YAML"
-  addon_ingress_create_cert_yaml "$_cert_yaml"
+  addons_ingress_create_cert_yaml "$_cert_yaml"
   kubectl_apply "$_cert_yaml"
 }
 
-addon_ingress_install() {
-  addon_ingress_export_variables
-  addon_ingress_check_directories
+addons_ingress_install() {
+  addons_ingress_export_variables
+  addons_ingress_check_directories
   _addon="ingress"
   _cert_name="$INGRESS_CERT_NAME"
   _cert_yaml="$INGRESS_CERT_YAML"
@@ -104,7 +104,7 @@ addon_ingress_install() {
   _chart="$INGRESS_HELM_CHART"
   header "Installing '$_addon'"
   # Create _cert_yaml
-  addon_ingress_create_cert_yaml "$_cert_yaml"
+  addons_ingress_create_cert_yaml "$_cert_yaml"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
   # Create namespace if needed
@@ -129,8 +129,8 @@ addon_ingress_install() {
   footer
 }
 
-addon_ingress_remove() {
-  addon_ingress_export_variables
+addons_ingress_remove() {
+  addons_ingress_export_variables
   _addon="ingress"
   _ns="$INGRESS_NAMESPACE"
   _secrets="$INGRESS_CERT_YAML"
@@ -153,11 +153,11 @@ addon_ingress_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_ingress_clean_directories
+  addons_ingress_clean_directories
 }
 
-addon_ingress_status() {
-  addon_ingress_export_variables
+addons_ingress_status() {
+  addons_ingress_export_variables
   _addon="ingress"
   _ns="$INGRESS_NAMESPACE"
   if find_namespace "$_ns"; then
@@ -167,21 +167,21 @@ addon_ingress_status() {
   fi
 }
 
-addon_ingress_summary() {
-  addon_ingress_export_variables
+addons_ingress_summary() {
+  addons_ingress_export_variables
   _addon="ingress"
   _ns="$INGRESS_NAMESPACE"
   _release="$INGRESS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_ingress_command() {
+addons_ingress_command() {
   case "$1" in
-  install) addon_ingress_install ;;
-  remove) addon_ingress_remove ;;
-  renew) addon_ingress_newcert ;;
-  status) addon_ingress_status ;;
-  summary) addon_ingress_summary ;;
+  install) addons_ingress_install ;;
+  remove) addons_ingress_remove ;;
+  renew) addons_ingress_newcert ;;
+  status) addons_ingress_status ;;
+  summary) addons_ingress_summary ;;
   *)
     echo "Unknown ingress subcommand '$1'"
     exit 1
@@ -189,7 +189,7 @@ addon_ingress_command() {
   esac
 }
 
-addon_ingress_command_list() {
+addons_ingress_command_list() {
   echo "install remove renew status summary"
 }
 

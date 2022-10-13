@@ -38,8 +38,8 @@ fi
 # Functions
 # ---------
 
-addon_promtail_export_variables() {
-  [ -z "$_addon_promtail_export_variables" ] || return 0
+addons_promtail_export_variables() {
+  [ -z "$_addons_promtail_export_variables" ] || return 0
   # Directories
   export PROMTAIL_TMPL_DIR="$TMPL_DIR/addons/promtail"
   export PROMTAIL_HELM_DIR="$CLUST_HELM_DIR/promtail"
@@ -48,16 +48,16 @@ addon_promtail_export_variables() {
   # Files
   export PROMTAIL_HELM_VALUES_YAML="$PROMTAIL_HELM_DIR/values.yaml"
   # Set variable to avoid loading variables twice
-  _addon_promtail_export_variables="1"
+  _addons_promtail_export_variables="1"
 }
 
-addon_promtail_check_directories() {
+addons_promtail_check_directories() {
   for _d in $PROMTAIL_HELM_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_promtail_clean_directories() {
+addons_promtail_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in $PROMTAIL_HELM_DIR; do
     if [ -d "$_d" ]; then
@@ -66,9 +66,9 @@ addon_promtail_clean_directories() {
   done
 }
 
-addon_promtail_install() {
-  addon_promtail_export_variables
-  addon_promtail_check_directories
+addons_promtail_install() {
+  addons_promtail_export_variables
+  addons_promtail_check_directories
   _addon="promtail"
   _ns="$PROMTAIL_NAMESPACE"
   _repo_name="$PROMTAIL_HELM_REPO_NAME"
@@ -91,8 +91,8 @@ addon_promtail_install() {
   footer
 }
 
-addon_promtail_remove() {
-  addon_promtail_export_variables
+addons_promtail_remove() {
+  addons_promtail_export_variables
   _addon="promtail"
   _ns="$PROMTAIL_NAMESPACE"
   _values_yaml="$PROMTAIL_HELM_VALUES_YAML"
@@ -112,11 +112,11 @@ addon_promtail_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_promtail_clean_directories
+  addons_promtail_clean_directories
 }
 
-addon_promtail_status() {
-  addon_promtail_export_variables
+addons_promtail_status() {
+  addons_promtail_export_variables
   _addon="promtail"
   _ns="$PROMTAIL_NAMESPACE"
   if find_namespace "$_ns"; then
@@ -127,25 +127,25 @@ addon_promtail_status() {
   fi
 }
 
-addon_promtail_summary() {
-  addon_promtail_export_variables
+addons_promtail_summary() {
+  addons_promtail_export_variables
   _addon="promtail"
   _ns="$PROMTAIL_NAMESPACE"
   _release="$PROMTAIL_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_promtail_command() {
+addons_promtail_command() {
   case "$1" in
-    install) addon_promtail_install ;;
-    remove) addon_promtail_remove ;;
-    status) addon_promtail_status ;;
-    summary) addon_promtail_summary ;;
+    install) addons_promtail_install ;;
+    remove) addons_promtail_remove ;;
+    status) addons_promtail_status ;;
+    summary) addons_promtail_summary ;;
     *) echo "Unknown promtail subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_promtail_command_list() {
+addons_promtail_command_list() {
   echo "install remove status summary"
 }
 

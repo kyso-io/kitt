@@ -41,8 +41,8 @@ fi
 # Functions
 # ---------
 
-addon_prometheus_export_variables() {
-  [ -z "$_addon_prometheus_export_variables" ] || return 0
+addons_prometheus_export_variables() {
+  [ -z "$_addons_prometheus_export_variables" ] || return 0
   # Directories
   export PROMETHEUS_TMPL_DIR="$TMPL_DIR/addons/prometheus"
   export PROMETHEUS_HELM_DIR="$CLUST_HELM_DIR/prometheus"
@@ -62,17 +62,17 @@ addon_prometheus_export_variables() {
   GRAFANA_ADMIN_PASS="$PROMETHEUS_SECRETS_DIR/grafana_admin_pass${SOPS_EXT}.txt"
   export GRAFANA_ADMIN_PASS
   # Set variable to avoid loading variables twice
-  _addon_prometheus_export_variables="1"
+  _addons_prometheus_export_variables="1"
 }
 
-addon_prometheus_check_directories() {
+addons_prometheus_check_directories() {
   for _d in "$PROMETHEUS_HELM_DIR"  "$PROMETHEUS_KUBECTL_DIR" \
     "$PROMETHEUS_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_prometheus_clean_directories() {
+addons_prometheus_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$PROMETHEUS_HELM_DIR" "$PROMETHEUS_KUBECTL_DIR" \
     "$PROMETHEUS_SECRETS_DIR"; do
@@ -82,9 +82,9 @@ addon_prometheus_clean_directories() {
   done
 }
 
-addon_prometheus_install() {
-  addon_prometheus_export_variables
-  addon_prometheus_check_directories
+addons_prometheus_install() {
+  addons_prometheus_export_variables
+  addons_prometheus_check_directories
   _addon="prometheus"
   _ns="$PROMETHEUS_NAMESPACE"
   _repo_name="$PROMETHEUS_HELM_REPO_NAME"
@@ -131,7 +131,7 @@ addon_prometheus_install() {
     kubectl_delete "$_auth_yaml" || true
   fi
   # Create ingress definition
-  create_addon_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
+  create_addons_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
     "$_auth_name" "$_release"
   # Apply the YAML files
   for _yaml in "$_auth_yaml" "$_ingress_yaml"; do
@@ -148,8 +148,8 @@ addon_prometheus_install() {
   footer
 }
 
-addon_prometheus_remove() {
-  addon_prometheus_export_variables
+addons_prometheus_remove() {
+  addons_prometheus_export_variables
   _addon="prometheus"
   _ns="$PROMETHEUS_NAMESPACE"
   _ingress_name="$PROMETHEUS_BASIC_AUTH_NAME"
@@ -176,11 +176,11 @@ addon_prometheus_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_prometheus_clean_directories
+  addons_prometheus_clean_directories
 }
 
-addon_prometheus_status() {
-  addon_prometheus_export_variables
+addons_prometheus_status() {
+  addons_prometheus_export_variables
   _addon="prometheus"
   _ns="$PROMETHEUS_NAMESPACE"
   _release="$PROMETHEUS_HELM_RELEASE"
@@ -192,16 +192,16 @@ addon_prometheus_status() {
   fi
 }
 
-addon_prometheus_summary() {
-  addon_prometheus_export_variables
+addons_prometheus_summary() {
+  addons_prometheus_export_variables
   _addon="prometheus"
   _ns="$PROMETHEUS_NAMESPACE"
   _release="$PROMETHEUS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_prometheus_uris() {
-  addon_prometheus_export_variables
+addons_prometheus_uris() {
+  addons_prometheus_export_variables
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
     [ -f "$PROMETHEUS_AUTH_FILE" ]; then
     _uap="$(file_to_stdout "$PROMETHEUS_AUTH_FILE")"
@@ -221,18 +221,18 @@ addon_prometheus_uris() {
   done
 }
 
-addon_prometheus_command() {
+addons_prometheus_command() {
   case "$1" in
-    install) addon_prometheus_install ;;
-    remove) addon_prometheus_remove ;;
-    status) addon_prometheus_status ;;
-    summary) addon_prometheus_summary ;;
-    uris) addon_prometheus_uris ;;
+    install) addons_prometheus_install ;;
+    remove) addons_prometheus_remove ;;
+    status) addons_prometheus_status ;;
+    summary) addons_prometheus_summary ;;
+    uris) addons_prometheus_uris ;;
     *) echo "Unknown prometheus subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_prometheus_command_list() {
+addons_prometheus_command_list() {
   echo "install remove status summary uris"
 }
 

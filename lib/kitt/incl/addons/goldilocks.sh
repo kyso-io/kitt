@@ -40,8 +40,8 @@ fi
 # Functions
 # ---------
 
-addon_goldilocks_export_variables() {
-  [ -z "$__addon_goldilocks_export_variables" ] || return 0
+addons_goldilocks_export_variables() {
+  [ -z "$__addons_goldilocks_export_variables" ] || return 0
   # Directories
   export GOLDILOCKS_TMPL_DIR="$TMPL_DIR/addons/goldilocks"
   export GOLDILOCKS_HELM_DIR="$CLUST_HELM_DIR/goldilocks"
@@ -58,17 +58,17 @@ addon_goldilocks_export_variables() {
   _auth_yaml="$GOLDILOCKS_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export GOLDILOCKS_AUTH_YAML="$_auth_yaml"
   # Set variable to avoid loading variables twice
-  __addon_goldilocks_export_variables="1"
+  __addons_goldilocks_export_variables="1"
 }
 
-addon_goldilocks_check_directories() {
+addons_goldilocks_check_directories() {
   for _d in "$GOLDILOCKS_HELM_DIR" "$GOLDILOCKS_KUBECTL_DIR" \
     "$GOLDILOCKS_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_goldilocks_clean_directories() {
+addons_goldilocks_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$GOLDILOCKS_HELM_DIR" "$GOLDILOCKS_KUBECTL_DIR" \
     "$GOLDILOCKS_SECRETS_DIR"; do
@@ -78,9 +78,9 @@ addon_goldilocks_clean_directories() {
   done
 }
 
-addon_goldilocks_install() {
-  addon_goldilocks_export_variables
-  addon_goldilocks_check_directories
+addons_goldilocks_install() {
+  addons_goldilocks_export_variables
+  addons_goldilocks_check_directories
   _addon="goldilocks"
   _ns="$GOLDILOCKS_NAMESPACE"
   _repo_name="$GOLDILOCKS_HELM_REPO_NAME"
@@ -120,7 +120,7 @@ addon_goldilocks_install() {
     kubectl_delete "$_auth_yaml" || true
   fi
   # Create ingress definition
-  create_addon_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
+  create_addons_ingress_yaml "$_ns" "$_ingress_tmpl" "$_ingress_yaml" \
     "$_auth_name" "$_release"
   # Apply the YAML files
   for _yaml in "$_auth_yaml" "$_ingress_yaml"; do
@@ -129,8 +129,8 @@ addon_goldilocks_install() {
   footer
 }
 
-addon_goldilocks_remove() {
-  addon_goldilocks_export_variables
+addons_goldilocks_remove() {
+  addons_goldilocks_export_variables
   _addon="goldilocks"
   _ns="$GOLDILOCKS_NAMESPACE"
   _ingress_name="$MINIO_BASIC_AUTH_NAME"
@@ -156,11 +156,11 @@ addon_goldilocks_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_goldilocks_clean_directories
+  addons_goldilocks_clean_directories
 }
 
-addon_goldilocks_status() {
-  addon_goldilocks_export_variables
+addons_goldilocks_status() {
+  addons_goldilocks_export_variables
   _addon="goldilocks"
   _ns="$GOLDILOCKS_NAMESPACE"
   _release="$GOLDILOCKS_HELM_RELEASE"
@@ -172,16 +172,16 @@ addon_goldilocks_status() {
   fi
 }
 
-addon_goldilocks_summary() {
-  addon_goldilocks_export_variables
+addons_goldilocks_summary() {
+  addons_goldilocks_export_variables
   _addon="goldilocks"
   _ns="$GOLDILOCKS_NAMESPACE"
   _release="$GOLDILOCKS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_goldilocks_uris() {
-  addon_goldilocks_export_variables
+addons_goldilocks_uris() {
+  addons_goldilocks_export_variables
   _hostname="goldilocks.$CLUSTER_DOMAIN"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
     [ -f "$GOLDILOCKS_AUTH_FILE" ]; then
@@ -192,18 +192,18 @@ addon_goldilocks_uris() {
   fi
 }
 
-addon_goldilocks_command() {
+addons_goldilocks_command() {
   case "$1" in
-    install) addon_goldilocks_install ;;
-    remove) addon_goldilocks_remove ;;
-    status) addon_goldilocks_status ;;
-    summary) addon_goldilocks_summary ;;
-    uris) addon_goldilocks_uris ;;
+    install) addons_goldilocks_install ;;
+    remove) addons_goldilocks_remove ;;
+    status) addons_goldilocks_status ;;
+    summary) addons_goldilocks_summary ;;
+    uris) addons_goldilocks_uris ;;
     *) echo "Unknown goldilocks subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_goldilocks_command_list() {
+addons_goldilocks_command_list() {
   echo "install remove status summary uris"
 }
 

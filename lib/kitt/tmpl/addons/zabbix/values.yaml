@@ -1,0 +1,22 @@
+zabbixProxy:
+  enabled: true
+  image:
+    # repository: zabbix/zabbix-proxy-sqlite3
+    repository: __ZABBIX_PROXY_IMAGE_REPOSITORY__
+    # tag: alpine-6.2.0
+    tag: __ZABBIX_PROXY_IMAGE_TAG__
+  env:
+    - name: ZBX_PROXYMODE
+      value: 0
+    - name: ZBX_SERVER_HOST
+      value: "__ZABBIX_SERVER_HOST__"
+    - name: ZBX_SERVER_PORT
+      value: __ZABBIX_SERVER_PORT__
+
+zabbixAgent:
+  enabled: true
+  image:
+    # repository: zabbix/zabbix-agent2
+    repository: __ZABBIX_AGENT2_IMAGE_REPOSITORY__
+    # tag: alpine-6.2.0
+    tag: __ZABBIX_AGENT2_IMAGE_TAG__

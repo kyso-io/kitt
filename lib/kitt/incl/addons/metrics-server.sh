@@ -39,8 +39,8 @@ fi
 # Functions
 # ---------
 
-addon_metrics_server_export_variables() {
-  [ -z "$__addon_metrics_server_export_variables" ] || return 0
+addons_metrics_server_export_variables() {
+  [ -z "$__addons_metrics_server_export_variables" ] || return 0
   # Directories
   export METRICS_SERVER_TMPL_DIR="$TMPL_DIR/addons/metrics-server"
   export METRICS_SERVER_HELM_DIR="$CLUST_HELM_DIR/metrics-server"
@@ -49,16 +49,16 @@ addon_metrics_server_export_variables() {
   # Files
   export METRICS_SERVER_HELM_VALUES_YAML="$METRICS_SERVER_HELM_DIR/values.yaml"
   # Set variable to avoid loading variables twice
-  __addon_metrics_server_export_variables="1"
+  __addons_metrics_server_export_variables="1"
 }
 
-addon_metrics_server_check_directories() {
+addons_metrics_server_check_directories() {
   for _d in $METRICS_SERVER_HELM_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_metrics_server_clean_directories() {
+addons_metrics_server_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in $METRICS_SERVER_HELM_DIR; do
     if [ -d "$_d" ]; then
@@ -67,9 +67,9 @@ addon_metrics_server_clean_directories() {
   done
 }
 
-addon_metrics_server_install() {
-  addon_metrics_server_export_variables
-  addon_metrics_server_check_directories
+addons_metrics_server_install() {
+  addons_metrics_server_export_variables
+  addons_metrics_server_check_directories
   _addon="metrics-server"
   _ns="$METRICS_SERVER_NAMESPACE"
   _repo_name="$METRICS_SERVER_HELM_REPO_NAME"
@@ -92,8 +92,8 @@ addon_metrics_server_install() {
   footer
 }
 
-addon_metrics_server_remove() {
-  addon_metrics_server_export_variables
+addons_metrics_server_remove() {
+  addons_metrics_server_export_variables
   _addon="metrics-server"
   _ns="$METRICS_SERVER_NAMESPACE"
   _values_yaml="$METRICS_SERVER_HELM_VALUES_YAML"
@@ -109,11 +109,11 @@ addon_metrics_server_remove() {
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
-  addon_metrics_server_clean_directories
+  addons_metrics_server_clean_directories
 }
 
-addon_metrics_server_status() {
-  addon_metrics_server_export_variables
+addons_metrics_server_status() {
+  addons_metrics_server_export_variables
   _addon="metrics-server"
   _ns="$METRICS_SERVER_NAMESPACE"
   _release="$METRICS_SERVER_HELM_RELEASE"
@@ -125,25 +125,25 @@ addon_metrics_server_status() {
   fi
 }
 
-addon_metrics_server_summary() {
-  addon_metrics_server_export_variables
+addons_metrics_server_summary() {
+  addons_metrics_server_export_variables
   _addon="metrics-server"
   _ns="$METRICS_SERVER_NAMESPACE"
   _release="$METRICS_SERVER_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_metrics_server_command() {
+addons_metrics_server_command() {
   case "$1" in
-    install) addon_metrics_server_install ;;
-    remove) addon_metrics_server_remove ;;
-    status) addon_metrics_server_status ;;
-    summary) addon_metrics_server_summary ;;
+    install) addons_metrics_server_install ;;
+    remove) addons_metrics_server_remove ;;
+    status) addons_metrics_server_status ;;
+    summary) addons_metrics_server_summary ;;
     *) echo "Unknown metrics-server subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_metrics_server_command_list() {
+addons_metrics_server_command_list() {
   echo "install remove status summary"
 }
 

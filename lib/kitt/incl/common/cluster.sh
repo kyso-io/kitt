@@ -50,6 +50,7 @@ cluster_export_variables() {
   export VOLUMES_DIR="$APP_DATA_DIR/volumes"
   export CLUSTER_DIR="$CLUSTERS_DIR/$CLUST_NAME"
   export CLUST_EKS_DIR="$CLUSTER_DIR/eks"
+  export CLUST_ENVS_DIR="$CLUSTER_DIR/envs"
   export CLUST_EXTSVC_DIR="$CLUSTER_DIR/extsvc"
   export CLUST_HELM_DIR="$CLUSTER_DIR/helm"
   export CLUST_K3D_DIR="$CLUSTER_DIR/k3d"
@@ -62,6 +63,13 @@ cluster_export_variables() {
   export CLUSTER_CONFIG="$CLUSTER_DIR/config"
   # Export CLUSTER_CONFIG variables
   export_env_file_vars "$CLUSTER_CONFIG" "CLUSTER"
+  if [ -d "$CLUST_ENVS_DIR" ]; then
+    while read -r _env_file; do
+      export_env_file_vars "$_env_file" "CLUSTER"
+    done <<EOF
+$(find "$CLUST_ENVS_DIR" -name '*.env')
+EOF
+  fi
   # Check if configuration is right
   export CLUSTER_NAME="${CLUSTER_NAME:-$CLUST_NAME}"
   if [ "$CLUSTER_NAME" != "$CLUST_NAME" ]; then
@@ -160,8 +168,9 @@ cluster_git_update() {
 }
 
 cluster_remove_directories() {
-  for _d in "$CLUST_EKS_DIR" "$CLUST_EXTSVC_DIR" "$CLUST_HELM_DIR" \
-    "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" "$CLUST_NS_KUBECTL_DIR"; do
+  for _d in "$CLUST_EKS_DIR" "$CLUST_ENVS_DIR" "$CLUST_EXTSVC_DIR" \
+    "$CLUST_HELM_DIR" "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" \
+    "$CLUST_NS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
       rm -rf "$_d"
     fi

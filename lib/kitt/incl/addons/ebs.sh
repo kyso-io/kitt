@@ -40,8 +40,8 @@ fi
 # Functions
 # ---------
 
-addon_ebs_export_variables() {
-  [ -z "$__addon_ebs_export_variables" ] || return 0
+addons_ebs_export_variables() {
+  [ -z "$__addons_ebs_export_variables" ] || return 0
   # Load EKS variables
   ctool_eks_export_variables
   # Directories
@@ -56,16 +56,16 @@ addon_ebs_export_variables() {
   export EBS_HELM_VALUES_YAML="$EBS_HELM_DIR/values.yaml"
   export EBS_STORAGECLASS_YAML="$EBS_KUBECTL_DIR/storageclass.yaml"
   # Set variable to avoid loading variables twice
-  __addon_ebs_export_variables="1"
+  __addons_ebs_export_variables="1"
 }
 
-addon_ebs_check_directories() {
+addons_ebs_check_directories() {
   for _d in "$EBS_HELM_DIR" "$EBS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
-addon_ebs_clean_directories() {
+addons_ebs_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
   for _d in "$EBS_HELM_DIR" "$EBS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
@@ -74,9 +74,9 @@ addon_ebs_clean_directories() {
   done
 }
 
-addon_ebs_install() {
-  addon_ebs_export_variables
-  addon_ebs_check_directories
+addons_ebs_install() {
+  addons_ebs_export_variables
+  addons_ebs_check_directories
   _addon="ebs"
   _ns="$EBS_NAMESPACE"
   _repo_name="$EBS_HELM_REPO_NAME"
@@ -100,8 +100,8 @@ addon_ebs_install() {
   footer
 }
 
-addon_ebs_remove() {
-  addon_ebs_export_variables
+addons_ebs_remove() {
+  addons_ebs_export_variables
   _addon="ebs"
   _ns="$EBS_NAMESPACE"
   _release="$EBS_HELM_RELEASE"
@@ -111,11 +111,11 @@ addon_ebs_remove() {
     rm -f "$_values_yaml"
   fi
   kubectl_delete "$EBS_STORAGECLASS_YAML" || true
-  addon_ebs_clean_directories
+  addons_ebs_clean_directories
 }
 
-addon_ebs_status() {
-  addon_ebs_export_variables
+addons_ebs_status() {
+  addons_ebs_export_variables
   _addon="ebs"
   _ns="$EBS_NAMESPACE"
   if find_namespace "$_ns"; then
@@ -125,25 +125,25 @@ addon_ebs_status() {
   fi
 }
 
-addon_ebs_summary() {
-  addon_ebs_export_variables
+addons_ebs_summary() {
+  addons_ebs_export_variables
   _addon="ebs"
   _ns="$EBS_NAMESPACE"
   _release="$EBS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
-addon_ebs_command() {
+addons_ebs_command() {
   case "$1" in
-    install) addon_ebs_install ;;
-    remove) addon_ebs_remove ;;
-    status) addon_ebs_status ;;
-    summary) addon_ebs_summary ;;
+    install) addons_ebs_install ;;
+    remove) addons_ebs_remove ;;
+    status) addons_ebs_status ;;
+    summary) addons_ebs_summary ;;
     *) echo "Unknown ebs subcommand '$1'"; exit 1 ;;
   esac
 }
 
-addon_ebs_command_list() {
+addons_ebs_command_list() {
   echo "install remove status summary"
 }
 
