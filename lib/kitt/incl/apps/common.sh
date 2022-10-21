@@ -217,12 +217,21 @@ apps_kyso_update_api_settings() {
     )" || true
     _sftp_username="${_user_and_pass%%:*}"
     _sftp_password="${_user_and_pass#*:}"
+    _pub_user_and_pass="$(
+      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
+        grep "^$KYSO_SCS_PUBLIC_USER:"
+    )" || true
+    _sftp_pub_username="${_pub_user_and_pass%%:*}"
+    _sftp_pub_password="${_pub_user_and_pass#*:}"
   else
     _sftp_username=""
     _sftp_password=""
+    _sftp_pub_username=""
+    _sftp_pub_password=""
   fi
   _sftp_destination_folder=""
   _static_content_prefix="/scs"
+  _content_pub_prefix="/pub"
   # NATS Vars
   _nats_url="nats://$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local:$NATS_PORT"
   # WEBHOOK Vars
@@ -239,6 +248,9 @@ apps_kyso_update_api_settings() {
     -e "s%^\(SFTP_PASSWORD\),.*$%\1,$_sftp_password%" \
     -e "s%^\(SFTP_DESTINATION_FOLDER\),.*$%\1,$_sftp_destination_folder%" \
     -e "s%^\(STATIC_CONTENT_PREFIX\),.*$%\1,$_static_content_prefix%" \
+    -e "s%^\(SFTP_PUBLIC_USERNAME\),.*$%\1,$_sftp_pub_username%" \
+    -e "s%^\(SFTP_PUBLIC_PASSWORD\),.*$%\1,$_sftp_pub_password%" \
+    -e "s%^\(STATIC_CONTENT_PUBLIC_PREFIX\),.*$%\1,$_content_pub_prefix%" \
     -e "s%^\(KYSO_INDEXER_API_BASE_URL\),.*$%\1,$_kyso_indexer_api_base_url%" \
     -e "s%^\(KYSO_NATS_URL\),.*$%\1,$_nats_url%" \
     -e "s%^\(KYSO_WEBHOOK_URL\),.*$%\1,$_webhook_url%" \
