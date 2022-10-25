@@ -40,15 +40,15 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $_kitt $(basename "$0") SUBCOMMAND SERVICE [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kitt $(basename "$0") SERVICE SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
-Where SUBCOMMAND is one of:
-
-$(pf_command_list | sed -e "s/^/- /")
-
-And SERVICE one of:
+Where SERVICE one of:
 
 $(pf_service_list | sed -e "s/^/- /")
+
+And SUBCOMMAND is one of:
+
+$(pf_command_list | sed -e "s/^/- /")
 
 If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
 
@@ -64,8 +64,8 @@ EOF
 
 _command=""
 while read -r _c; do
-  if [ "$1" = "${_c%:*}" ]; then
-    _command="$1"
+  if [ "$2" = "${_c%:*}" ]; then
+    _command="$2"
     break
   fi
 done <<EOF

@@ -337,7 +337,7 @@ EOF
   sftp_port="${host_port#*:}"
   user_pass="$(
     file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
-    sed -e 's/^/  - /'
+      sed -e 's/^/  - /'
   )"
   cat <<EOF
 
@@ -544,18 +544,18 @@ pf_stop_webhook() {
 # Main commands function
 
 pf_command() {
-  _cmnd="$1"
-  _arg="$2"
+  _arg="$1"
+  _cmnd="$2"
   _deployment="$3"
   _cluster="$4"
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_nats_export_variables "$_deployment" "$_cluster"
-  case "$_cmnd" in
-  info)
-    case "$_arg" in
-    all | "")
+  case "$_arg" in
+  all | "")
+    case "$_cmnd" in
+    info)
       pf_info_elastic "$_deployment" "$_cluster"
       pf_info_indexer "$_deployment" "$_cluster"
       pf_info_mongodb "$_deployment" "$_cluster"
@@ -570,39 +570,7 @@ pf_command() {
         fi
       done
       ;;
-    elastic | elasticsearch)
-      pf_info_elastic "$_deployment" "$_cluster"
-      if pf_running "$ELASTICSEARCH_PF_PID"; then pf_note; fi
-      ;;
-    indexer)
-      pf_info_indexer "$_deployment" "$_cluster"
-      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
-      ;;
-    mongodb)
-      pf_info_mongodb "$_deployment" "$_cluster"
-      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
-      ;;
-    myssh | sftp)
-      pf_info_myssh "$_deployment" "$_cluster"
-      if pf_running "$KYSO_SCS_MYSSH_PF_PID"; then pf_note; fi
-      ;;
-    nats)
-      pf_info_nats "$_deployment" "$_cluster"
-      if pf_running "$NATS_PF_PID"; then pf_note; fi
-      ;;
-    webhook)
-      pf_info_webhook "$_deployment" "$_cluster"
-      if pf_running "$NATS_PF_PID"; then pf_note; fi
-      ;;
-    *)
-      echo "Unknown service '$_arg'"
-      exit 1
-      ;;
-    esac
-    ;;
-  start)
-    case "$_arg" in
-    all | "")
+    start)
       pf_start_elastic "$_deployment" "$_cluster"
       pf_start_indexer "$_deployment" "$_cluster"
       pf_start_mongodb "$_deployment" "$_cluster"
@@ -610,20 +578,7 @@ pf_command() {
       pf_start_nats "$_deployment" "$_cluster"
       pf_start_webhook "$_deployment" "$_cluster"
       ;;
-    elastic | elasticsearch) pf_start_elastic "$_deployment" "$_cluster" ;;
-    mongodb) pf_start_mongodb "$_deployment" "$_cluster" ;;
-    myssh | sftp) pf_start_myssh "$_deployment" "$_cluster" ;;
-    nats) pf_start_nats "$_deployment" "$_cluster" ;;
-    webhook) pf_start_webhook "$_deployment" "$_cluster" ;;
-    *)
-      echo "Unknown service '$_arg'"
-      exit 1
-      ;;
-    esac
-    ;;
-  stop)
-    case "$_arg" in
-    all | "")
+    stop)
       pf_stop_elastic "$_deployment" "$_cluster"
       pf_stop_indexer "$_deployment" "$_cluster"
       pf_stop_mongodb "$_deployment" "$_cluster"
@@ -631,21 +586,7 @@ pf_command() {
       pf_stop_nats "$_deployment" "$_cluster"
       pf_stop_webhook "$_deployment" "$_cluster"
       ;;
-    elastic | elasticsearch) pf_stop_elastic "$_deployment" "$_cluster" ;;
-    indexer) pf_stop_indexer "$_deployment" "$_cluster" ;;
-    mongodb) pf_stop_mongodb "$_deployment" "$_cluster" ;;
-    myssh | sftp) pf_stop_myssh "$_deployment" "$_cluster" ;;
-    nats) pf_stop_nats "$_deployment" "$_cluster" ;;
-    webhook) pf_stop_webhook "$_deployment" "$_cluster" ;;
-    *)
-      echo "Unknown service '$_arg'"
-      exit 1
-      ;;
-    esac
-    ;;
-  status)
-    case "$_arg" in
-    all | "")
+    status)
       pf_status_elastic "$_deployment" "$_cluster"
       pf_status_indexer "$_deployment" "$_cluster"
       pf_status_mongodb "$_deployment" "$_cluster"
@@ -653,23 +594,108 @@ pf_command() {
       pf_status_nats "$_deployment" "$_cluster"
       pf_status_webhook "$_deployment" "$_cluster"
       ;;
-    elastic | elasticsearch) pf_status_elastic "$_deployment" "$_cluster" ;;
-    indexer) pf_status_indexer "$_deployment" "$_cluster" ;;
-    mongodb) pf_status_mongodb "$_deployment" "$_cluster" ;;
-    myssh | sftp) pf_status_myssh "$_deployment" "$_cluster" ;;
-    nats) pf_status_nats "$_deployment" "$_cluster" ;;
-    webhook) pf_status_webhook "$_deployment" "$_cluster" ;;
     *)
-      echo "Unknown service '$_arg'"
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  elastic | elasticsearch)
+    case "$_cmnd" in
+    info)
+      pf_info_elastic "$_deployment" "$_cluster"
+      if pf_running "$ELASTICSEARCH_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_elastic "$_deployment" "$_cluster" ;;
+    stop) pf_stop_elastic "$_deployment" "$_cluster" ;;
+    status) pf_status_elastic "$_deployment" "$_cluster" ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  indexer)
+    case "$_cmnd" in
+    info)
+      pf_info_indexer "$_deployment" "$_cluster"
+      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_indexer "$_deployment" "$_cluster" ;;
+    stop) pf_stop_indexer "$_deployment" "$_cluster" ;;
+    status) pf_status_indexer "$_deployment" "$_cluster" ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  mongodb)
+    case "$_cmnd" in
+    info)
+      pf_info_mongodb "$_deployment" "$_cluster"
+      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_mongodb "$_deployment" "$_cluster" ;;
+    stop) pf_stop_mongodb "$_deployment" "$_cluster" ;;
+    status) pf_status_mongodb "$_deployment" "$_cluster" ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  myssh | sftp)
+    case "$_cmnd" in
+    info)
+      pf_info_myssh "$_deployment" "$_cluster"
+      if pf_running "$KYSO_SCS_MYSSH_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_myssh "$_deployment" "$_cluster" ;;
+    stop) pf_stop_myssh "$_deployment" "$_cluster" ;;
+    status) pf_status_myssh "$_deployment" "$_cluster" ;;
+    *)
+      exit 1
+      echo "Unknown subcommand '$_cmnd'"
+      ;;
+    esac
+    ;;
+  nats)
+    case "$_cmnd" in
+    info)
+      pf_info_nats "$_deployment" "$_cluster"
+      if pf_running "$NATS_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_nats "$_deployment" "$_cluster" ;;
+    stop) pf_stop_nats "$_deployment" "$_cluster" ;;
+    status) pf_status_nats "$_deployment" "$_cluster" ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  webhook)
+    case "$_cmnd" in
+    info)
+      pf_info_webhook "$_deployment" "$_cluster"
+      if pf_running "$NATS_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_webhook "$_deployment" "$_cluster" ;;
+    stop) pf_stop_webhook "$_deployment" "$_cluster" ;;
+    status) pf_status_webhook "$_deployment" "$_cluster" ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
       exit 1
       ;;
     esac
     ;;
   *)
-    echo "Unknown pf subcommand '$_cmnd'"
+    echo "Unknown service '$_arg'"
     exit 1
     ;;
   esac
+  # Update git ... do we really need to?
   case "$_cmnd" in
   info | status) ;;
   *) cluster_git_update ;;
