@@ -37,15 +37,15 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $APP_BASE_NAME $(basename "$0") CMND APP [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $APP_BASE_NAME $(basename "$0") APP CMND [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
-Where COMMAND is one of:
-
-$(for _cmnd in $(backup_command_list); do echo "- $_cmnd"; done)
-
-and APP is one of:
+Where APP is one of:
 
 $(for _app in $(backup_app_list); do echo "- $_app"; done)
+
+and CMND is one of:
+
+$(for _cmnd in $(backup_command_list); do echo "- $_cmnd"; done)
 
 If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
 
@@ -59,25 +59,25 @@ EOF
 # MAIN
 # ----
 
-_command=""
-for _c in $(backup_command_list); do
-  if [ "$1" = "$_c" ]; then
-    _command="$1"
-    break
-  fi
-done
-
 _app=""
-if [ "$2" = "all" ]; then
+if [ "$1" = "all" ]; then
   _app="all"
 else
   for _a in $(backup_app_list); do
-    if [ "$2" = "$_a" ]; then
+    if [ "$1" = "$_a" ]; then
       _app="$_a"
       break
     fi
   done
 fi
+
+_command=""
+for _c in $(backup_command_list); do
+  if [ "$2" = "$_c" ]; then
+    _command="$2"
+    break
+  fi
+done
 
 _deployment="$3"
 _cluster="$4"
@@ -85,7 +85,7 @@ _cluster="$4"
 backup_export_variables "$_deployment" "$_cluster"
 
 if [ "$_command" ]; then
-  backup_command "$_command" "$_app"
+  backup_command "$_app" "$_command"
 else
   usage 0
 fi

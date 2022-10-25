@@ -102,8 +102,8 @@ backup_schedule_backup() {
   fi
 }
 backup_command() {
-  _command="$1"
-  _app="$2"
+  _app="$1"
+  _command="$2"
   case "$_command" in
   create)
     if [ "$_app" = "all" ]; then
