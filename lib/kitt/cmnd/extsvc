@@ -37,7 +37,7 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $APP_BASE_NAME $(basename "$0") COMMAND SERVICE_NAME [CLUSTER_NAME]
+  $APP_BASE_NAME $(basename "$0") SERVICE_NAME COMMAND [CLUSTER_NAME]
 
 Where COMMAND can be:
 
@@ -52,21 +52,20 @@ EOF
 # MAIN
 # ----
 
+_svcname="$1"
 _command=""
 for _c in $(extsvc_command_list); do
-  if [ "$1" = "$_c" ]; then
-    _command="$1"
+  if [ "$2" = "$_c" ]; then
+    _command="$2"
     break
   fi
 done
-
-_svcname="$2"
 _cluster="$3"
 
 cluster_export_variables "$_cluster"
 
 if [ "$_command" ]; then
-  extsvc_command "$_command" "$_svcname" "$_cluster"
+  extsvc_command "$_svcname" "$_command" "$_cluster"
 else
   usage 0
 fi

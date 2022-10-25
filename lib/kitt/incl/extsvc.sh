@@ -427,8 +427,8 @@ extsvc_remove() {
 }
 
 extsvc_command() {
-  _command="$1"
-  _extsvc="$2"
+  _extsvc="$1"
+  _command="$2"
   _cluster="$3"
   case "$_command" in
     config) extsvc_config "$_extsvc" "$_cluster" ;;
