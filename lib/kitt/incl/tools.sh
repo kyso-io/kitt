@@ -43,12 +43,31 @@ fi
 # Functions
 # ---------
 
+# Auxiliary function to check if an application is installed
+tools_app_installed() {
+  _app="$1"
+  [ -n "$(type "$_app" 2>/dev/null)" ] || return 1
+}
+
+tools_check_apps() {
+  _missing=""
+  for _app in "$@"; do
+    tools_app_installed "$_app" || _missing="$_missing $_app"
+  done
+  if [ "$_missing" ]; then
+    echo "The following apps could not be found:"
+    for _app in $_missing; do
+      echo "- $_app"
+    done
+    return 1
+  fi
+}
+
 # Auxiliary function to check if we want to install an app
 tools_install_app() {
   _app="$1"
-  _type="$(type "$_app" 2>/dev/null)" && found="true" || found="false"
-  if [ "$found" = "true" ]; then
-    echo "$_app found ($_type)."
+  if tools_app_installed "$_app"; then
+    echo "$_app found ($(type "$_app"))."
     MSG="Re-install in /usr/local/bin?"
     OPT="false"
   else
