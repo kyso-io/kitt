@@ -46,7 +46,7 @@ fi
 # Auxiliary function to check if an application is installed
 tools_app_installed() {
   _app="$1"
-  [ -n "$(type "$_app" 2>/dev/null)" ] || return 1
+  type "$_app" >/dev/null 2>&1 || return 1
 }
 
 tools_check_apps_installed() {
