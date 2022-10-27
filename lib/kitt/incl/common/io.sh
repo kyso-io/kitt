@@ -42,9 +42,14 @@ EOF
 # $1 text to show - $2 default value
 read_value() {
   printf "%s [%s]: " "${1}" "${bold}${2}${normal}"
-  read -r READ_VALUE
+  if [ "$KITT_NONINTERACTIVE" = "true" ]; then
+    READ_VALUE=""
+    echo ""
+  else
+    read -r READ_VALUE
+  fi
   if [ "${READ_VALUE}" = "" ]; then
-    READ_VALUE=$2
+    READ_VALUE="$2"
   elif [ "${READ_VALUE}" = "-" ]; then
     READ_VALUE=""
   fi
@@ -57,7 +62,12 @@ read_bool() {
   *) _yn="No" ;;
   esac
   printf "%s ${yes_no} [%s]: " "${1}" "${bold}${_yn}${normal}"
-  read -r READ_VALUE
+  if [ "$KITT_NONINTERACTIVE" = "true" ]; then
+    READ_VALUE=""
+    echo ""
+  else
+    read -r READ_VALUE
+  fi
   case "${READ_VALUE}" in
   '') [ "$_yn" = "Yes" ] && READ_VALUE="true" || READ_VALUE="false" ;;
   y | Y | yes | Yes | YES | true | True | TRUE) READ_VALUE="true" ;;
