@@ -81,7 +81,7 @@ ctool_config_update() {
     cluster_export_variables "$_cluster"
     _ckind="$CLUSTER_KIND"
   else
-    read_value "Cluster kind? (eks|ext|k3d)" "$CLUSTER_DEFAULT_CLUSTER_KIND"
+    read_value "Cluster kind? (eks|ext|k3d)" "$CLUSTER_KIND"
     _ckind=${READ_VALUE}
   fi
   case "$_ckind" in
