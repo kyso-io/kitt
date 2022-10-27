@@ -113,7 +113,9 @@ cluster_export_variables "$_cluster"
 
 case "$1" in
 ls | list)
-  ls "${CLUSTERS_DIR}"
+  if [ -d "${CLUSTERS_DIR}" ]; then
+    ls "${CLUSTERS_DIR}"
+  fi
   exit 0
   ;;
 lsd)
