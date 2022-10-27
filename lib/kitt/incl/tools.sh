@@ -49,7 +49,7 @@ tools_app_installed() {
   [ -n "$(type "$_app" 2>/dev/null)" ] || return 1
 }
 
-tools_check_apps() {
+tools_check_apps_installed() {
   _missing=""
   for _app in "$@"; do
     tools_app_installed "$_app" || _missing="$_missing $_app"
@@ -59,7 +59,7 @@ tools_check_apps() {
     for _app in $_missing; do
       echo "- $_app"
     done
-    return 1
+    exit 1
   fi
 }
 

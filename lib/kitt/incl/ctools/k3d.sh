@@ -220,7 +220,7 @@ EOF
 
 ctool_k3d_remove_cluster() {
   _cluster="$1"
-  tools_check_apps "k3d"
+  tools_check_apps_installed "k3d"
   ctool_k3d_export_variables "$_cluster"
   if k3d cluster ls --no-headers | grep -q "^${CLUSTER_NAME} "; then
     read_bool "Remove existing cluster?" "No"
@@ -247,7 +247,7 @@ ctool_k3d_remove_cluster() {
 # Installation related functions
 ctool_k3d_install() {
   _cluster="$1"
-  tools_check_apps "k3d" "kubectx" "kubectl"
+  tools_check_apps_installed "k3d" "kubectx" "kubectl"
   ctool_k3d_export_variables "$_cluster"
   # Remove old cluster?
   ctool_k3d_remove_cluster "$_cluster"
