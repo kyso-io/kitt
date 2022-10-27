@@ -59,7 +59,12 @@ ctool_k3d_export_variables() {
     CLUSTER_NUM_WORKERS="${APP_DEFAULT_CLUSTER_K3D_WORKERS}"
   export CLUSTER_NUM_WORKERS
   [ "$CLUSTER_K3S_IMAGE" ] ||
-    CLUSTER_K3S_IMAGE="$(k3d config init -o - | sed -n -e 's/^image: //p')"
+    CLUSTER_K3S_IMAGE="$(k3d config init -o - | sed -n -e 's/^image: //p')" \
+      2>/dev/null
+  if [ -z "$CLUSTER_K3S_IMAGE" ]; then
+    echo "Empty CLUSTER_K3S_IMAGE variable, is k3d installed?"
+    exit 1
+  fi
   export CLUSTER_K3S_IMAGE
   [ "$CLUSTER_API_HOST" ] ||
     CLUSTER_API_HOST="${APP_DEFAULT_CLUSTER_API_HOST}"
