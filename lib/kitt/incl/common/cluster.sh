@@ -155,7 +155,7 @@ cluster_check_directories() {
 }
 
 cluster_git_update() {
-  if is_selected "$CLUSTER_DATA_IN_GIT"; then
+  if [ -d "$CLUSTER_DIR" ] && is_selected "$CLUSTER_DATA_IN_GIT"; then
     (
       cd "$CLUSTER_DIR"
       # If the status command shows something there are changes to commit
