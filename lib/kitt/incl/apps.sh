@@ -74,7 +74,11 @@ apps_command() {
       for _c in $(apps_command_list "$_a"); do
         if [ "$_c" = "$_command" ]; then
           if [ "$_command" != "summary" ]; then
-            read_bool "Execute command '$_c' for app '$_a'?" "Yes"
+            case "$_a" in
+            kyso-ui) _cmnd_default="No" ;;
+            *) _cmnd_default="Yes" ;;
+            esac
+            read_bool "Execute command '$_c' for app '$_a'?" "$_cmnd_default"
           else
             READ_VALUE="true"
           fi
