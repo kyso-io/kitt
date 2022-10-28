@@ -137,27 +137,27 @@ ctool_k3d_read_variables() {
   CLUSTER_LB_HTTP_PORT=${READ_VALUE}
   read_value "LoadBalancer HTTPS Port" "${CLUSTER_LB_HTTPS_PORT}"
   CLUSTER_LB_HTTPS_PORT=${READ_VALUE}
-  read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
+  read_bool "Keep cluster data in git?" "${CLUSTER_DATA_IN_GIT}"
   CLUSTER_DATA_IN_GIT=${READ_VALUE}
   read_value "Cluster Ingress Replicas" "${CLUSTER_INGRESS_REPLICAS}"
   CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
-  read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
+  read_bool "Force SSL redirect on ingress?" "${CLUSTER_FORCE_SSL_REDIRECT}"
   CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
-  read_bool "Map Kyso Dev Ports" "${CLUSTER_MAP_KYSO_DEV_PORTS}"
+  read_bool "Map Kyso development ports?" "${CLUSTER_MAP_KYSO_DEV_PORTS}"
   CLUSTER_MAP_KYSO_DEV_PORTS=${READ_VALUE}
-  read_bool "Use local storage" "${CLUSTER_USE_LOCAL_STORAGE}"
+  read_bool "Use local storage?" "${CLUSTER_USE_LOCAL_STORAGE}"
   CLUSTER_USE_LOCAL_STORAGE=${READ_VALUE}
-  read_bool "Use local registry" "${CLUSTER_USE_LOCAL_REGISTRY}"
+  read_bool "Use local registry?" "${CLUSTER_USE_LOCAL_REGISTRY}"
   CLUSTER_USE_LOCAL_REGISTRY=${READ_VALUE}
-  read_bool "Use remote registry" "${CLUSTER_USE_REMOTE_REGISTRY}"
+  read_bool "Use remote registry?" "${CLUSTER_USE_REMOTE_REGISTRY}"
   CLUSTER_USE_REMOTE_REGISTRY=${READ_VALUE}
   if is_selected "$CLUSTER_USE_REMOTE_REGISTRY"; then
     CLUSTER_PULL_SECRETS_IN_NS="false"
   else
-    read_bool "Add pull secrets to namespaces" "${CLUSTER_PULL_SECRETS_IN_NS}"
+    read_bool "Add pull secrets to namespaces?" "${CLUSTER_PULL_SECRETS_IN_NS}"
     CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
   fi
-  read_bool "Use basic auth" "${CLUSTER_USE_BASIC_AUTH}"
+  read_bool "Use basic auth?" "${CLUSTER_USE_BASIC_AUTH}"
   CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
   read_bool "Use SOPS?" "${CLUSTER_USE_SOPS}"
   CLUSTER_USE_SOPS=${READ_VALUE}
