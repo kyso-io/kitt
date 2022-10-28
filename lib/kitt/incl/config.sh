@@ -50,6 +50,9 @@ export APP_DEFAULT_CLUSTER_INGRESS_REPLICAS
 # Boolean values for cluster
 [ "$APP_DEFAULT_CLUSTER_DATA_IN_GIT" ] || APP_DEFAULT_CLUSTER_DATA_IN_GIT="true"
 export APP_DEFAULT_CLUSTER_DATA_IN_GIT
+[ "$APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS" ] ||
+  APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS="false"
+export APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS
 
 [ "$APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT" ] ||
   APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
@@ -138,6 +141,9 @@ config_app_read_variables() {
   read_bool "Cluster adds pull secrets to namespaces" \
     "${APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS}"
   APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
+  read_bool "Map Kyso development ports to ingress server" \
+    "${APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS}"
+  APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS=${READ_VALUE}
   read_bool "Cluster adds HTTP Basic Auth to services" \
     "${APP_DEFAULT_CLUSTER_USE_BASIC_AUTH}"
   APP_DEFAULT_CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
@@ -171,6 +177,8 @@ DEFAULT_CLUSTER_LOCAL_DOMAIN=$APP_DEFAULT_CLUSTER_LOCAL_DOMAIN
 DEFAULT_CLUSTER_DATA_IN_GIT=$APP_DEFAULT_CLUSTER_DATA_IN_GIT
 # Add credentials on all namespaces to get images from a private registry
 DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=$APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS
+# Map Kyso development ports to the ingress server
+DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS=$APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS
 # Enable basic auth for sensible services (disable only on dev deployments)
 DEFAULT_CLUSTER_USE_BASIC_AUTH=$APP_DEFAULT_CLUSTER_USE_BASIC_AUTH
 # Use local-storage storageClass for addons & apps (useful with k3d)
