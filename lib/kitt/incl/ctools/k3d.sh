@@ -27,6 +27,7 @@ export APP_DEFAULT_CLUSTER_LB_HOST_IP="127.0.0.1"
 export APP_DEFAULT_CLUSTER_LB_HTTP_PORT="80"
 export APP_DEFAULT_CLUSTER_LB_HTTPS_PORT="443"
 export APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
+export APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS="false"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="true"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY="false"
 export APP_DEFAULT_CLUSTER_USE_REMOTE_REGISTRY="true"
@@ -83,6 +84,9 @@ ctool_k3d_export_variables() {
   [ "$CLUSTER_LB_HTTPS_PORT" ] ||
     CLUSTER_LB_HTTPS_PORT="${APP_DEFAULT_CLUSTER_LB_HTTPS_PORT}"
   export CLUSTER_LB_HTTPS_PORT
+  [ "$CLUSTER_MAP_KYSO_DEV_PORTS" ] ||
+    CLUSTER_MAP_KYSO_DEV_PORTS="${APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS}"
+  export CLUSTER_MAP_KYSO_DEV_PORTS
   [ "$CLUSTER_USE_LOCAL_REGISTRY" ] ||
     CLUSTER_USE_LOCAL_REGISTRY="${APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY}"
   export CLUSTER_USE_LOCAL_REGISTRY
@@ -139,6 +143,8 @@ ctool_k3d_read_variables() {
   CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
   read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
   CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
+  read_bool "Map Kyso Dev Ports" "${CLUSTER_MAP_KYSO_DEV_PORTS}"
+  CLUSTER_MAP_KYSO_DEV_PORTS=${READ_VALUE}
   read_bool "Use local storage" "${CLUSTER_USE_LOCAL_STORAGE}"
   CLUSTER_USE_LOCAL_STORAGE=${READ_VALUE}
   read_bool "Use local registry" "${CLUSTER_USE_LOCAL_REGISTRY}"
@@ -198,6 +204,8 @@ INGRESS_REPLICAS=$CLUSTER_INGRESS_REPLICAS
 FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
 # Keep cluster data in git or not
 DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
+# Map Kyso development ports to the ingress service
+MAP_KYSO_DEV_PORTS=$CLUSTER_MAP_KYSO_DEV_PORTS
 # Configure k3d to use a couple of local directories for storage and volumes,
 # usually only makes sense on linux hosts & allows us to use velero to backup
 # volumes (we use 'local-storage' class and create directories on the host to
@@ -270,6 +278,12 @@ ctool_k3d_install() {
   else
     registry_sed="/BEG: REMOTE_REGISTRY/,/END: REMOTE_REGISTRY/d"
   fi
+  # Remove kyso dev port mapping if not set
+  if is_selected "${CLUSTER_MAP_KYSO_DEV_PORTS}"; then
+    dev_ports_sed=""
+  else
+    dev_ports_sed="/BEG: MAP_KYSO_DEV_PORTS/,/END: MAP_KYSO_DEV_PORTS/d"
+  fi
   # Setup local storage
   if is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
     # Create the empty storage directory if missing
@@ -294,6 +308,7 @@ ctool_k3d_install() {
     -e "s%__API_PORT__%$CLUSTER_API_PORT%g" \
     -e "$registry_sed" \
     -e "$storage_sed" \
+    -e "$dev_ports_sed" \
     -e "s%__HOST_IP__%$CLUSTER_LB_HOST_IP%g" \
     -e "s%__HTTP_PORT__%$CLUSTER_LB_HTTP_PORT%g" \
     -e "s%__HTTPS_PORT__%$CLUSTER_LB_HTTPS_PORT%g" \

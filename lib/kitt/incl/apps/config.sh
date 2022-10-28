@@ -54,6 +54,8 @@ if [ -d "$INCL_DIR" ]; then
     . "$INCL_DIR/apps/slack-notifications-consumer.sh"
   # shellcheck source=./onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
+  # shellcheck source=./portmaps.sh
+  [ "$INCL_APPS_PORTMAPS_SH" = "1" ] || . "$INCL_DIR/apps/portmaps.sh"
 fi
 
 # ---------
@@ -96,6 +98,7 @@ apps_check_directories() {
   apps_notification_consumer_check_directories
   apps_slack_notifications_consumer_check_directories
   apps_onlyoffice_ds_check_directories
+  apps_portmaps_check_directories
 }
 
 apps_migrate_variables() {
