@@ -503,6 +503,14 @@ apps_mongodb_summary() {
   statefulset_helm_summary "$_ns" "$_release"
 }
 
+apps_mongodb_uris() {
+  _deployment="$1"
+  _cluster="$2"
+  _addr="${DEPLOYMENT_HOSTNAMES%% *}"
+  apps_mongodb_print_user_database_uri "$_deployment" "$_cluster" "$_addr"
+  apps_mongodb_print_root_database_uri "$_deployment" "$_cluster" "$_addr"
+}
+
 apps_mongodb_env_edit() {
   if [ "$EDITOR" ]; then
     _app="mongodb"
@@ -597,6 +605,7 @@ apps_mongodb_command() {
   rmvols) apps_mongodb_rmvols "$_deployment" "$_cluster" ;;
   status) apps_mongodb_status "$_deployment" "$_cluster" ;;
   summary) apps_mongodb_summary "$_deployment" "$_cluster" ;;
+  uris) apps_mongodb_uris "$_deployment" "$_cluster" ;;
   *)
     echo "Unknown mongodb subcommand '$1'"
     exit 1
@@ -606,7 +615,7 @@ apps_mongodb_command() {
 
 apps_mongodb_command_list() {
   _cmnds="env-edit env-path env-show env-update install logs remove rmvols"
-  _cmnds="$_cmnds status summary"
+  _cmnds="$_cmnds status summary uris"
   echo "$_cmnds"
 }
 
