@@ -21,6 +21,7 @@ spec:
   ports:
   - name: sftp
     port: 2020
+    targetPort: 22
   - name: indexer
     port: 8080
   - name: webhook

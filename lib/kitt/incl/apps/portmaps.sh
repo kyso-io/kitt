@@ -97,9 +97,10 @@ apps_portmaps_install() {
   fi
   # Prepare services
   _elasticsearch_svc_domain="$ELASTICSEARCH_NAMESPACE.svc.cluster.local"
-  _elasticsearch_svc_hostname="elasticsearc-master.$_elasticsearch_svc_domain"
+  _elasticsearch_svc_hostname="elasticsearch-master.$_elasticsearch_svc_domain"
   _kyso_scs_svc_hostname="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _mongodb_svc_hostname="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+  _mongodb_svc_domain="$MONGODB_NAMESPACE.svc.cluster.local"
+  _mongodb_svc_hostname="$MONGODB_RELEASE-headless.$_mongodb_svc_domain"
   _nats_svc_hostname="$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
