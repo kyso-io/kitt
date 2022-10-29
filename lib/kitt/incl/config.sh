@@ -55,10 +55,6 @@ export APP_DEFAULT_CLUSTER_DATA_IN_GIT
   APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT="true"
 export APP_DEFAULT_CLUSTER_FORCE_SSL_REDIRECT
 
-[ "$APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE" ] ||
-  APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
-export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE
-
 [ "$APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS" ] ||
   APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS="true"
 export APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS
@@ -69,6 +65,11 @@ export APP_DEFAULT_CLUSTER_USE_BASIC_AUTH
 
 [ "$APP_DEFAULT_CLUSTER_USE_SOPS" ] || APP_DEFAULT_CLUSTER_USE_SOPS="false"
 export APP_DEFAULT_CLUSTER_USE_SOPS
+
+# Fixed defaults that can't be changed on the global config.
+# Values are only changed on K3D clusters.
+export APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS="false"
+export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
 
 # --------
 # Includes
@@ -141,9 +142,6 @@ config_app_read_variables() {
   read_bool "Cluster adds HTTP Basic Auth to services" \
     "${APP_DEFAULT_CLUSTER_USE_BASIC_AUTH}"
   APP_DEFAULT_CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
-  read_bool "Cluster uses local storage" \
-    "${APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE}"
-  APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE=${READ_VALUE}
   read_bool "Cluster uses SOPS to manage secrets" "${APP_CLUSTER_USE_SOPS}"
   APP_DEFAULT_CLUSTER_USE_SOPS=${READ_VALUE}
   read_value "Default deployment name" "${APP_DEFAULT_DEPLOYMENT_NAME}"
@@ -173,8 +171,6 @@ DEFAULT_CLUSTER_DATA_IN_GIT=$APP_DEFAULT_CLUSTER_DATA_IN_GIT
 DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=$APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS
 # Enable basic auth for sensible services (disable only on dev deployments)
 DEFAULT_CLUSTER_USE_BASIC_AUTH=$APP_DEFAULT_CLUSTER_USE_BASIC_AUTH
-# Use local-storage storageClass for addons & apps (useful with k3d)
-DEFAULT_CLUSTER_USE_LOCAL_STORAGE=$APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE
 # Use sops to encrypt files (needs a ~/.sops.yaml file to be useful)
 DEFAULT_CLUSTER_USE_SOPS=$APP_DEFAULT_CLUSTER_USE_SOPS
 # Main deployment name, set it to the most used one

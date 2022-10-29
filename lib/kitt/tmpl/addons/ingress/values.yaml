@@ -7,3 +7,34 @@ extraArgs:
   default-ssl-certificate: "ingress/__INGRESS_CERT_NAME__"
   ingress-class: nginx
 replicaCount: __REPLICAS__
+# BEG: MAP_KYSO_DEV_PORTS
+controller:
+  service:
+    enabled: true
+    ports:
+      http: 80
+      https: 443
+      kyso-sftp: 2020
+      nats: 4222
+      kyso-indexer: 8080
+      kyso-webhook: 9000
+      elasticsearch: 9200
+      mongodb: 27017
+    targetPorts:
+      http: http
+      https: https
+      mqtt: mqtt
+      kyso-sftp: kyso-sftp
+      nats: nats
+      kyso-indexer: kyso-indexer
+      kyso-webhook: kyso-webhook
+      elasticsearch: elasticsearch
+      mongodb: mongodb
+tcp:
+  2020: "__PORTMAPS_NAMESPACE__/kyso-scs:2020"
+  4222: "__PORTMAPS_NAMESPACE__/nats:4222"
+  8080: "__PORTMAPS_NAMESPACE__/kyso-scs:8080"
+  9000: "__PORTMAPS_NAMESPACE__/kyso-scs:9000"
+  9200: "__PORTMAPS_NAMESPACE__/elasticsearch:9200"
+  27017: "__PORTMAPS_NAMESPACE__/mongodb:27017"
+# END: MAP_KYSO_DEV_PORTS

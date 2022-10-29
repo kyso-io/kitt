@@ -1,7 +1,7 @@
 #!/bin/sh
 # ----
 # File:        apps/portmaps.sh
-# Description: Functions to configure the kyso application portmaps
+# Description: Functions to configure the kyso applications portmap services
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
 # Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
 # ----
@@ -16,7 +16,7 @@ INCL_APPS_PORTMAPS_SH="1"
 # Variables
 # ---------
 
-# CMND_DSC="portmaps: add or remove kyso application portmaps"
+# CMND_DSC="portmaps: add or remove kyso applications portmap services"
 
 # --------
 # Includes
@@ -57,9 +57,9 @@ apps_portmaps_export_variables() {
   export PORTMAPS_TMPL_DIR="$TMPL_DIR/apps/portmaps"
   export PORTMAPS_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/portmaps"
   # Templates
-  export PORTMAPS_CONFIGMAP_TMPL="$PORTMAPS_TMPL_DIR/ingress-configmap.yaml"
+  export PORTMAPS_SERVICES_TMPL="$PORTMAPS_TMPL_DIR/services.yaml"
   # Files
-  export PORTMAPS_CONFIGMAP_TMPLGMAP_YAML="$PORTMAPS_KUBECTL_DIR/ingress-configmap.yaml"
+  export PORTMAPS_SERVICES_YAML="$PORTMAPS_KUBECTL_DIR/services.yaml"
   # set variable to avoid running the function twice
   __apps_portmaps_export_variables="1"
 }
@@ -86,28 +86,29 @@ apps_portmaps_install() {
   apps_portmaps_export_variables "$_deployment" "$_cluster"
   apps_portmaps_check_directories
   _app="portmaps"
-  _ns="$INGRESS_NAMESPACE"
-  _configmap_tmpl="$PORTMAPS_CONFIGMAP_TMPL"
-  _configmap_yaml="$PORTMAPS_CONFIGMAP_YAML"
+  _ns="$INGRESS_PORTMAPS_NAMESPACE"
+  _services_tmpl="$PORTMAPS_SERVICES_TMPL"
+  _services_yaml="$PORTMAPS_SERVICES_YAML"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
-    # shellcheck disable=SC2086
-    rm -f "$_configmap_yaml"
-    echo "Namespace '$_ns' for '$_app' not found"
-    echo "You need to install the 'ingress' addon"
-    exit 1
+    rm -f "$_services_yaml"
+    # Create namespace
+    create_namespace "$_ns"
   fi
-  # Prepare configmap
+  # Prepare services
+  _elasticsearch_svc_domain="$ELASTICSEARCH_NAMESPACE.svc.cluster.local"
+  _elasticsearch_svc_hostname="elasticsearc-master.$_elasticsearch_svc_domain"
+  _kyso_scs_svc_hostname="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  _mongodb_svc_hostname="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+  _nats_svc_hostname="$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
   sed \
-    -e "s%__INGRESS_NAMESPACE__%$_ns%" \
-    -e "s%__KYSO_SCS_NAMESPACE__%$KYSO_SCS_NAMESPACE%" \
-    -e "s%__MONGODB_NAMESPACE__%$MONGODB_NAMESPACE%" \
-    -e "s%__MONGODB_RELEASE__%$MONGODB_RELEASE%" \
-    -e "s%__NATS_NAMESPACE__%$NATS_NAMESPACE%" \
-    -e "s%__NATS_RELEASE__%$NATS_RELEASE%" \
-    -e "s%__ELASTICSEARCH_NAMESPACE__%$ELASTICSEARCH_NAMESPACE%" \
-    "$_configmap_tmpl" >"$_configmap_yaml"
-  for _yaml in $_configmap_yaml; do
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$_elasticsearch_svc_hostname%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$_kyso_scs_svc_hostname%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$_mongodb_svc_hostname%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$_nats_svc_hostname%" \
+    "$_services_tmpl" >"$_services_yaml"
+  for _yaml in $_services_yaml; do
     kubectl_apply "$_yaml"
   done
 }
@@ -117,13 +118,14 @@ apps_portmaps_remove() {
   _cluster="$2"
   apps_portmaps_export_variables "$_deployment" "$_cluster"
   _app="portmaps"
-  _ns="$INGRESS_NAMESPACE"
-  _configmap_yaml="$PORTMAPS_CONFIGMAP_YAML"
+  _ns="$INGRESS_PORTMAPS_NAMESPACE"
+  _services_yaml="$PORTMAPS_SERVICES_YAML"
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in $_configmap_yaml; do
+    for _yaml in $_services_yaml; do
       kubectl_delete "$_yaml" || true
     done
+    delete_namespace "$_ns"
     footer
   else
     echo "Namespace '$_ns' for '$_app' not found!"
@@ -136,9 +138,9 @@ apps_portmaps_status() {
   _cluster="$2"
   apps_portmaps_export_variables "$_deployment" "$_cluster"
   _app="portmaps"
-  _ns="$INGRESS_NAMESPACE"
+  _ns="$INGRESS_PORTMAPS_NAMESPACE"
   if find_namespace "$_ns"; then
-    kubectl get configmap/tcp-services -n "$_ns" -o yaml
+    kubectl get all -n "$_ns" -o yaml
   else
     echo "Namespace '$_ns' for '$_app' not found!"
   fi

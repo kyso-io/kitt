@@ -25,6 +25,7 @@ export INGRESS_HELM_REPO_URL="https://charts.bitnami.com/bitnami"
 export INGRESS_HELM_CHART="$INGRESS_HELM_REPO_NAME/nginx-ingress-controller"
 export INGRESS_HELM_RELEASE="ingress"
 export INGRESS_CERT_NAME="ingress-cert"
+export INGRESS_PORTMAPS_NAMESPACE="ingress-portmaps"
 
 # --------
 # Includes
@@ -113,10 +114,17 @@ addons_ingress_install() {
   fi
   # Add ingress certificate
   kubectl_apply "$_cert_yaml"
+  # Remove kyso dev port mapping if not set
+  if is_selected "${CLUSTER_MAP_KYSO_DEV_PORTS}"; then
+    dev_ports_sed="s%__PORTMAPS_NAMESPACE__%$INGRESS_PORTMAPS_NAMESPACE%"
+  else
+    dev_ports_sed="/BEG: MAP_KYSO_DEV_PORTS/,/END: MAP_KYSO_DEV_PORTS/d"
+  fi
   # Values for the chart
   sed \
     -e "s%__INGRESS_CERT_NAME__%$_cert_name%" \
     -e "s%__REPLICAS__%$_replicas%" \
+    -e "$dev_ports_sed" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"

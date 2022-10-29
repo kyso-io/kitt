@@ -29,10 +29,6 @@ ports:
 - port: __HOST_IP__:2020:2020
   nodeFilters:
   - loadbalancer
-# MongoDB
-- port: __HOST_IP__:2701:2701
-  nodeFilters:
-  - loadbalancer
 # Nats
 - port: __HOST_IP__:4222:4222
   nodeFilters:
@@ -47,6 +43,10 @@ ports:
   - loadbalancer
 # Elasticsearch
 - port: __HOST_IP__:9200:9200
+  nodeFilters:
+  - loadbalancer
+# MongoDB
+- port: __HOST_IP__:27017:27017
   nodeFilters:
   - loadbalancer
 # END: MAP_KYSO_DEV_PORTS
