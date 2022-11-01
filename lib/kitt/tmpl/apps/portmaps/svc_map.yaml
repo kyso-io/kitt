@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: elasticsearch
   namespace: __NAMESPACE__
+  labels:
+    deployment: __DEPLOYMENT__
 spec:
   type: ExternalName
   externalName: __ELASTICSEARCH_SVC_HOSTNAME__
@@ -15,13 +17,14 @@ kind: Service
 metadata:
   name: kyso-scs
   namespace: __NAMESPACE__
+  labels:
+    deployment: __DEPLOYMENT__
 spec:
   type: ExternalName
   externalName: __KYSO_SCS_SVC_HOSTNAME__
   ports:
   - name: sftp
-    port: 2020
-    targetPort: 22
+    port: 22
   - name: indexer
     port: 8080
   - name: webhook
@@ -32,6 +35,8 @@ kind: Service
 metadata:
   name: nats
   namespace: __NAMESPACE__
+  labels:
+    deployment: __DEPLOYMENT__
 spec:
   type: ExternalName
   externalName: __NATS_SVC_HOSTNAME__
@@ -44,6 +49,8 @@ kind: Service
 metadata:
   name: mongodb
   namespace: __NAMESPACE__
+  labels:
+    deployment: __DEPLOYMENT__
 spec:
   type: ExternalName
   externalName: __MONGODB_SVC_HOSTNAME__
