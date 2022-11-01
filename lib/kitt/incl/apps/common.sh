@@ -32,10 +32,14 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
   # shellcheck source=../mongo.sh
   [ "$INCL_MONGO_SH" = "1" ] || . "$INCL_DIR/mongo.sh"
-    # shellcheck source=./kyso-api.sh
+  # shellcheck source=./elasticsearch.sh
+  [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
+  # shellcheck source=./kyso-api.sh
   [ "$INCL_APPS_KYSO_API_SH" = "1" ] || . "$INCL_DIR/apps/kyso-api.sh"
   # shellcheck source=./kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
+  # shellcheck source=./mongodb.sh
+  [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
   # shellcheck source=./nats.sh
   [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
 fi
@@ -176,40 +180,50 @@ apps_common_env_update() {
   fi
 }
 
-apps_kyso_update_api_settings() {
+apps_common_export_service_hostnames() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  apps_nats_export_variables "$_deployment" "$_cluster"
+  _elasticsearch_svc_domain="$ELASTICSEARCH_NAMESPACE.svc.cluster.local"
+  ELASTICSEARCH_SVC_HOSTNAME="elasticsearch-master.$_elasticsearch_svc_domain"
+  export ELASTICSEARCH_SVC_HOSTNAME
+  KYSO_SCS_SVC_HOSTNAME="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  export KYSO_SCS_SVC_HOSTNAME
+  _mongodb_svc_domain="$MONGODB_NAMESPACE.svc.cluster.local"
+  MONGODB_SVC_HOSTNAME="$MONGODB_RELEASE-headless.$_mongodb_svc_domain"
+  if [ "$MONGODB_ARCHITECTURE" = "replicaset" ]; then
+    MONGODB_SVC_HOSTNAME="$MONGODB_RELEASE-0.$MONGODB_SVC_HOSTNAME"
+  fi
+  export MONGODB_SVC_HOSTNAME
+  NATS_SVC_HOSTNAME="$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
+  export NATS_SVC_HOSTNAME
+}
+
+apps_kyso_print_api_settings() {
   ret="0"
   _deployment="$1"
   _cluster="$2"
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
   if [ "$KYSO_API_ENDPOINT" ]; then
-    echo "Not updating 'KysoSettings', kyso-api is using an entrypoint!"
-    return
-  fi
-  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
-  apps_nats_export_variables "$_deployment" "$_cluster"
-  _tmp_dir="$(mktemp -d)"
-  chmod 0700 "$_tmp_dir"
-  _settings_csv="$_tmp_dir/KysoSettings.csv"
-  _settings_err="$_tmp_dir/KysoSettings.err"
-  _settings_new="$_tmp_dir/KysoSettings.new"
-  mongo_command settings-export "$_settings_csv" "$_deployment" "$_cluster" \
-    2>"$_settings_err" || ret="$?"
-  if [ "$ret" -ne "0" ]; then
-    cat "$_settings_err" 1>&2
-    rm -rf "$_tmp_dir"
-    return "$ret"
+    ELASTICSEARCH_SVC_HOSTNAME="elasticsearch"
+    KYSO_SCS_SVC_HOSTNAME="kyso-scs"
+    MONGODB_SVC_HOSTNAME="mongodb"
+    NATS_SVC_HOSTNAME="nats"
+  else
+    apps_common_export_service_hostnames "$_deployment" "$_cluster"
   fi
   # Common variables
   _base_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
   _frontend_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
   # Elastic vars
-  _elastic_url="http://elasticsearch-master.elasticsearch-$DEPLOYMENT_NAME"
-  _elastic_url="$_elastic_url.svc.cluster.local:9200"
+  _elastic_url="http://$ELASTICSEARCH_SVC_HOSTNAME:9200"
   # SCS Vars
-  _sftp_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  _sftp_host="$KYSO_SCS_SVC_HOSTNAME"
   _sftp_port="22"
-  _kyso_indexer_api_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _kyso_indexer_api_base_url="http://$_kyso_indexer_api_host:8080"
+  _kyso_indexer_api_base_url="http://$KYSO_SCS_SVC_HOSTNAME:8080"
   if [ -f "$KYSO_SCS_USERS_TAR" ]; then
     _user_and_pass="$(
       file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
@@ -233,28 +247,54 @@ apps_kyso_update_api_settings() {
   _static_content_prefix="/scs"
   _content_pub_prefix="/pub"
   # NATS Vars
-  _nats_url="nats://$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local:$NATS_PORT"
+  _nats_url="nats://$NATS_SVC_HOSTNAME:$NATS_PORT"
   # WEBHOOK Vars
-  _webhook_host="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _webhook_url="http://$_webhook_host:9000"
-  # Replace values
-  sed \
-    -e "s%^\(BASE_URL\),.*%\1,$_base_url%" \
-    -e "s%^\(FRONTEND_URL\),.*%\1,$_frontend_url%" \
-    -e "s%^\(ELASTICSEARCH_URL\),.*%\1,$_elastic_url%" \
-    -e "s%^\(SFTP_HOST\),.*$%\1,$_sftp_host%" \
-    -e "s%^\(SFTP_PORT\),.*$%\1,$_sftp_port%" \
-    -e "s%^\(SFTP_USERNAME\),.*$%\1,$_sftp_username%" \
-    -e "s%^\(SFTP_PASSWORD\),.*$%\1,$_sftp_password%" \
-    -e "s%^\(SFTP_DESTINATION_FOLDER\),.*$%\1,$_sftp_destination_folder%" \
-    -e "s%^\(STATIC_CONTENT_PREFIX\),.*$%\1,$_static_content_prefix%" \
-    -e "s%^\(SFTP_PUBLIC_USERNAME\),.*$%\1,$_sftp_pub_username%" \
-    -e "s%^\(SFTP_PUBLIC_PASSWORD\),.*$%\1,$_sftp_pub_password%" \
-    -e "s%^\(STATIC_CONTENT_PUBLIC_PREFIX\),.*$%\1,$_content_pub_prefix%" \
-    -e "s%^\(KYSO_INDEXER_API_BASE_URL\),.*$%\1,$_kyso_indexer_api_base_url%" \
-    -e "s%^\(KYSO_NATS_URL\),.*$%\1,$_nats_url%" \
-    -e "s%^\(KYSO_WEBHOOK_URL\),.*$%\1,$_webhook_url%" \
-    "$_settings_csv" >"$_settings_new"
+  _webhook_url="http://$KYSO_SCS_SVC_HOSTNAME:9000"
+  # Print values
+  cat <<EOF
+BASE_URL,$_base_url
+FRONTEND_URL,$_frontend_url
+ELASTICSEARCH_URL,$_elastic_url
+SFTP_HOST,$_sftp_host
+SFTP_PORT,$_sftp_port
+SFTP_USERNAME,$_sftp_username
+SFTP_PASSWORD,$_sftp_password
+SFTP_DESTINATION_FOLDER,$_sftp_destination_folder
+STATIC_CONTENT_PREFIX,$_static_content_prefix
+SFTP_PUBLIC_USERNAME,$_sftp_pub_username
+SFTP_PUBLIC_PASSWORD,$_sftp_pub_password
+STATIC_CONTENT_PUBLIC_PREFIX,$_content_pub_prefix
+KYSO_INDEXER_API_BASE_URL,$_kyso_indexer_api_base_url
+KYSO_NATS_URL,$_nats_url
+KYSO_WEBHOOK_URL,$_webhook_url
+EOF
+}
+
+apps_kyso_update_api_settings() {
+  ret="0"
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  _tmp_dir="$(mktemp -d)"
+  chmod 0700 "$_tmp_dir"
+  _settings_csv="$_tmp_dir/KysoSettings.csv"
+  _settings_err="$_tmp_dir/KysoSettings.err"
+  _settings_new="$_tmp_dir/KysoSettings.new"
+  mongo_command settings-export "$_settings_csv" "$_deployment" "$_cluster" \
+    2>"$_settings_err" || ret="$?"
+  if [ "$ret" -ne "0" ]; then
+    cat "$_settings_err" 1>&2
+    rm -rf "$_tmp_dir"
+    return "$ret"
+  fi
+  # Prepare sed commands to replace the variables on the settings file
+  _sed_commands="$(
+    apps_kyso_print_api_settings "$_deployment" "$_cluster" | sed -e 's/,/ /' |
+      while read -r _k _v; do
+        printf "s|^%s,.*$|%s,%s|;\n" "$_k" "$_k" "$_v"
+      done
+  )"
+  echo "$_sed_commands" | sed -f - "$_settings_csv" >"$_settings_new"
   DIFF_OUT="$(diff -U 0 "$_settings_csv" "$_settings_new")" || true
   if [ "$DIFF_OUT" ]; then
     echo "Updating KysoSettings:"
