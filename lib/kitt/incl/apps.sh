@@ -82,7 +82,10 @@ apps_command() {
             esac
             read_bool "Execute command '$_c' for app '$_a'?" "$_cmnd_default"
           else
-            READ_VALUE="true"
+            case "$_a" in
+            kyso-ui) READ_VALUE="false" ;;
+            *) READ_VALUE="true" ;;
+            esac
           fi
           if is_selected "${READ_VALUE}"; then
             apps_command "$_a" "$_command" "$_deployment" "$_cluster"
