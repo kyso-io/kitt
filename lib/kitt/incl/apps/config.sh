@@ -204,6 +204,8 @@ apps_config_command() {
   migrate) apps_migrate_variables "$_deployment" "$_cluster" ;;
   path) apps_print_conf_path "$_deployment" "$_cluster" ;;
   show) apps_print_variables "$_deployment" "$_cluster" | grep -v "^#" ;;
+  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
+  settings-csv) apps_kyso_print_api_settings "$_deployment" "$_cluster" ;;
   update) apps_update_variables "$_deployment" "$_cluster" ;;
   *)
     echo "Unknown config subcommand '$_command'"
@@ -213,7 +215,7 @@ apps_config_command() {
 }
 
 apps_config_command_list() {
-  echo "migrate path show update"
+  echo "migrate path settings settings-csv show update"
 }
 
 # ----
