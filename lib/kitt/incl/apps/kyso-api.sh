@@ -69,12 +69,14 @@ apps_kyso_api_export_variables() {
   export KYSO_API_INGRESS_TMPL="$KYSO_API_TMPL_DIR/ingress.yaml"
   export KYSO_API_INGRESS_DOCS_TMPL="$KYSO_API_TMPL_DIR/ingress-docs.yaml"
   export KYSO_API_SERVICE_TMPL="$KYSO_API_TMPL_DIR/service.yaml"
+  export KYSO_API_SVC_MAP_TMPL="$KYSO_API_TMPL_DIR/svc_map.yaml"
   # Files
   export KYSO_API_DEPLOY_YAML="$KYSO_API_KUBECTL_DIR/deploy.yaml"
   export KYSO_API_ENDPOINT_YAML="$KYSO_API_KUBECTL_DIR/endpoint.yaml"
   export KYSO_API_ENV_SECRET="$KYSO_API_SECRETS_DIR/kyso-api${SOPS_EXT}.env"
   export KYSO_API_SECRET_YAML="$KYSO_API_KUBECTL_DIR/secrets${SOPS_EXT}.yaml"
   export KYSO_API_SERVICE_YAML="$KYSO_API_KUBECTL_DIR/service.yaml"
+  export KYSO_API_SVC_MAP_YAML="$KYSO_API_KUBECTL_DIR/svc_map.yaml"
   export KYSO_API_INGRESS_YAML="$KYSO_API_KUBECTL_DIR/ingress.yaml"
   export KYSO_API_INGRESS_DOCS_YAML="$KYSO_API_KUBECTL_DIR/ingress-docs.yaml"
   _auth_file="$KYSO_API_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
@@ -221,7 +223,6 @@ apps_kyso_api_install() {
     echo "Export KYSO_API_IMAGE or KYSO_API_ENDPOINT or reconfigure."
     exit 1
   fi
-  apps_kyso_api_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
     read_bool "mongodb namespace not found, abort install?" "Yes"
@@ -229,6 +230,9 @@ apps_kyso_api_install() {
       return 1
     fi
   fi
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
+  apps_kyso_api_check_directories
   # Adjust variables
   _app="kyso-api"
   _ns="$KYSO_API_NAMESPACE"
@@ -239,6 +243,8 @@ apps_kyso_api_install() {
   _secret_yaml="$KYSO_API_SECRET_YAML"
   _service_tmpl="$KYSO_API_SERVICE_TMPL"
   _service_yaml="$KYSO_API_SERVICE_YAML"
+  _svc_map_tmpl="$KYSO_API_SVC_MAP_TMPL"
+  _svc_map_yaml="$KYSO_API_SVC_MAP_YAML"
   _deploy_tmpl="$KYSO_API_DEPLOY_TMPL"
   _deploy_yaml="$KYSO_API_DEPLOY_YAML"
   _ingress_tmpl="$KYSO_API_INGRESS_TMPL"
@@ -360,8 +366,17 @@ apps_kyso_api_install() {
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__SERVER_PORT__%$_api_port%" \
     "$_service_tmpl" >"$_service_yaml"
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
   for _yaml in "$_ep_yaml" "$_secret_yaml" "$_auth_yaml" "$_service_yaml" \
-    "$_deploy_yaml" "$_ingress_yaml" "$_ingress_docs_yaml" $_cert_yamls; do
+    "$_svc_map_yaml" "$_deploy_yaml" "$_ingress_yaml" "$_ingress_docs_yaml" \
+    $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
   # Wait until deployment succeds or fails (if there is one, of course)
@@ -403,6 +418,7 @@ apps_kyso_api_remove() {
   _ep_yaml="$KYSO_API_ENDPOINT_YAML"
   _secret_yaml="$KYSO_API_SECRET_YAML"
   _service_yaml="$KYSO_API_SERVICE_YAML"
+  _svc_map_yaml="$KYSO_API_SVC_MAP_YAML"
   _deploy_yaml="$KYSO_API_DEPLOY_YAML"
   _ingress_yaml="$KYSO_API_INGRESS_YAML"
   _auth_yaml="$KYSO_API_AUTH_YAML"
@@ -414,7 +430,7 @@ apps_kyso_api_remove() {
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
     for _yaml in "$_ep_yaml" "$_secret_yaml" "$_auth_yaml" "$_service_yaml" \
-      "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls; do
+      "$_svc_map_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -457,7 +473,20 @@ apps_kyso_api_summary() {
   apps_kyso_api_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_API_NAMESPACE"
   _app="kyso-api"
-  deployment_summary "$_ns" "$_app"
+  _ep="$KYSO_API_ENDPOINT"
+  if [ "$_ep" ]; then
+    _endpoint="$(
+      kubectl get endpoints -n "$_ns" -l "app.kubernetes.io/name=$_app" -o name
+    )"
+    if [ "$_endpoint" ]; then
+      echo "FOUND endpoint for '$_app' in namespace '$_ns'"
+      echo "- $_endpoint: $_ep"
+    else
+      echo "MISSING endpoint for '$_app' in namespace '$_ns'"
+    fi
+  else
+    deployment_summary "$_ns" "$_app"
+  fi
 }
 
 apps_kyso_api_uris() {
@@ -571,7 +600,6 @@ apps_kyso_api_command() {
   reinstall) apps_kyso_api_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_api_remove "$_deployment" "$_cluster" ;;
   restart) apps_kyso_api_restart "$_deployment" "$_cluster" ;;
-  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_api_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_api_summary "$_deployment" "$_cluster" ;;
   uris) apps_kyso_api_uris "$_deployment" "$_cluster" ;;
@@ -584,7 +612,7 @@ apps_kyso_api_command() {
 
 apps_kyso_api_command_list() {
   _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart settings status summary uris"
+  _cmnds="$_cmnds restart status summary uris"
   echo "$_cmnds"
 }
 

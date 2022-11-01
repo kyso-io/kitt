@@ -29,14 +29,6 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_ADDONS_INGRESS_SH" = "1" ] || . "$INCL_DIR/addons/ingress.sh"
   # shellcheck source=./common.sh
   [ "$INCL_APPS_COMMON_SH" = "1" ] || . "$INCL_DIR/apps/common.sh"
-  # shellcheck source=./elasticsearch.sh
-  [ "$INCL_APPS_ELASTICSEARCH_SH" = "1" ] || . "$INCL_DIR/apps/elasticsearch.sh"
-  # shellcheck source=./mongodb.sh
-  [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
-  # shellcheck source=./nats.sh
-  [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
-  # shellcheck source=./kyso-scs.sh
-  [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
 fi
 
 # ---------
@@ -49,17 +41,13 @@ apps_portmaps_export_variables() {
   _deployment="$1"
   _cluster="$2"
   apps_common_export_variables "$_deployment" "$_cluster"
-  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
-  apps_mongodb_export_variables "$_deployment" "$_cluster"
-  apps_nats_export_variables "$_deployment" "$_cluster"
-  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   # Directories
   export PORTMAPS_TMPL_DIR="$TMPL_DIR/apps/portmaps"
   export PORTMAPS_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/portmaps"
   # Templates
-  export PORTMAPS_SERVICES_TMPL="$PORTMAPS_TMPL_DIR/services.yaml"
+  export PORTMAPS_SVC_MAP_TMPL="$PORTMAPS_TMPL_DIR/svc_map.yaml"
   # Files
-  export PORTMAPS_SERVICES_YAML="$PORTMAPS_KUBECTL_DIR/services.yaml"
+  export PORTMAPS_SVC_MAP_YAML="$PORTMAPS_KUBECTL_DIR/svc_map.yaml"
   # set variable to avoid running the function twice
   __apps_portmaps_export_variables="1"
 }
@@ -84,32 +72,28 @@ apps_portmaps_install() {
   _deployment="$1"
   _cluster="$2"
   apps_portmaps_export_variables "$_deployment" "$_cluster"
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_portmaps_check_directories
   _app="portmaps"
   _ns="$INGRESS_PORTMAPS_NAMESPACE"
-  _services_tmpl="$PORTMAPS_SERVICES_TMPL"
-  _services_yaml="$PORTMAPS_SERVICES_YAML"
+  _svc_map_tmpl="$PORTMAPS_SVC_MAP_TMPL"
+  _svc_map_yaml="$PORTMAPS_SVC_MAP_YAML"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
-    rm -f "$_services_yaml"
+    rm -f "$_svc_map_yaml"
     # Create namespace
     create_namespace "$_ns"
   fi
-  # Prepare services
-  _elasticsearch_svc_domain="$ELASTICSEARCH_NAMESPACE.svc.cluster.local"
-  _elasticsearch_svc_hostname="elasticsearch-master.$_elasticsearch_svc_domain"
-  _kyso_scs_svc_hostname="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  _mongodb_svc_domain="$MONGODB_NAMESPACE.svc.cluster.local"
-  _mongodb_svc_hostname="$MONGODB_RELEASE-headless.$_mongodb_svc_domain"
-  _nats_svc_hostname="$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
+  # Prepare mapping services
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$_elasticsearch_svc_hostname%" \
-    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$_kyso_scs_svc_hostname%" \
-    -e "s%__MONGODB_SVC_HOSTNAME__%$_mongodb_svc_hostname%" \
-    -e "s%__NATS_SVC_HOSTNAME__%$_nats_svc_hostname%" \
-    "$_services_tmpl" >"$_services_yaml"
-  for _yaml in $_services_yaml; do
+    -e "s%__DEPLOYMENT__%$DEPLOYMENT_NAME%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
+  for _yaml in $_svc_map_yaml; do
     kubectl_apply "$_yaml"
   done
 }
@@ -120,10 +104,10 @@ apps_portmaps_remove() {
   apps_portmaps_export_variables "$_deployment" "$_cluster"
   _app="portmaps"
   _ns="$INGRESS_PORTMAPS_NAMESPACE"
-  _services_yaml="$PORTMAPS_SERVICES_YAML"
+  _svc_map_yaml="$PORTMAPS_SVC_MAP_YAML"
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in $_services_yaml; do
+    for _yaml in $_svc_map_yaml; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -141,7 +125,30 @@ apps_portmaps_status() {
   _app="portmaps"
   _ns="$INGRESS_PORTMAPS_NAMESPACE"
   if find_namespace "$_ns"; then
-    kubectl get all -n "$_ns" -o yaml
+    kubectl get all -n "$_ns" -l deployment="$DEPLOYMENT_NAME"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_portmaps_summary() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_portmaps_export_variables "$_deployment" "$_cluster"
+  _app="portmaps"
+  _ns="$INGRESS_PORTMAPS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    _names="$(
+      kubectl get all -n "$_ns" -l deployment="$DEPLOYMENT_NAME" -o name
+    )"
+    if [ "$_names" ]; then
+      echo "FOUND '$DEPLOYMENT_NAME'  entries in namespace '$_ns'"
+      for _n in $_names; do
+        echo "- $_n"
+      done
+    else
+      echo "MISSING '$DEPLOYMENT_NAME'  entries in namespace '$_ns'"
+    fi
   else
     echo "Namespace '$_ns' for '$_app' not found!"
   fi
@@ -155,6 +162,7 @@ apps_portmaps_command() {
   install) apps_portmaps_install "$_deployment" "$_cluster" ;;
   remove) apps_portmaps_remove "$_deployment" "$_cluster" ;;
   status) apps_portmaps_status "$_deployment" "$_cluster" ;;
+  summary) apps_portmaps_summary "$_deployment" "$_cluster" ;;
   *)
     echo "Unknown portmaps subcommand '$1'"
     exit 1
@@ -163,7 +171,7 @@ apps_portmaps_command() {
 }
 
 apps_portmaps_command_list() {
-  echo "install remove status"
+  echo "install remove status summary"
 }
 
 # ----

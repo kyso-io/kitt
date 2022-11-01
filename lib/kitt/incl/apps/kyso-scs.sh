@@ -83,6 +83,7 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_PV_TMPL="$KYSO_SCS_TMPL_DIR/pv.yaml"
   export KYSO_SCS_SECRET_TMPL="$KYSO_SCS_TMPL_DIR/secrets.yaml"
   export KYSO_SCS_SERVICE_TMPL="$KYSO_SCS_TMPL_DIR/service.yaml"
+  export KYSO_SCS_SVC_MAP_TMPL="$KYSO_SCS_TMPL_DIR/svc_map.yaml"
   export KYSO_SCS_INGRESS_TMPL="$KYSO_SCS_TMPL_DIR/ingress.yaml"
   export \
     KYSO_SCS_INDEXER_APP_YAML_TMPL="$KYSO_SCS_TMPL_DIR/indexer-application.yaml"
@@ -93,6 +94,7 @@ apps_kyso_scs_export_variables() {
   export KYSO_SCS_INGRESS_YAML="$KYSO_SCS_KUBECTL_DIR/ingress.yaml"
   export KYSO_SCS_SECRET_YAML="$KYSO_SCS_SECRETS_DIR/secrets$SOPS_EXT.yaml"
   export KYSO_SCS_SERVICE_YAML="$KYSO_SCS_KUBECTL_DIR/service.yaml"
+  export KYSO_SCS_SVC_MAP_YAML="$KYSO_SCS_KUBECTL_DIR/svc_map.yaml"
   export KYSO_SCS_PVC_YAML="$KYSO_SCS_KUBECTL_DIR/pvc.yaml"
   export KYSO_SCS_PV_YAML="$KYSO_SCS_KUBECTL_DIR/pv.yaml"
   export KYSO_INDEXER_PF_OUT="$KYSO_SCS_PF_DIR/kubectl-indexer.out"
@@ -435,6 +437,7 @@ apps_kyso_scs_install() {
     echo "Export KYSO_INDEXER_IMAGE or reconfigure."
     exit 1
   fi
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_kyso_scs_check_directories
   # Initial tests
   if ! find_namespace "$KYSO_API_NAMESPACE"; then
@@ -458,8 +461,10 @@ apps_kyso_scs_install() {
   _pvc_yaml="$KYSO_SCS_PVC_YAML"
   _pv_name="$_app-$DEPLOYMENT_NAME"
   _pvc_name="$_ns"
-  _svc_tmpl="$KYSO_SCS_SERVICE_TMPL"
-  _svc_yaml="$KYSO_SCS_SERVICE_YAML"
+  _service_tmpl="$KYSO_SCS_SERVICE_TMPL"
+  _service_yaml="$KYSO_SCS_SERVICE_YAML"
+  _svc_map_tmpl="$KYSO_SCS_SVC_MAP_TMPL"
+  _svc_map_yaml="$KYSO_SCS_SVC_MAP_YAML"
   # XXX: Legacy, remove once all scs deployments are statefulsets
   _deploy_yaml="$KYSO_SCS_DEPLOY_YAML"
   _statefulset_tmpl="$KYSO_SCS_STATEFULSET_TMPL"
@@ -487,7 +492,7 @@ apps_kyso_scs_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_secret_yaml" "$_svc_yaml" "$_deploy_yaml" "$_ingress_yaml" \
+    rm -f "$_secret_yaml" "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" \
       "$_statefulset_yaml" "$_indexer_configmap_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
@@ -545,7 +550,7 @@ apps_kyso_scs_install() {
   sed \
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
-    "$_svc_tmpl" >"$_svc_yaml"
+    "$_service_tmpl" >"$_service_yaml"
   # Create ingress definition
   create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
     "" ""
@@ -599,10 +604,18 @@ apps_kyso_scs_install() {
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     -e "s%__HARDLINK_WEBHOOK_URL__%$_hardlink_url%" \
     "$_cronjobs_tmpl" >"$_cronjobs_yaml"
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
   # Apply YAML files
   for _yaml in "$_secret_yaml" "$_pv_yaml" "$_pvc_yaml" \
-    "$_indexer_configmap_yaml" "$_svc_yaml" "$_ingress_yaml" \
-    "$_cronjobs_yaml" $_cert_yamls; do
+    "$_indexer_configmap_yaml" "$_service_yaml" "$_svc_map_yaml" \
+    "$_ingress_yaml" "$_cronjobs_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
   # Replace deployment with stateful set ... when we delete the deployment the
@@ -614,7 +627,7 @@ apps_kyso_scs_install() {
   kubectl rollout status statefulset --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "$_app"
   # Update settings
-  apps_kyso_update_api_settings
+  apps_kyso_update_api_settings "$_deployment" "$_cluster"
 }
 
 apps_kyso_scs_reinstall() {
@@ -657,7 +670,7 @@ apps_kyso_scs_remove() {
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   _secret_yaml="$KYSO_SCS_SECRET_YAML"
-  _svc_yaml="$KYSO_SCS_SVC_YAML"
+  _service_yaml="$KYSO_SCS_SVC_YAML"
   # XXX: Legacy, remove once all scs deployments are statefulsets
   _deploy_yaml="$KYSO_SCS_DEPLOY_YAML"
   _statefulset_yaml="$KYSO_SCS_STATEFULSET_YAML"
@@ -673,8 +686,9 @@ apps_kyso_scs_remove() {
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
     for _yaml in "$_cronjobs_yaml" "$_secret_yaml" "$_statefulset_yaml" \
-      "$_deploy_yaml" "$_indexer_configmap_yaml" "$_svc_yaml" "$_pvc_yaml" \
-      "$_ingress_yaml" $_cert_yamls "$_pv_yaml"; do
+      "$_deploy_yaml" "$_indexer_configmap_yaml" "$_service_yaml" \
+      "$_svc_map_yaml" "$_pvc_yaml" "$_ingress_yaml" $_cert_yamls \
+      "$_pv_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -867,7 +881,6 @@ apps_kyso_scs_command() {
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_kyso_scs_rmvols "$_deployment" "$_cluster" ;;
   restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
-  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_kyso_scs_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_scs_summary "$_deployment" "$_cluster" ;;
   *)

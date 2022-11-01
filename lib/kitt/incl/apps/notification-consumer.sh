@@ -56,17 +56,19 @@ apps_notification_consumer_export_variables() {
   # Templates
   _env_tmpl="$_tmpl_dir/notification-consumer.env"
   _deploy_tmpl="$_tmpl_dir/deploy.yaml"
+  _svc_map_tmpl="$_tmpl_dir/svc_map.yaml"
   export NOTIFICATION_CONSUMER_ENV_TMPL="$_env_tmpl"
   export NOTIFICATION_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
+  export NOTIFICATION_CONSUMER_SVC_MAP_TMPL="$_svc_map_tmpl"
   # Files
   _env_secret="$_secrets_dir/notification-consumer${SOPS_EXT}.env"
   _deploy_yaml="$_kubectl_dir/deploy.yaml"
   _secret_yaml="$_kubectl_dir/secrets${SOPS_EXT}.yaml"
-  _service_yaml="$_kubectl_dir/service.yaml"
+  _svc_map_yaml="$_kubectl_dir/svc_map.yaml"
   export NOTIFICATION_CONSUMER_ENV_SECRET="$_env_secret"
   export NOTIFICATION_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export NOTIFICATION_CONSUMER_SECRET_YAML="$_secret_yaml"
-  export NOTIFICATION_CONSUMER_SERVICE_YAML="$_service_yaml"
+  export NOTIFICATION_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
   # Use defaults for variables missing from config files / enviroment
   _image="$NOTIFICATION_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -153,6 +155,7 @@ apps_notification_consumer_install() {
     echo "Export NOTIFICATION_CONSUMER_IMAGE or reconfigure."
     exit 1
   fi
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_notification_consumer_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
@@ -167,13 +170,14 @@ apps_notification_consumer_install() {
   _env_tmpl="$NOTIFICATION_CONSUMER_ENV_TMPL"
   _secret_env="$NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"
-  _service_yaml="$NOTIFICATION_CONSUMER_SERVICE_YAML"
+  _svc_map_tmpl="$NOTIFICATION_CONSUMER_SVC_MAP_TMPL"
+  _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   _deploy_tmpl="$NOTIFICATION_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$NOTIFICATION_CONSUMER_DEPLOY_YAML"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml"
+    rm -f "$_svc_map_yaml" "$_deploy_yaml" "$_ingress_yaml"
     # Create namespace
     create_namespace "$_ns"
   fi
@@ -203,12 +207,18 @@ apps_notification_consumer_install() {
     -e "s%__NOTIFICATION_CONSUMER_IMAGE__%$NOTIFICATION_CONSUMER_IMAGE%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
-  # update secret & deployment
-  for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
+  # update secret, svc_map & deployment
+  for _yaml in "$_svc_map_yaml" "$_secret_yaml" "$_deploy_yaml"; do
     kubectl_apply "$_yaml"
   done
-  # Delete service if present
-  kubectl_delete "$_service_yaml" || true
   # Wait until deployment succeds or fails (if there is one, of course)
   if [ -f "$_deploy_yaml" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
@@ -244,7 +254,7 @@ apps_notification_consumer_remove() {
   _app="notification-consumer"
   _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"
-  _svc_yaml="$NOTIFICATION_CONSUMER_SVC_YAML"
+  _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   _deploy_yaml="$NOTIFICATION_CONSUMER_DEPLOY_YAML"
   apps_notification_consumer_export_variables
   if find_namespace "$_ns"; then

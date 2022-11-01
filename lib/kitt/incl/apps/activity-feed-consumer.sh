@@ -56,17 +56,19 @@ apps_activity_feed_consumer_export_variables() {
   # Templates
   _env_tmpl="$_tmpl_dir/activity-feed-consumer.env"
   _deploy_tmpl="$_tmpl_dir/deploy.yaml"
+  _svc_map_tmpl="$_kubectl_dir/svc_map.tmpl"
   export ACTIVITY_FEED_CONSUMER_ENV_TMPL="$_env_tmpl"
   export ACTIVITY_FEED_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
+  export ACTIVITY_FEED_CONSUMER_SVC_MAP_YAML="$_svc_map_tmpl"
   # Files
   _env_secret="$_secrets_dir/activity-feed-consumer${SOPS_EXT}.env"
   _deploy_yaml="$_kubectl_dir/deploy.yaml"
   _secret_yaml="$_kubectl_dir/secrets${SOPS_EXT}.yaml"
-  _service_yaml="$_kubectl_dir/service.yaml"
+  _svc_map_yaml="$_kubectl_dir/svc_map.yaml"
   export ACTIVITY_FEED_CONSUMER_ENV_SECRET="$_env_secret"
   export ACTIVITY_FEED_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export ACTIVITY_FEED_CONSUMER_SECRET_YAML="$_secret_yaml"
-  export ACTIVITY_FEED_CONSUMER_SERVICE_YAML="$_service_yaml"
+  export ACTIVITY_FEED_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
   # Use defaults for variables missing from config files / enviroment
   _image="$ACTIVITY_FEED_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -153,6 +155,7 @@ apps_activity_feed_consumer_install() {
     echo "Export ACTIVITY_FEED_CONSUMER_IMAGE or reconfigure."
     exit 1
   fi
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_activity_feed_consumer_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
@@ -167,7 +170,7 @@ apps_activity_feed_consumer_install() {
   _env_tmpl="$ACTIVITY_FEED_CONSUMER_ENV_TMPL"
   _secret_env="$ACTIVITY_FEED_CONSUMER_ENV_SECRET"
   _secret_yaml="$ACTIVITY_FEED_CONSUMER_SECRET_YAML"
-  _service_yaml="$ACTIVITY_FEED_CONSUMER_SERVICE_YAML"
+  _svc_map_yaml="$ACTIVITY_FEED_CONSUMER_SVC_MAP_YAML"
   _deploy_tmpl="$ACTIVITY_FEED_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$ACTIVITY_FEED_CONSUMER_DEPLOY_YAML"
   if ! find_namespace "$_ns"; then
@@ -203,8 +206,16 @@ apps_activity_feed_consumer_install() {
     -e "s%__ACTIVITY_FEED_CONSUMER_IMAGE__%$ACTIVITY_FEED_CONSUMER_IMAGE%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
-  # update secret & deployment
-  for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
+  # update secret, svc_map & deployment
+  for _yaml in "$_secret_yaml" "$_svc_map_yaml" "$_deploy_yaml"; do
     kubectl_apply "$_yaml"
   done
   # remove service if found
@@ -244,12 +255,12 @@ apps_activity_feed_consumer_remove() {
   _app="activity-feed-consumer"
   _ns="$ACTIVITY_FEED_CONSUMER_NAMESPACE"
   _secret_yaml="$ACTIVITY_FEED_CONSUMER_SECRET_YAML"
-  _svc_yaml="$ACTIVITY_FEED_CONSUMER_SVC_YAML"
+  _svc_map_yaml="$ACTIVITY_FEED_CONSUMER_SVC_MAP_YAML"
   _deploy_yaml="$ACTIVITY_FEED_CONSUMER_DEPLOY_YAML"
   apps_activity_feed_consumer_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_secret_yaml"; do
+    for _yaml in "$_svc_map_yaml" "$_deploy_yaml" "$_secret_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"

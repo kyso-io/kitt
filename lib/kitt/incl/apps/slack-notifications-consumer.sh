@@ -56,17 +56,19 @@ apps_slack_notifications_consumer_export_variables() {
   # Templates
   _env_tmpl="$_tmpl_dir/slack-notifications-consumer.env"
   _deploy_tmpl="$_tmpl_dir/deploy.yaml"
+  _svc_map_tmpl="$_tmpl_dir/svc_map.yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_ENV_TMPL="$_env_tmpl"
   export SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
+  export SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_TMPL="$_svc_map_tmpl"
   # Files
   _env_secret="$_secrets_dir/slack-notifications-consumer${SOPS_EXT}.env"
   _deploy_yaml="$_kubectl_dir/deploy.yaml"
   _secret_yaml="$_kubectl_dir/secrets${SOPS_EXT}.yaml"
-  _service_yaml="$_kubectl_dir/service.yaml"
+  _svc_map_yaml="$_kubectl_dir/svc_map.yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_ENV_SECRET="$_env_secret"
   export SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML="$_secret_yaml"
-  export SLACK_NOTIFICATIONS_CONSUMER_SERVICE_YAML="$_service_yaml"
+  export SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
   # Use defaults for variables missing from config files / enviroment
   _image="$SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -153,6 +155,7 @@ apps_slack_notifications_consumer_install() {
     echo "Export SLACK_NOTIFICATIONS_CONSUMER_IMAGE or reconfigure."
     exit 1
   fi
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_slack_notifications_consumer_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
@@ -167,7 +170,8 @@ apps_slack_notifications_consumer_install() {
   _env_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_ENV_TMPL"
   _secret_env="$SLACK_NOTIFICATIONS_CONSUMER_ENV_SECRET"
   _secret_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML"
-  _service_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SERVICE_YAML"
+  _svc_map_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_TMPL"
+  _svc_map_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_YAML"
   _deploy_tmpl="$SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_YAML"
   if ! find_namespace "$_ns"; then
@@ -205,12 +209,18 @@ apps_slack_notifications_consumer_install() {
     -e "s%__SLACK_NOTIFICATIONS_CONSUMER_IMAGE__%$_image%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
     "$_deploy_tmpl" >"$_deploy_yaml"
-  # update secret & deployment
-  for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
+  # update secret, svc_map & deployment
+  for _yaml in "$_secret_yaml" "$_svc_map_yaml" "$_deploy_yaml"; do
     kubectl_apply "$_yaml"
   done
-  # Delete service if present
-  kubectl_delete "$_service_yaml" || true
   # Wait until deployment succeds or fails (if there is one, of course)
   if [ -f "$_deploy_yaml" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
@@ -247,12 +257,12 @@ apps_slack_notifications_consumer_remove() {
   _app="slack-notifications-consumer"
   _ns="$SLACK_NOTIFICATIONS_CONSUMER_NAMESPACE"
   _secret_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML"
-  _svc_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SVC_YAML"
+  _svc_map_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_YAML"
   _deploy_yaml="$SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_YAML"
   apps_slack_notifications_consumer_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_secret_yaml"; do
+    for _yaml in "$_svc_map_yaml" "$_deploy_yaml" "$_secret_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"

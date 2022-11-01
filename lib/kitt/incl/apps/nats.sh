@@ -514,7 +514,6 @@ apps_nats_command() {
   install) apps_nats_install "$_deployment" "$_cluster" ;;
   remove) apps_nats_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_nats_rmvols "$_deployment" "$_cluster" ;;
-  settings) apps_kyso_update_api_settings "$_deployment" "$_cluster" ;;
   status) apps_nats_status "$_deployment" "$_cluster" ;;
   summary) apps_nats_summary "$_deployment" "$_cluster" ;;
   *)

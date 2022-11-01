@@ -59,11 +59,13 @@ apps_kyso_front_export_variables() {
   export KYSO_FRONT_ENDPOINT_TMPL="$KYSO_FRONT_TMPL_DIR/endpoint.yaml"
   export KYSO_FRONT_ENDPOINT_SVC_TMPL="$KYSO_FRONT_TMPL_DIR/endpoint_svc.yaml"
   export KYSO_FRONT_SERVICE_TMPL="$KYSO_FRONT_TMPL_DIR/service.yaml"
+  export KYSO_FRONT_SVC_MAP_TMPL="$KYSO_FRONT_TMPL_DIR/svc_map.yaml"
   export KYSO_FRONT_INGRESS_TMPL="$KYSO_FRONT_TMPL_DIR/ingress.yaml"
   # Files
   export KYSO_FRONT_DEPLOY_YAML="$KYSO_FRONT_KUBECTL_DIR/deploy.yaml"
   export KYSO_FRONT_ENDPOINT_YAML="$KYSO_FRONT_KUBECTL_DIR/endpoint.yaml"
   export KYSO_FRONT_SERVICE_YAML="$KYSO_FRONT_KUBECTL_DIR/service.yaml"
+  export KYSO_FRONT_SVC_MAP_YAML="$KYSO_FRONT_KUBECTL_DIR/svc_map.yaml"
   export KYSO_FRONT_INGRESS_YAML="$KYSO_FRONT_KUBECTL_DIR/ingress.yaml"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_FRONT_ENDPOINT" ]; then
@@ -174,6 +176,8 @@ apps_kyso_front_install() {
     echo "Export KYSO_FRONT_IMAGE or KYSO_FRONT_ENDPOINT or reconfigure."
     exit 1
   fi
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_kyso_front_check_directories
   # Adjust variables
   _app="kyso-front"
@@ -182,6 +186,8 @@ apps_kyso_front_install() {
   _ep_yaml="$KYSO_FRONT_ENDPOINT_YAML"
   _service_tmpl="$KYSO_FRONT_SERVICE_TMPL"
   _service_yaml="$KYSO_FRONT_SERVICE_YAML"
+  _svc_map_tmpl="$KYSO_FRONT_SVC_MAP_TMPL"
+  _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
   _deploy_tmpl="$KYSO_FRONT_DEPLOY_TMPL"
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
   _ingress_tmpl="$KYSO_FRONT_INGRESS_TMPL"
@@ -194,8 +200,8 @@ apps_kyso_front_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_ep_yaml" "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" \
-      $_cert_yamls
+    rm -f "$_ep_yaml" "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
+      "$_ingress_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
   fi
@@ -256,8 +262,16 @@ apps_kyso_front_install() {
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__SERVER_PORT__%$_front_port%" \
     "$_service_tmpl" >"$_service_yaml"
-  for _yaml in "$_ep_yaml" "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" \
-    $_cert_yamls; do
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
+  for _yaml in "$_ep_yaml" "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
+    "$_ingress_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
   # Wait until deployment succeds or fails (if there is one, of course)
@@ -294,7 +308,8 @@ apps_kyso_front_remove() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   _app="kyso-front"
   _ns="$KYSO_FRONT_NAMESPACE"
-  _svc_yaml="$KYSO_FRONT_SVC_YAML"
+  _service_yaml="$KYSO_FRONT_SERVICE_YAML"
+  _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
   _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
   _cert_yamls=""
@@ -305,7 +320,8 @@ apps_kyso_front_remove() {
   apps_kyso_front_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls; do
+    for _yaml in "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
+      "$_ingress_yaml" $_cert_yamls; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -348,7 +364,20 @@ apps_kyso_front_summary() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_FRONT_NAMESPACE"
   _app="kyso-front"
-  deployment_summary "$_ns" "$_app"
+  _ep="$KYSO_FRONT_ENDPOINT"
+  if [ "$_ep" ]; then
+    _endpoint="$(
+      kubectl get endpoints -n "$_ns" -l "app.kubernetes.io/name=$_app" -o name
+    )"
+    if [ "$_endpoint" ]; then
+      echo "FOUND endpoint for '$_app' in namespace '$_ns'"
+      echo "- $_endpoint: $_ep"
+    else
+      echo "MISSING endpoint for '$_app' in namespace '$_ns'"
+    fi
+  else
+    deployment_summary "$_ns" "$_app"
+  fi
 }
 
 apps_kyso_front_uris() {
