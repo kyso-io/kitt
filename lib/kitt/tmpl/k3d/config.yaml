@@ -26,7 +26,7 @@ ports:
   - loadbalancer
 # BEG: MAP_KYSO_DEV_PORTS
 # SCS SFTP
-- port: __HOST_IP__:2020:2020
+- port: __HOST_IP__:2020:22
   nodeFilters:
   - loadbalancer
 # Nats
