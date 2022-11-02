@@ -233,24 +233,24 @@ apps_kyso_scs_clean_directories() {
 apps_kyso_scs_create_myssh_secrets() {
   _ns="$KYSO_SCS_NAMESPACE"
   output_file="$1"
-  if [ ! -f "$KYSO_SCS_HOST_KEYS" ]; then
+  if [ ! -f "$KYSO_SCS_HOST_KEYS" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ] ; then
     ret="0"
-    kubectl run --namespace "$_ns" "mysecureshell" \
-      --restart='Never' --quiet --rm --stdin --image "$KYSO_SCS_MYSSH_IMAGE" \
+    kubectl run --namespace "$_ns" "mysecureshell" --restart='Never' --quiet \
+      --rm --stdin --tty --image "$KYSO_SCS_MYSSH_IMAGE" \
       -- host-keys | stdout_to_file "$KYSO_SCS_HOST_KEYS" || ret="$?"
-    if [ "$ret" -ne "0" ]; then
+    if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
       rm -f "$KYSO_SCS_HOST_KEYS"
       return "$ret"
     fi
   fi
-  if [ ! -f "$KYSO_SCS_USERS_TAR" ]; then
+  if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
     ret="0"
     # shellcheck disable=SC2086
-    kubectl run --namespace "$_ns" "mysecureshell" \
-      --restart='Never' --quiet --rm --stdin --image "$KYSO_SCS_MYSSH_IMAGE" \
+    kubectl run --namespace "$_ns" "mysecureshell" --restart='Never' --quiet \
+      --rm --stdin --tty --image "$KYSO_SCS_MYSSH_IMAGE" \
       -- users-tar "$KYSO_SCS_REPORTS_USER" "$KYSO_SCS_PUBLIC_USER" |
       stdout_to_file "$KYSO_SCS_USERS_TAR" || ret="$?"
-    if [ "$ret" -ne "0" ]; then
+    if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
       rm -f "$KYSO_SCS_USERS_TAR"
       return "$ret"
     fi
