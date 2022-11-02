@@ -164,6 +164,7 @@ Usage: $0 CMND [ARGS]
 Where CMND can be one of:
 - exec: execute a command inside the container (if it is not running the call
   starts and stops it, otherwise it is used and left alone)
+- rar: run container in interactive mode as root
 - run: run container in interactive mode as the current user
 - start|stop|status|rm|pull|logs: operations on the container
 EOF
@@ -179,7 +180,8 @@ exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
 pull) docker_pull ;;
 rm) docker_rm ;;
-run) shift && docker_run ;;
+rar) shift && docker_run ;;
+run) shift && docker_run user;;
 status) docker_status ;;
 start) docker_start ;;
 stop) docker_stop ;;
