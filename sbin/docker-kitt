@@ -115,7 +115,7 @@ docker_exec() {
   fi
   [ -t "0" ] && _ti="--tty --interactive" || _ti="--interactive"
   [ "$KITT_ENVFILE" ] && _env="--env-file '$KITT_ENVFILE'" || _env=""
-  _user="--user '$(id -u):$(id -g)'"
+  _user="--user '$(id -u)'"
   DOCKER_COMMAND="docker exec $_ti $_env $_user '$CONTAINER_NAME'"
   DOCKER_COMMAND="$DOCKER_COMMAND $*"
   ret="0"
