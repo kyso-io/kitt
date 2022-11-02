@@ -238,6 +238,7 @@ apps_kyso_scs_create_myssh_secrets() {
     ret="0"
     kubectl run --namespace "$_ns" "mysecureshell" --restart='Never' \
       --image "$KYSO_SCS_MYSSH_IMAGE" --command=true -- sleep infinity
+    kubectl wait --for="condition=Ready" --namespace "$_ns" "pods/mysecureshell"
     if [ ! -f "$KYSO_SCS_HOST_KEYS" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
       kubectl exec --namespace "$_ns" "pods/mysecureshell" --quiet --stdin \
         -- /entrypoint.sh host-keys | stdout_to_file "$KYSO_SCS_HOST_KEYS" ||
@@ -245,7 +246,7 @@ apps_kyso_scs_create_myssh_secrets() {
       if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
         rm -f "$KYSO_SCS_HOST_KEYS"
         kubectl delete --namespace "$_ns" "pods/mysecureshell"
-        return "$ret"
+        exit "$ret"
       fi
     fi
     if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
@@ -256,7 +257,7 @@ apps_kyso_scs_create_myssh_secrets() {
       if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
         rm -f "$KYSO_SCS_USERS_TAR"
         kubectl delete --namespace "$_ns" "pods/mysecureshell"
-        return "$ret"
+        exit "$ret"
       fi
     fi
     kubectl delete --namespace "$_ns" "pods/mysecureshell"
