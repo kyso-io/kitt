@@ -233,34 +233,37 @@ apps_kyso_scs_clean_directories() {
 apps_kyso_scs_create_myssh_secrets() {
   _ns="$KYSO_SCS_NAMESPACE"
   output_file="$1"
-  if [ ! -f "$KYSO_SCS_HOST_KEYS" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ] ||
-    [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
-    ret="0"
-    kubectl run --namespace "$_ns" "mysecureshell" --restart='Never' \
+  ret="0"
+  if [ ! -f "$KYSO_SCS_HOST_KEYS" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
+    kubectl run --namespace "$_ns" "myssh-host-keys" --restart='Never' \
       --image "$KYSO_SCS_MYSSH_IMAGE" --command=true -- sleep infinity
-    kubectl wait --for="condition=Ready" --namespace "$_ns" "pods/mysecureshell"
-    if [ ! -f "$KYSO_SCS_HOST_KEYS" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
-      kubectl exec --namespace "$_ns" "pods/mysecureshell" --quiet --stdin \
-        -- /entrypoint.sh host-keys | stdout_to_file "$KYSO_SCS_HOST_KEYS" ||
-        ret="$?"
-      if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
-        rm -f "$KYSO_SCS_HOST_KEYS"
-        kubectl delete --namespace "$_ns" "pods/mysecureshell"
-        exit "$ret"
-      fi
+    kubectl wait --for="condition=Ready" --namespace "$_ns" \
+      "pods/myssh-host-keys"
+    kubectl exec --namespace "$_ns" "pods/myssh-host-keys" --quiet --stdin \
+      -- /entrypoint.sh host-keys | stdout_to_file "$KYSO_SCS_HOST_KEYS" ||
+      ret="$?"
+    if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
+      rm -f "$KYSO_SCS_HOST_KEYS"
+      [ "$ret" -ne "0" ] || ret="1"
     fi
-    if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
-      kubectl exec --namespace "$_ns" "pods/mysecureshell" --quiet --stdin \
-        -- /entrypoint.sh users-tar "$KYSO_SCS_REPORTS_USER" \
-        "$KYSO_SCS_PUBLIC_USER" | stdout_to_file "$KYSO_SCS_USERS_TAR" ||
-        ret="$?"
-      if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
-        rm -f "$KYSO_SCS_USERS_TAR"
-        kubectl delete --namespace "$_ns" "pods/mysecureshell"
-        exit "$ret"
-      fi
+    kubectl delete --namespace "$_ns" "pods/myssh-host-keys"
+    [ "$ret" -eq "0" ] || exit "$ret"
+  fi
+  if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
+    kubectl run --namespace "$_ns" "myssh-users-tar" --restart='Never' \
+      --image "$KYSO_SCS_MYSSH_IMAGE" --command=true -- sleep infinity
+    kubectl wait --for="condition=Ready" --namespace "$_ns" \
+      "pods/myssh-users-tar"
+    kubectl exec --namespace "$_ns" "pods/myssh-users-tar" --quiet --stdin \
+      -- /entrypoint.sh users-tar "$KYSO_SCS_REPORTS_USER" \
+      "$KYSO_SCS_PUBLIC_USER" | stdout_to_file "$KYSO_SCS_USERS_TAR" ||
+      ret="$?"
+    if [ "$ret" -ne "0" ] || [ ! -s "$KYSO_SCS_HOST_KEYS" ]; then
+      rm -f "$KYSO_SCS_USERS_TAR"
+      [ "$ret" -ne "0" ] || ret="1"
     fi
-    kubectl delete --namespace "$_ns" "pods/mysecureshell"
+    kubectl delete --namespace "$_ns" "pods/myssh-users-tar"
+    [ "$ret" -eq "0" ] || exit "$ret"
   fi
   # Prepare plain versions of files
   _tmp_dir="$(mktemp -d)"
