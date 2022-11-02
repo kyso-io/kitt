@@ -15,11 +15,17 @@ set -e
 # Relative PATH to the workdir from this script (usually . or .., empty means .)
 RELPATH_TO_WORKDIR=".."
 
+# NOTE
+# ----
+# The relative path means that kitt.sh is always run from the root of the
+# git repo or from the user home if the script is installed in "$HOME/bin"
+
 # Variables
 IMAGE_NAME="${IMAGE_NAME:-registry.kyso.io/kyso-io/kitt}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 IMAGE_URI="$IMAGE_NAME:$IMAGE_TAG"
 CONTAINER_NAME="kitt"
+BUILD_ARGS=""
 CONTAINER_VARS="-v $HOME:$HOME"
 CONTAINER_VARS="$CONTAINER_VARS -e EDITOR=vi"
 
@@ -71,6 +77,37 @@ cd_to_workdir() {
   fi
 }
 
+docker_build() {
+  # Check if we are on a git repo and we have a kitt.sh script available
+  if [ ! -d ".git" ] || [ ! -x "./bin/kitt.sh" ]; then
+    echo "The script does not seem to be on a clone of the repository"
+    echo "Aborting the build call"
+    exit 1
+  fi
+  # Compute build args
+  if [ -f "./.build-args" ]; then
+    BUILD_ARGS="$(
+      awk '!/^#/ { printf(" --build-arg \"%s\"", $0); }' "./.build-args"
+    )"
+  fi
+  DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
+  DOCKER_COMMAND="$DOCKER_COMMAND --tag '$IMAGE_TAG' ."
+  ret="0"
+  # Create version file
+  VERSION_INFO="$(./bin/kitt.sh version)"
+  echo "Build version information"
+  echo "---"
+  echo "$VERSION_INFO" | tee version.txt
+  echo "---"
+  eval "$DOCKER_COMMAND" || ret="$?"
+  rm -f version.txt
+  return "$ret"
+}
+
+docker_build_prune() {
+  DOCKER_BUILDKIT=1 docker builder prune -af
+}
+
 docker_exec() {
   if [ -z "$*" ]; then
     echo "Pass a command to execute inside the kitt container"
@@ -84,6 +121,10 @@ docker_exec() {
     docker exec "$_ti" "$CONTAINER_NAME" su -P -s /bin/sh -c "$*" "$(id -un)"
     docker_stop "0" >/dev/null
   fi
+}
+
+docker_logs() {
+  docker logs "$CONTAINER_NAME"
 }
 
 docker_pull() {
@@ -162,6 +203,8 @@ usage() {
 Usage: $0 CMND [ARGS]
 
 Where CMND can be one of:
+- build: create container using the passed package version
+- build-prune: cleanup builder caché
 - exec: execute a command inside the container (if it is not running the call
   starts and stops it, otherwise it is used and left alone)
 - rar: run container in interactive mode as root
@@ -176,12 +219,14 @@ EOF
 
 cd_to_workdir
 case "$1" in
+build) shift && docker_build "$@" ;;
+build-prune) docker_build_prune ;;
 exec) shift && docker_exec "$@" ;;
 logs) shift && docker_logs "$@" ;;
 pull) docker_pull ;;
 rm) docker_rm ;;
 rar) shift && docker_run ;;
-run) shift && docker_run user;;
+run) shift && docker_run user ;;
 status) docker_status ;;
 start) docker_start ;;
 stop) docker_stop ;;
