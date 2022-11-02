@@ -92,6 +92,19 @@ mongo_command() {
       _file="$_arg"
     fi
     ;;
+  version-get)
+    _mongo_cmnd="{ getParameter: 1, featureCompatibilityVersion: 1 }"
+    _cmnd="mongo $_root_database_uri --eval 'db.adminCommand($_mongo_cmnd)'"
+    ;;
+  version-set)
+    if [ "$_arg" ]; then
+      _mongo_cmnd="{ setFeatureCompatibilityVersion: \"$_arg\" }"
+      _cmnd="mongo $_root_database_uri --eval 'db.adminCommand($_mongo_cmnd)'"
+    else
+      echo "Pass the compatibility version (i.e. '5.0')"
+      exit 1
+    fi
+    ;;
   esac
   # NOTE: We use diferent container names to make sure each command runs in
   # different PODs and avoid race conditions (i.e. trying to exec a command
@@ -143,6 +156,8 @@ restore: Restore the kyso database from the passed file
 run: Run the given command on a containter (it is executed using /bin/sh -c)
 settings-export: Export the KysoSettings collection to a CSV file
 settings-merge: Merge the CSV data into the KysoSettings collection
+version-get: Get the current mongodb compatibility version
+version-set: Set the mongondb compatibility version
 EOF
 }
 
