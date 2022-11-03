@@ -30,7 +30,7 @@ check_helm_repo() {
   repo_name="$1"
   repo_url="$2"
   repo_added="$(
-    helm repo list -o yaml |
+    helm repo list -o yaml 2>/dev/null |
       sed -ne "/name: $repo_name/ {n; s%.*url: $repo_url$%yes%p; q;}"
   )" || true
   if [ "$repo_added" != "yes" ]; then
