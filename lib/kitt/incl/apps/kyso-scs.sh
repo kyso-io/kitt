@@ -239,7 +239,7 @@ apps_kyso_scs_create_myssh_secrets() {
       --image "$KYSO_SCS_MYSSH_IMAGE" --command=true -- sleep infinity
     kubectl wait --for="condition=Ready" --namespace "$_ns" \
       "pods/myssh-host-keys"
-    sleep 1
+    sleep 2
     kubectl exec --namespace "$_ns" "pods/myssh-host-keys" --quiet --stdin \
       -- /entrypoint.sh host-keys | stdout_to_file "$KYSO_SCS_HOST_KEYS" ||
       ret="$?"
@@ -247,7 +247,7 @@ apps_kyso_scs_create_myssh_secrets() {
       rm -f "$KYSO_SCS_HOST_KEYS"
       [ "$ret" -ne "0" ] || ret="1"
     fi
-    kubectl delete --namespace "$_ns" "pods/myssh-host-keys"
+    kubectl delete --namespace "$_ns" "pods/myssh-host-keys" --grace-period="2"
     [ "$ret" -eq "0" ] || exit "$ret"
   fi
   if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
@@ -255,7 +255,7 @@ apps_kyso_scs_create_myssh_secrets() {
       --image "$KYSO_SCS_MYSSH_IMAGE" --command=true -- sleep infinity
     kubectl wait --for="condition=Ready" --namespace "$_ns" \
       "pods/myssh-users-tar"
-    sleep 1
+    sleep 2
     kubectl exec --namespace "$_ns" "pods/myssh-users-tar" --quiet --stdin \
       -- /entrypoint.sh users-tar "$KYSO_SCS_REPORTS_USER" \
       "$KYSO_SCS_PUBLIC_USER" | stdout_to_file "$KYSO_SCS_USERS_TAR" ||
@@ -264,7 +264,7 @@ apps_kyso_scs_create_myssh_secrets() {
       rm -f "$KYSO_SCS_USERS_TAR"
       [ "$ret" -ne "0" ] || ret="1"
     fi
-    kubectl delete --namespace "$_ns" "pods/myssh-users-tar"
+    kubectl delete --namespace "$_ns" "pods/myssh-users-tar"" --grace-period="2"
     [ "$ret" -eq "0" ] || exit "$ret"
   fi
   # Prepare plain versions of files
