@@ -126,7 +126,9 @@ docker_exec() {
     eval "$DOCKER_EXEC_COMMAND" || ret="$?"
     docker_stop "0" >/dev/null
   fi
-  stty sane || true
+  if [ -t "0" ]; then
+    stty sane
+  fi
   return "$ret"
 }
 
@@ -190,7 +192,9 @@ docker_run() {
       " $CONTAINER_VARS '$IMAGE_URI' $CONTAINER_CMND"
   )"
   eval "$DOCKER_RUN_COMMAND"
-  stty sane || true
+  if [ -t "0" ]; then
+    stty sane
+  fi
 }
 
 docker_start() {
