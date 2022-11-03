@@ -52,9 +52,20 @@ mongo_command() {
   case "$1" in
   cli)
     case "$_arg" in
-    root) _cmnd="mongo $_root_database_uri" ;;
-    user|kyso|'') _cmnd="mongo $_user_database_uri" ;;
-    *) echo "Unknown user '$_arg'"; exit 1;;
+    root)
+      _cmnd="type mongosh >/dev/null 2>/dev/null"
+      _cmnd="$_cmnd && mongosh $_root_database_uri"
+      _cmnd="$_cmnd || mongo $_root_database_uri"
+      ;;
+    user | kyso | '')
+      _cmnd="type mongosh >/dev/null 2>/dev/null"
+      _cmnd="$_cmnd && mongosh $_user_database_uri"
+      _cmnd="$_cmnd || mongo $_user_database_uri"
+      ;;
+    *)
+      echo "Unknown user '$_arg'"
+      exit 1
+      ;;
     esac
     ;;
   dump)
@@ -142,15 +153,11 @@ mongo_command() {
     fi
     kubectl delete -n "$MONGODB_NAMESPACE" "pod/$container_name" --now 1>&2
   fi
-#  case "$_command" in
-#    status|summary) ;;
-#    *) cluster_git_update ;;
-#  esac
 }
 
 mongo_command_list() {
   cat <<EOF
-cli: Run the mongo client using 'root' or the 'kyso' user
+cli: Run mongosh or the mongo client using 'root' or the 'kyso' user
 dump: Dump the kyso database to the passed file
 restore: Restore the kyso database from the passed file
 run: Run the given command on a containter (it is executed using /bin/sh -c)
