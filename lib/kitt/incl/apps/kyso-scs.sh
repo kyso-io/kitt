@@ -247,8 +247,7 @@ apps_kyso_scs_create_myssh_secrets() {
       rm -f "$KYSO_SCS_HOST_KEYS"
       [ "$ret" -ne "0" ] || ret="1"
     fi
-    kubectl delete --namespace "$_ns" --force --grace-period=0 \
-      "pods/myssh-host-keys"
+    kubectl delete --namespace "$_ns" "pods/myssh-host-keys"
     [ "$ret" -eq "0" ] || exit "$ret"
   fi
   if [ ! -f "$KYSO_SCS_USERS_TAR" ] || [ ! -s "$KYSO_SCS_USERS_TAR" ]; then
@@ -265,8 +264,7 @@ apps_kyso_scs_create_myssh_secrets() {
       rm -f "$KYSO_SCS_USERS_TAR"
       [ "$ret" -ne "0" ] || ret="1"
     fi
-    kubectl delete --namespace "$_ns" --force --grace-period=0 \
-      "pods/myssh-users-tar"
+    kubectl delete --namespace "$_ns" "pods/myssh-users-tar"
     [ "$ret" -eq "0" ] || exit "$ret"
   fi
   # Prepare plain versions of files
