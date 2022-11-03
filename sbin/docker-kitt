@@ -90,8 +90,8 @@ docker_build() {
       awk '!/^#/ { printf(" --build-arg \"%s\"", $0); }' "./.build-args"
     )"
   fi
-  DOCKER_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
-  DOCKER_COMMAND="$DOCKER_COMMAND --tag '$IMAGE_TAG' ."
+  DOCKER_BUILD_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
+  DOCKER_BUILD_COMMAND="$DOCKER_BUILD_COMMAND --tag '$IMAGE_TAG' ."
   ret="0"
   # Create version file
   VERSION_INFO="$(./bin/kitt.sh version)"
@@ -99,7 +99,7 @@ docker_build() {
   echo "---"
   echo "$VERSION_INFO" | tee version.txt
   echo "---"
-  eval "$DOCKER_COMMAND" || ret="$?"
+  eval "$DOCKER_BUILD_COMMAND" || ret="$?"
   rm -f version.txt
   return "$ret"
 }
@@ -116,14 +116,14 @@ docker_exec() {
   [ -t "0" ] && _ti="--tty --interactive" || _ti="--interactive"
   [ "$KITT_ENVFILE" ] && _env="--env-file '$KITT_ENVFILE'" || _env=""
   _user="--user '$(id -u)'"
-  DOCKER_COMMAND="docker exec $_ti $_env $_user '$CONTAINER_NAME'"
-  DOCKER_COMMAND="$DOCKER_COMMAND $*"
+  DOCKER_EXEC_COMMAND="docker exec $_ti $_env $_user '$CONTAINER_NAME'"
+  DOCKER_EXEC_COMMAND="$DOCKER_EXEC_COMMAND $*"
   ret="0"
   if [ "$(docker_status)" ]; then
-    eval "$DOCKER_COMMAND" || ret="$?"
+    eval "$DOCKER_EXEC_COMMAND" || ret="$?"
   else
     docker_start >/dev/null
-    eval "$DOCKER_COMMAND" || ret="$?"
+    eval "$DOCKER_EXEC_COMMAND" || ret="$?"
     docker_stop "0" >/dev/null
   fi
   return "$ret"
@@ -183,12 +183,12 @@ docker_run() {
     _docker_sock="/var/run/docker.sock"
   fi
   CONTAINER_VARS="$CONTAINER_VARS -v $_docker_sock:/run/docker.sock:rw"
-  DOCKER_COMMAND="$(
+  DOCKER_RUN_COMMAND="$(
     printf "%s" \
       "docker run --rm --name '$CONTAINER_NAME' --network host -w $HOME" \
       " $CONTAINER_VARS '$IMAGE_URI' $CONTAINER_CMND"
   )"
-  eval "$DOCKER_COMMAND"
+  eval "$DOCKER_RUN_COMMAND"
 }
 
 docker_start() {
