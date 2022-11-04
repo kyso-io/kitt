@@ -33,7 +33,7 @@ fi
 mongo_command() {
   _cmnd="$1"
   case "$_cmnd" in
-  cli | dump | restore | settings-import | settings-merge | version-set)
+  cli | dump | restore | settings-export | settings-merge | version-set)
     _arg="$2"
     _deployment="$3"
     _cluster="$4"
