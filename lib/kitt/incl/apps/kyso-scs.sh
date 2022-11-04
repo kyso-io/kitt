@@ -108,6 +108,8 @@ apps_kyso_scs_export_variables() {
   _config_map="$KYSO_SCS_SECRETS_DIR/configmap$SOPS_EXT.yaml"
   export KYSO_SCS_INDEXER_CONFIGMAP_YAML="$_config_map"
   export KYSO_SCS_CRONJOBS_YAML="$KYSO_SCS_KUBECTL_DIR/cronjobs.yaml"
+  # By default don't auto save the environment
+  KYSO_SCS_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_SCS_MYSSH_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_IMAGE" ]; then
@@ -115,6 +117,8 @@ apps_kyso_scs_export_variables() {
     else
       KYSO_SCS_MYSSH_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_SCS_MYSSH_IMAGE"
     fi
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_SCS_MYSSH_IMAGE
   if [ -z "$KYSO_SCS_NGINX_IMAGE" ]; then
@@ -123,6 +127,8 @@ apps_kyso_scs_export_variables() {
     else
       KYSO_SCS_NGINX_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_SCS_NGINX_IMAGE"
     fi
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_SCS_NGINX_IMAGE
   if [ -z "$KYSO_INDEXER_IMAGE" ]; then
@@ -131,6 +137,8 @@ apps_kyso_scs_export_variables() {
     else
       KYSO_INDEXER_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_INDEXER_IMAGE"
     fi
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_INDEXER_IMAGE
   if [ "$DEPLOYMENT_KYSO_INDEXER_PF_PORT" ]; then
@@ -145,6 +153,8 @@ apps_kyso_scs_export_variables() {
     else
       KYSO_SCS_WEBHOOK_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_IMAGE"
     fi
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_SCS_WEBHOOK_IMAGE
   if [ "$DEPLOYMENT_KYSO_SCS_REPLICAS" ]; then
@@ -186,6 +196,8 @@ apps_kyso_scs_export_variables() {
       _cronjob_schedule="$DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE"
     fi
     KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE="$_cronjob_schedule"
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE
   if [ -z "$KYSO_SCS_HARDLINK_CRONJOB_IMAGE" ]; then
@@ -195,6 +207,8 @@ apps_kyso_scs_export_variables() {
       _cronjob_image="$DEPLOYMENT_DEFAULT_KYSO_SCS_HARDLINK_CRONJOB_IMAGE"
     fi
     KYSO_SCS_HARDLINK_CRONJOB_IMAGE="$_cronjob_image"
+  else
+    KYSO_SCS_AUTO_SAVE_ENV="true"
   fi
   export KYSO_SCS_HARDLINK_CRONJOB_IMAGE
   if [ "$DEPLOYMENT_KYSO_SCS_MYSSH_PF_PORT" ]; then
@@ -209,6 +223,8 @@ apps_kyso_scs_export_variables() {
     KYSO_SCS_WEBHOOK_PF_PORT="$DEPLOYMENT_DEFAULT_KYSO_SCS_WEBHOOK_PF_PORT"
   fi
   export KYSO_SCS_WEBHOOK_PF_PORT
+  # Export auto save environment flag
+  export KYSO_SCS_AUTO_SAVE_ENV
   __apps_kyso_scs_export_variables="1"
 }
 
@@ -449,8 +465,6 @@ apps_kyso_scs_install() {
     echo "Export KYSO_INDEXER_IMAGE or reconfigure."
     exit 1
   fi
-  apps_common_export_service_hostnames "$_deployment" "$_cluster"
-  apps_kyso_scs_check_directories
   # Initial tests
   if ! find_namespace "$KYSO_API_NAMESPACE"; then
     read_bool "kyso-api namespace not found, abort install?" "Yes"
@@ -464,6 +478,13 @@ apps_kyso_scs_install() {
       return 1
     fi
   fi
+  # Auto save the configuration if requested
+  if is_selected "$KYSO_SCS_AUTO_SAVE_ENV"; then
+    apps_kyso_scs_env_save "$_deployment" "$_cluster"
+  fi
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
+  apps_kyso_scs_check_directories
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   _secret_yaml="$KYSO_SCS_SECRET_YAML"
@@ -811,7 +832,8 @@ apps_kyso_scs_env_save() {
   _app="kyso-scs"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_kyso_scs_check_directories
   apps_kyso_scs_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -842,7 +864,7 @@ apps_kyso_scs_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_kyso_scs_env_save "$_deployment" "$_cluster" "$_env_file"
+      apps_kyso_scs_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer

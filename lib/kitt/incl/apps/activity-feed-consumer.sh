@@ -69,6 +69,8 @@ apps_activity_feed_consumer_export_variables() {
   export ACTIVITY_FEED_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export ACTIVITY_FEED_CONSUMER_SECRET_YAML="$_secret_yaml"
   export ACTIVITY_FEED_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
+  # By default don't auto save the environment
+  ACTIVITY_FEED_CONSUMER_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   _image="$ACTIVITY_FEED_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -77,6 +79,8 @@ apps_activity_feed_consumer_export_variables() {
     else
       _image="$DEPLOYMENT_DEFAULT_ACTIVITY_FEED_CONSUMER_IMAGE"
     fi
+  else
+    ACTIVITY_FEED_CONSUMER_AUTO_SAVE_ENV="true"
   fi
   export ACTIVITY_FEED_CONSUMER_IMAGE="$_image"
   if [ "$DEPLOYMENT_ACTIVITY_FEED_CONSUMER_REPLICAS" ]; then
@@ -85,6 +89,8 @@ apps_activity_feed_consumer_export_variables() {
     _replicas="$DEPLOYMENT_DEFAULT_ACTIVITY_FEED_CONSUMER_REPLICAS"
   fi
   export ACTIVITY_FEED_CONSUMER_REPLICAS="$_replicas"
+  # Export auto save environment flag
+  export ACTIVITY_FEED_CONSUMER_AUTO_SAVE_ENV
   __apps_activity_feed_consumer_export_variables="1"
 }
 
@@ -163,6 +169,10 @@ apps_activity_feed_consumer_install() {
     if is_selected "${READ_VALUE}"; then
       return 1
     fi
+  fi
+  # Auto save the configuration if requested
+  if is_selected "$ACTIVITY_FEED_CONSUMER_AUTO_SAVE_ENV"; then
+    apps_activity_feed_consumer_env_save "$_deployment" "$_cluster"
   fi
   # Adjust variables
   _app="activity-feed-consumer"
@@ -338,7 +348,8 @@ apps_activity_feed_consumer_env_save() {
   _app="activity-feed-consumer"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_activity_feed_consumer_check_directories
   apps_activity_feed_consumer_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -369,7 +380,7 @@ apps_activity_feed_consumer_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_activity_feed_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
+      apps_activity_feed_consumer_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer

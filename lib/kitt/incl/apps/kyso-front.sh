@@ -67,6 +67,8 @@ apps_kyso_front_export_variables() {
   export KYSO_FRONT_SERVICE_YAML="$KYSO_FRONT_KUBECTL_DIR/service.yaml"
   export KYSO_FRONT_SVC_MAP_YAML="$KYSO_FRONT_KUBECTL_DIR/svc_map.yaml"
   export KYSO_FRONT_INGRESS_YAML="$KYSO_FRONT_KUBECTL_DIR/ingress.yaml"
+  # By default don't auto save the environment
+  KYSO_FRONT_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_FRONT_ENDPOINT" ]; then
     if [ "$DEPLOYMENT_KYSO_FRONT_ENDPOINT" ]; then
@@ -74,6 +76,8 @@ apps_kyso_front_export_variables() {
     else
       KYSO_FRONT_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_FRONT_ENDPOINT"
     fi
+  else
+    KYSO_FRONT_AUTO_SAVE_ENV="true"
   fi
   if [ -z "$KYSO_FRONT_IMAGE" ]; then
     if [ "$DEPLOYMENT_KYSO_FRONT_IMAGE" ]; then
@@ -81,6 +85,8 @@ apps_kyso_front_export_variables() {
     else
       KYSO_FRONT_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_FRONT_IMAGE"
     fi
+  else
+    KYSO_FRONT_AUTO_SAVE_ENV="true"
   fi
   export KYSO_FRONT_IMAGE
   if [ -z "$KYSO_FRONT_PATH_PREFIX" ]; then
@@ -89,6 +95,8 @@ apps_kyso_front_export_variables() {
     else
       KYSO_FRONT_PATH_PREFIX="$DEPLOYMENT_DEFAULT_KYSO_FRONT_PATH_PREFIX"
     fi
+  else
+    KYSO_FRONT_AUTO_SAVE_ENV="true"
   fi
   export KYSO_FRONT_PATH_PREFIX
   if [ "$DEPLOYMENT_KYSO_FRONT_REPLICAS" ]; then
@@ -97,6 +105,8 @@ apps_kyso_front_export_variables() {
     KYSO_FRONT_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_FRONT_REPLICAS"
   fi
   export KYSO_FRONT_REPLICAS
+  # Export auto save environment flag
+  export KYSO_FRONT_AUTO_SAVE_ENV
   __apps_kyso_front_export_variables="1"
 }
 
@@ -175,6 +185,10 @@ apps_kyso_front_install() {
     echo "The FRONT_IMAGE & FRONT_ENDPOINT variables are empty."
     echo "Export KYSO_FRONT_IMAGE or KYSO_FRONT_ENDPOINT or reconfigure."
     exit 1
+  fi
+  # Auto save the configuration if requested
+  if is_selected "$KYSO_FRONT_AUTO_SAVE_ENV"; then
+    apps_kyso_front_env_save "$_deployment" "$_cluster"
   fi
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
@@ -420,7 +434,8 @@ apps_kyso_front_env_save() {
   _app="kyso-front"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_kyso_front_check_directories
   apps_kyso_front_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -451,7 +466,7 @@ apps_kyso_front_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_kyso_front_env_save "$_deployment" "$_cluster" "$_env_file"
+      apps_kyso_front_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer

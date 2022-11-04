@@ -83,6 +83,8 @@ apps_kyso_api_export_variables() {
   export KYSO_API_AUTH_FILE="$_auth_file"
   _auth_yaml="$KYSO_API_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export KYSO_API_AUTH_YAML="$_auth_yaml"
+  # By default don't auto save the environment
+  KYSO_API_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   if [ -z "$KYSO_API_ENDPOINT" ]; then
     if [ "$DEPLOYMENT_KYSO_API_ENDPOINT" ]; then
@@ -90,6 +92,8 @@ apps_kyso_api_export_variables() {
     else
       KYSO_API_ENDPOINT="$DEPLOYMENT_DEFAULT_KYSO_API_ENDPOINT"
     fi
+  else
+    KYSO_API_AUTO_SAVE_ENV="true"
   fi
   export KYSO_API_ENDPOINT
   if [ -z "$KYSO_API_IMAGE" ]; then
@@ -98,6 +102,8 @@ apps_kyso_api_export_variables() {
     else
       KYSO_API_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_API_IMAGE"
     fi
+  else
+    KYSO_API_AUTO_SAVE_ENV="true"
   fi
   export KYSO_API_IMAGE
   if [ "$DEPLOYMENT_KYSO_API_MAX_BODY_SIZE" ]; then
@@ -131,6 +137,8 @@ apps_kyso_api_export_variables() {
   fi
   export KYSO_API_POPULATE_MAIL_PREFIX="$_v"
   _v=""
+  # Export auto save environment flag
+  export KYSO_API_AUTO_SAVE_ENV
   __apps_kyso_api_export_variables="1"
 }
 
@@ -229,6 +237,10 @@ apps_kyso_api_install() {
     if is_selected "${READ_VALUE}"; then
       return 1
     fi
+  fi
+  # Auto save the configuration if requested
+  if is_selected "$KYSO_API_AUTO_SAVE_ENV"; then
+    apps_kyso_api_env_save "$_deployment" "$_cluster"
   fi
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
@@ -539,7 +551,8 @@ apps_kyso_api_env_save() {
   _app="kyso-api"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_kyso_api_check_directories
   apps_kyso_api_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -570,7 +583,7 @@ apps_kyso_api_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_kyso_api_env_save "$_deployment" "$_cluster" "$_env_file"
+      apps_kyso_api_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer

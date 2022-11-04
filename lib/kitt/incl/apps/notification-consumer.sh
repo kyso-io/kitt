@@ -69,6 +69,8 @@ apps_notification_consumer_export_variables() {
   export NOTIFICATION_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export NOTIFICATION_CONSUMER_SECRET_YAML="$_secret_yaml"
   export NOTIFICATION_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
+  # By default don't auto save the environment
+  NOTIFICATION_CONSUMER_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   _image="$NOTIFICATION_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -77,6 +79,8 @@ apps_notification_consumer_export_variables() {
     else
       _image="$DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_IMAGE"
     fi
+  else
+    NOTIFICATION_CONSUMER_AUTO_SAVE_ENV="true"
   fi
   export NOTIFICATION_CONSUMER_IMAGE="$_image"
   if [ "$DEPLOYMENT_NOTIFICATION_CONSUMER_REPLICAS" ]; then
@@ -85,6 +89,8 @@ apps_notification_consumer_export_variables() {
     _replicas="$DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_REPLICAS"
   fi
   export NOTIFICATION_CONSUMER_REPLICAS="$_replicas"
+  # Export auto save environment flag
+  export NOTIFICATION_CONSUMER_AUTO_SAVE_ENV
   __apps_notification_consumer_export_variables="1"
 }
 
@@ -163,6 +169,10 @@ apps_notification_consumer_install() {
     if is_selected "${READ_VALUE}"; then
       return 1
     fi
+  fi
+  # Auto save the configuration if requested
+  if is_selected "$NOTIFICATION_CONSUMER_AUTO_SAVE_ENV"; then
+    apps_notification_consumer_env_save "$_deployment" "$_cluster"
   fi
   # Adjust variables
   _app="notification-consumer"
@@ -337,7 +347,8 @@ apps_notification_consumer_env_save() {
   _app="notification-consumer"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_notification_consumer_check_directories
   apps_notification_consumer_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -368,7 +379,7 @@ apps_notification_consumer_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_notification_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
+      apps_notification_consumer_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer

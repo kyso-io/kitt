@@ -69,6 +69,8 @@ apps_slack_notifications_consumer_export_variables() {
   export SLACK_NOTIFICATIONS_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML="$_secret_yaml"
   export SLACK_NOTIFICATIONS_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
+  # By default don't auto save the environment
+  SLACK_NOTIFICATIONS_CONSUMER_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
   _image="$SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
   if [ -z "$_image" ]; then
@@ -77,6 +79,8 @@ apps_slack_notifications_consumer_export_variables() {
     else
       _image="$DEPLOYMENT_DEFAULT_SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
     fi
+  else
+    SLACK_NOTIFICATIONS_CONSUMER_AUTO_SAVE_ENV="true"
   fi
   export SLACK_NOTIFICATIONS_CONSUMER_IMAGE="$_image"
   if [ "$DEPLOYMENT_SLACK_NOTIFICATIONS_CONSUMER_REPLICAS" ]; then
@@ -85,6 +89,8 @@ apps_slack_notifications_consumer_export_variables() {
     _replicas="$DEPLOYMENT_DEFAULT_SLACK_NOTIFICATIONS_CONSUMER_REPLICAS"
   fi
   export SLACK_NOTIFICATIONS_CONSUMER_REPLICAS="$_replicas"
+  # Export auto save environment flag
+  export SLACK_NOTIFICATIONS_CONSUMER_AUTO_SAVE_ENV
   __apps_slack_notifications_consumer_export_variables="1"
 }
 
@@ -163,6 +169,10 @@ apps_slack_notifications_consumer_install() {
     if is_selected "${READ_VALUE}"; then
       return 1
     fi
+  fi
+  # Auto save the configuration if requested
+  if is_selected "$SLACK_NOTIFICATIONS_CONSUMER_AUTO_SAVE_ENV"; then
+    apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster"
   fi
   # Adjust variables
   _app="slack-notifications-consumer"
@@ -340,7 +350,8 @@ apps_slack_notifications_consumer_env_save() {
   _app="slack-notifications-consumer"
   _deployment="$1"
   _cluster="$2"
-  _env_file="$3"
+  apps_export_variables "$_deployment" "$_cluster"
+  _env_file="$DEPLOY_ENVS_DIR/$_app.env"
   apps_slack_notifications_consumer_check_directories
   apps_slack_notifications_consumer_print_variables "$_deployment" "$_cluster" |
     stdout_to_file "$_env_file"
@@ -371,8 +382,7 @@ apps_slack_notifications_consumer_env_update() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-      apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster" \
-        "$_env_file"
+      apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster"
       footer
       echo "$_app configuration saved to '$_env_file'"
       footer
