@@ -38,9 +38,9 @@ Command to ${CMND_DSC#*: }.
 
 Usage:
 
-  $_kit $(basename "$0") SUBCOMMAND {USER|FILE} [DEPLOYMENT_NAME [CLUSTER_NAME]]
+  $_kit $(basename "$0") SUBCOMMAND_AND_ARG [DEPLOYMENT_NAME [CLUSTER_NAME]]
 
-Where SUBCOMMAND is one of:
+Where SUBCOMMAND_AND_ARG is one of:
 
 $(mongo_command_list | sed -e "s/^/- /")
 
@@ -58,19 +58,13 @@ EOF
 
 _command=""
 while read -r _c; do
-  if [ "$1" = "${_c%:*}" ]; then
+  if [ "$1" = "$_c" ]; then
     _command="$1"
     break
   fi
 done <<EOF
-$(mongo_command_list)
+$(mongo_command_list|sed -e 's/[ :].*$//')
 EOF
-
-_arg="$2"
-_deployment="$3"
-_cluster="$4"
-
-apps_mongodb_export_variables "$_deployment" "$_cluster"
 
 if [ "$_command" ]; then
   mongo_command "$@"
