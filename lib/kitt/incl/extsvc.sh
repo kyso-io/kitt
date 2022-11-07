@@ -44,26 +44,35 @@ fi
 # Functions
 # ---------
 
-extsvc_export_variables() {
-  [ -z "$__extsvc_export_variables" ] || return 0
-  _extsvc="$1"
-  _cluster="$2"
-  # Labels
-  if [ "$_extsvc" ]; then
-    export EXTSVC_NAME="$_extsvc"
-  fi
-  # Load cluster values
+extsvc_export_cluster_variables() {
+  [ -z "$__extsvc_export_cluster_variables" ] || return 0
+  _cluster="$1"
   cluster_export_variables "$_cluster"
   # Directories
   export EXTSVC_TMPL_DIR="$TMPL_DIR/extsvc"
   export EXTSVC_BASE_KUBECTL_DIR="$CLUST_KUBECTL_DIR/extsvc"
   export EXTSVC_BASE_SECRETS_DIR="$CLUST_SECRETS_DIR/extsvc"
-  export EXTSVC_CONFIG_DIR="$CLUST_EXTSVC_DIR/$_extsvc"
-  export EXTSVC_KUBECTL_DIR="$EXTSVC_BASE_KUBECTL_DIR/$_extsvc"
-  export EXTSVC_SECRETS_DIR="$EXTSVC_BASE_SECRETS_DIR/$_extsvc"
   # Templates
   export EXTSVC_INGRESS_TMPL="$EXTSVC_TMPL_DIR/ingress.yaml"
-  export EXTSVC_CONFIG="$EXTSVC_CONFIG_DIR/config"
+  # Values
+  [ "$EXTSVC_NAMESPACE" ] || EXTSVC_NAMESPACE="${APP_DEFAULT_EXTSVC_NAMESPACE}"
+  export EXTSVC_NAMESPACE
+  # Set variable to avoid loading variables twice
+  __extsvc_export_cluster_variables="1"
+}
+
+extsvc_export_variables() {
+  [ -z "$__extsvc_export_variables" ] || return 0
+  _extsvc="$1"
+  _cluster="$2"
+  # Load cluster values
+  extsvc_export_cluster_variables "$_cluster"
+  # Labels
+  export EXTSVC_NAME="$_extsvc"
+  # Directories
+  export EXTSVC_CONFIG_DIR="$CLUST_EXTSVC_DIR/$EXTSVC_NAME"
+  export EXTSVC_KUBECTL_DIR="$EXTSVC_BASE_KUBECTL_DIR/$EXTSVC_NAME"
+  export EXTSVC_SECRETS_DIR="$EXTSVC_BASE_SECRETS_DIR/$EXTSVC_NAME"
   # Files
   export EXTSVC_CONFIG="$CLUST_EXTSVC_DIR/$EXTSVC_NAME/config"
   # Export CLUSTER_CONFIG variables
@@ -81,8 +90,6 @@ EOF
   # Values
   [ "$EXTSVC_SERVICE_NAME" ] || EXTSVC_SERVICE_NAME="$EXTSVC_NAME"
   export EXTSVC_SERVICE_NAME
-  [ "$EXTSVC_NAMESPACE" ] || EXTSVC_NAMESPACE="${APP_DEFAULT_EXTSVC_NAMESPACE}"
-  export EXTSVC_NAMESPACE
   [ "$EXTSVC_SERVER_ADDR" ] ||
     EXTSVC_SERVER_ADDR="${APP_DEFAULT_EXTSVC_SERVER_ADDR}"
   export EXTSVC_SERVER_ADDR
@@ -275,6 +282,33 @@ extsvc_config() {
   fi
 }
 
+extsvc_delete() {
+  _extsvc="$1"
+  _cluster="$2"
+  _remove_config="${3:-true}"
+  extsvc_export_variables "$_extsvc" "$_cluster"
+  extsvc_check_directories
+  _ns="$EXTSVC_NAMESPACE"
+  _auth_yaml="$EXTSVC_AUTH_YAML"
+  _cert_yaml="$EXTSVC_CERT_YAML"
+  _endpoint_yaml="$EXTSVC_ENDPOINT_YAML"
+  _ingress_yaml="$EXTSVC_INGRESS_YAML"
+  _service_yaml="$EXTSVC_SERVICE_YAML"
+  if find_namespace "$_ns"; then
+    header "Removing '$_extsvc' objects"
+    for _yaml in "$_auth_yaml" "$_cert_yaml" "$_endpoint_yaml" \
+      "$_service_yaml" "$_ingress_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+  fi
+  # Remove the configuration file
+  if [ "$_remove_config" = "true" ] && [ -f "$EXTSVC_CONFIG" ]; then
+    rm -f "$EXTSVC_CONFIG"
+  fi
+  # Remove empty directories
+  extsvc_clean_directories
+}
+
 extsvc_install() {
   _extsvc="$1"
   _cluster="$2"
@@ -401,29 +435,47 @@ extsvc_install() {
 }
 
 extsvc_remove() {
+  extsvc_delete "$1" "$2" "false"
+}
+
+extsvc_status() {
   _extsvc="$1"
   _cluster="$2"
-  extsvc_export_variables "$_extsvc" "$_cluster"
-  extsvc_check_directories
+  _print_status="${3:-true}"
+  extsvc_export_cluster_variables "$_cluster"
   _ns="$EXTSVC_NAMESPACE"
-  _auth_yaml="$EXTSVC_AUTH_YAML"
-  _cert_yaml="$EXTSVC_CERT_YAML"
-  _endpoint_yaml="$EXTSVC_ENDPOINT_YAML"
-  _ingress_yaml="$EXTSVC_INGRESS_YAML"
-  _service_yaml="$EXTSVC_SERVICE_YAML"
+  if [ "$_extsvc" = "all" ]; then
+    _esnames="$(
+      find "$CLUST_EXTSVC_DIR" -mindepth 2 -maxdepth 2 -name config -type f \
+        -printf "%P\n" | sed -e 's%/.*$%%'
+    )"
+  elif [ -f "$CLUST_EXTSVC_DIR/$_extsvc/config" ]; then
+    _esnames="$_extsvc"
+  else
+    echo "External service '$_extsvc' NOT FOUND"
+    return 1
+  fi
   if find_namespace "$_ns"; then
-    header "Removing '$_extsvc' objects"
-    for _yaml in "$_auth_yaml" "$_cert_yaml" "$_endpoint_yaml" \
-      "$_service_yaml" "$_ingress_yaml"; do
-      kubectl_delete "$_yaml" || true
+    for _svc in $_esnames; do
+      _status="$(
+        kubectl -n "$_ns" get "service/$_svc" "ingress/$_svc" 2>/dev/null
+      )" || true
+      if [ "$_status" ]; then
+        echo "External service '$_svc' INSTALLED"
+        if [ "$_print_status" = "true" ]; then
+          echo ""
+          echo "$_status"
+        fi
+      else
+        echo "External service '$_svc' NOT INSTALLED"
+      fi
+      echo ""
     done
   fi
-  # Remove the configuration file
-  if [ -f "$EXTSVC_CONFIG" ]; then
-    rm -f "$EXTSVC_CONFIG"
-  fi
-  # Remove empty directories
-  extsvc_clean_directories
+}
+
+extsvc_summary() {
+  extsvc_status "$1" "$2" "false"
 }
 
 extsvc_command() {
@@ -432,9 +484,12 @@ extsvc_command() {
   _cluster="$3"
   case "$_command" in
     config) extsvc_config "$_extsvc" "$_cluster" ;;
+    delete) extsvc_delete "$_extsvc" "$_cluster" ;;
     install) extsvc_install "$_extsvc" "$_cluster" ;;
     remove) extsvc_remove "$_extsvc" "$_cluster" ;;
-    *) echo "Unknown subcommand '$1'"; exit 1 ;;
+    status) extsvc_status "$_extsvc" "$_cluster" ;;
+    summary) extsvc_summary "$_extsvc" "$_cluster" ;;
+    *) echo "Unknown subcommand '$_command'"; exit 1 ;;
   esac
   case "$_command" in
     status|summary) ;;
@@ -443,7 +498,7 @@ extsvc_command() {
 }
 
 extsvc_command_list() {
-  echo "config install remove"
+  echo "config delete install remove status summary"
 }
 
 # ----
