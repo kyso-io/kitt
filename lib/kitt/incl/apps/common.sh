@@ -212,8 +212,10 @@ apps_kyso_print_api_settings() {
     KYSO_SCS_SVC_HOSTNAME="kyso-scs"
     MONGODB_SVC_HOSTNAME="mongodb"
     NATS_SVC_HOSTNAME="nats"
+    _sftp_port="2020"
   else
     apps_common_export_service_hostnames "$_deployment" "$_cluster"
+    _sftp_port="22"
   fi
   # Common variables
   _base_url="https://${DEPLOYMENT_HOSTNAMES%% *}"
@@ -222,7 +224,6 @@ apps_kyso_print_api_settings() {
   _elastic_url="http://$ELASTICSEARCH_SVC_HOSTNAME:9200"
   # SCS Vars
   _sftp_host="$KYSO_SCS_SVC_HOSTNAME"
-  _sftp_port="22"
   _kyso_indexer_api_base_url="http://$KYSO_SCS_SVC_HOSTNAME:8080"
   if [ -f "$KYSO_SCS_USERS_TAR" ]; then
     _user_and_pass="$(
