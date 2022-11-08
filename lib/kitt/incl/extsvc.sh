@@ -214,8 +214,8 @@ extsvc_create_endpoint_yaml() {
     emsg="$emsg\n- Missing SERVER_ADDR"
   fi
   case "$_server_port" in
-    '') emsg="$emsg\n- Missing SERVER_PORT" ;;
-    *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
+  '') emsg="$emsg\n- Missing SERVER_PORT" ;;
+  *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
   esac
   if [ "$emsg" ]; then
     echo "$emsg"
@@ -244,8 +244,8 @@ extsvc_create_service_yaml() {
     emsg="$emsg\n- Missing SERVER_ADDR"
   fi
   case "$_server_port" in
-    '') emsg="$emsg\n- Missing SERVER_PORT" ;;
-    *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
+  '') emsg="$emsg\n- Missing SERVER_PORT" ;;
+  *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
   esac
   if [ "$emsg" ]; then
     echo "$emsg"
@@ -280,8 +280,8 @@ extsvc_config() {
       READ_VALUE="Yes"
     fi
     if is_selected "${READ_VALUE}"; then
-        extsvc_check_directories
-        extsvc_print_config_variables | stdout_to_file "$EXTSVC_CONFIG"
+      extsvc_check_directories
+      extsvc_print_config_variables | stdout_to_file "$EXTSVC_CONFIG"
       footer
       echo "Configuration saved to '$EXTSVC_CONFIG'"
       footer
@@ -294,6 +294,10 @@ extsvc_delete() {
   _cluster="$2"
   _remove_config="${3:-true}"
   extsvc_export_variables "$_extsvc" "$_cluster"
+  if [ ! -f "$EXTSVC_CONFIG" ]; then
+    echo "Missing service configuration, aborting!!!"
+    exit 1
+  fi
   extsvc_check_directories
   _ns="$EXTSVC_NAMESPACE"
   _auth_yaml="$EXTSVC_AUTH_YAML"
@@ -320,13 +324,17 @@ extsvc_install() {
   _extsvc="$1"
   _cluster="$2"
   extsvc_export_variables "$_extsvc" "$_cluster"
+  if [ ! -f "$EXTSVC_CONFIG" ]; then
+    echo "Missing service configuration, aborting!!!"
+    exit 1
+  fi
   if [ -z "$EXTSVC_NAME" ]; then
     echo "Missing service name, aborting!!!"
     exit 1
   fi
   # Variables
   _ns="$EXTSVC_NAMESPACE"
-  # Files 
+  # Files
   _endpoint_tmpl="$EXTSVC_ENDPOINT_TMPL"
   _endpoint_yaml="$EXTSVC_ENDPOINT_YAML"
   _ingress_tmpl="$EXTSVC_INGRESS_TMPL"
@@ -373,8 +381,8 @@ extsvc_install() {
     emsg="$emsg\n- Missing SERVER_ADDR"
   fi
   case "$_server_port" in
-    '') emsg="$emsg\n- Missing SERVER_PORT" ;;
-    *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
+  '') emsg="$emsg\n- Missing SERVER_PORT" ;;
+  *[!0-9]*) emsg="$emsg\n- SERVER_PORT must be a number, not '$_server_port'" ;;
   esac
   if [ "$emsg" ]; then
     header "Configuration errors"
@@ -454,10 +462,17 @@ extsvc_status() {
   extsvc_export_cluster_variables "$_cluster"
   _ns="$EXTSVC_NAMESPACE"
   if [ "$_extsvc" = "all" ]; then
-    _esnames="$(
-      find "$CLUST_EXTSVC_DIR" -mindepth 2 -maxdepth 2 -name config -type f \
-        -printf "%P\n" | sed -e 's%/.*$%%'
-    )"
+    _esnames=""
+    if [ -d "$CLUST_EXTSVC_DIR" ]; then
+      _esnames="$(
+        find "$CLUST_EXTSVC_DIR" -mindepth 2 -maxdepth 2 -name config -type f \
+          -printf "%P\n" | sed -e 's%/.*$%%'
+      )"
+    fi
+    if [ -z "$_esnames" ]; then
+      echo "No external services found"
+      return 0
+    fi
   elif [ -f "$CLUST_EXTSVC_DIR/$_extsvc/config" ]; then
     _esnames="$_extsvc"
   else
@@ -487,27 +502,52 @@ extsvc_summary() {
   extsvc_status "$1" "$2" "false"
 }
 
+extsvc_uris() {
+  _extsvc="$1"
+  _cluster="$2"
+  extsvc_export_variables "$_extsvc" "$_cluster"
+  [ -f "$EXTSVC_CONFIG" ] || return
+  _hostname="$EXTSVC_EXTERNAL_HOST"
+  if is_selected "$EXTSVC_FORCE_SSL_REDIRECT"; then
+    _proto="https"
+  else
+    _proto="http"
+  fi
+  _prefix="$EXTSVC_SERVICE_PREFIX"
+  _uap=""
+  if is_selected "$EXTSVC_USE_BASIC_AUTH"; then
+    if [ -f "$EXTSVC_AUTH_FILE" ]; then
+      _uap="$(file_to_stdout "$EXTSVC_AUTH_FILE")@"
+    fi
+  fi
+  echo "${_proto}://${_uap}${_hostname}${_prefix}"
+}
+
 extsvc_command() {
   _extsvc="$1"
   _command="$2"
   _cluster="$3"
   case "$_command" in
-    config) extsvc_config "$_extsvc" "$_cluster" ;;
-    delete) extsvc_delete "$_extsvc" "$_cluster" ;;
-    install) extsvc_install "$_extsvc" "$_cluster" ;;
-    remove) extsvc_remove "$_extsvc" "$_cluster" ;;
-    status) extsvc_status "$_extsvc" "$_cluster" ;;
-    summary) extsvc_summary "$_extsvc" "$_cluster" ;;
-    *) echo "Unknown subcommand '$_command'"; exit 1 ;;
+  config) extsvc_config "$_extsvc" "$_cluster" ;;
+  delete) extsvc_delete "$_extsvc" "$_cluster" ;;
+  install) extsvc_install "$_extsvc" "$_cluster" ;;
+  remove) extsvc_remove "$_extsvc" "$_cluster" ;;
+  status) extsvc_status "$_extsvc" "$_cluster" ;;
+  summary) extsvc_summary "$_extsvc" "$_cluster" ;;
+  uris) extsvc_uris "$_extsvc" "$_cluster" ;;
+  *)
+    echo "Unknown subcommand '$_command'"
+    exit 1
+    ;;
   esac
   case "$_command" in
-    status|summary) ;;
-    *) cluster_git_update ;;
+  status | summary | uris) ;;
+  *) cluster_git_update ;;
   esac
 }
 
 extsvc_command_list() {
-  echo "config delete install remove status summary"
+  echo "config delete install remove status summary uris"
 }
 
 # ----
