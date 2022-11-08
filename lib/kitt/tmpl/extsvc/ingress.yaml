@@ -21,7 +21,7 @@ spec:
   - host: '__EXTERNAL_HOST__'
     http:
       paths:
-      - path: /
+      - path: __SERVICE_PREFIX__
         pathType: Prefix
         backend:
           service:

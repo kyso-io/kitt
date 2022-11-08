@@ -23,6 +23,7 @@ export APP_DEFAULT_EXTSVC_INTERNAL_PORT="80"
 export APP_DEFAULT_EXTSVC_SERVER_ADDR=""
 export APP_DEFAULT_EXTSVC_SERVER_PORT="80"
 export APP_DEFAULT_EXTSVC_SERVER_PROTO="http"
+export APP_DEFAULT_EXTSVC_SERVICE_PREFIX="/"
 export APP_DEFAULT_EXTSVC_FORCE_SSL_REDIRECT="true"
 export APP_DEFAULT_EXTSVC_USE_BASIC_AUTH="false"
 export APP_DEFAULT_EXTSVC_BASIC_AUTH_USER="user"
@@ -102,6 +103,9 @@ EOF
   [ "$EXTSVC_INTERNAL_PORT" ] ||
     EXTSVC_INTERNAL_PORT="${APP_DEFAULT_EXTSVC_INTERNAL_PORT}"
   export EXTSVC_INTERNAL_PORT
+  [ "$EXTSVC_SERVICE_PREFIX" ] ||
+    EXTSVC_SERVICE_PREFIX="${APP_DEFAULT_EXTSVC_SERVICE_PREFIX}"
+  export EXTSVC_SERVICE_PREFIX
   [ "$EXTSVC_FORCE_SSL_REDIRECT" ] ||
     EXTSVC_FORCE_SSL_REDIRECT="${APP_DEFAULT_EXTSVC_FORCE_SSL_REDIRECT}"
   export EXTSVC_FORCE_SSL_REDIRECT
@@ -166,6 +170,8 @@ extsvc_read_config_variables() {
   EXTSVC_SERVER_PROTO=${READ_VALUE}
   read_value "Internal service PORT" "${EXTSVC_INTERNAL_PORT}"
   EXTSVC_INTERNAL_PORT=${READ_VALUE}
+  read_value "Service PREFIX" "${EXTSVC_SERVICE_PREFIX}"
+  EXTSVC_SERVICE_PREFIX=${READ_VALUE}
   read_bool "Force SSL redirect" "${EXTSVC_FORCE_SSL_REDIRECT}"
   EXTSVC_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Use BASIC AUTH" "${EXTSVC_USE_BASIC_AUTH}"
@@ -186,6 +192,7 @@ SERVER_ADDR=$EXTSVC_SERVER_ADDR
 SERVER_PORT=$EXTSVC_SERVER_PORT
 SERVER_PROTO=$EXTSVC_SERVER_PROTO
 INTERNAL_PORT=$EXTSVC_INTERNAL_PORT
+SERVICE_PREFIX=$EXTSVC_SERVICE_PREFIX
 FORCE_SSL_REDIRECT=$EXTSVC_FORCE_SSL_REDIRECT
 USE_BASIC_AUTH=$EXTSVC_USE_BASIC_AUTH
 BASIC_AUTH_USER=$EXTSVC_BASIC_AUTH_USER
@@ -356,6 +363,7 @@ extsvc_install() {
   _server_port="$EXTSVC_SERVER_PORT"
   _server_proto="$EXTSVC_SERVER_PROTO"
   _internal_port="$EXTSVC_INTERNAL_PORT"
+  _service_prefix="$EXTSVC_SERVICE_PREFIX"
   # Check minimal values to continue
   emsg=""
   if [ -z "$_external_host" ]; then
@@ -422,6 +430,7 @@ extsvc_install() {
     -e "s%__EXTERNAL_HOST__%$_external_host%" \
     -e "s%__SERVICE_NAME__%$_service_name%" \
     -e "s%__INTERNAL_PORT__%$_internal_port%" \
+    -e "s%__SERVICE_PREFIX__%$_service_prefix%" \
     "$_ingress_tmpl" >"$_ingress_yaml"
   # Create service YAML
   extsvc_create_service_yaml "$_ns" "$_service_name" "$_internal_port" \
