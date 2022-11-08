@@ -12,26 +12,16 @@ controller:
   service:
     enabled: true
     ports:
+      kyso-sftp: 22
       http: 80
       https: 443
-      kyso-sftp: 2020
       nats: 4222
       kyso-indexer: 8080
       kyso-webhook: 9000
       elasticsearch: 9200
       mongodb: 27017
-    targetPorts:
-      http: http
-      https: https
-      mqtt: mqtt
-      kyso-sftp: kyso-sftp
-      nats: nats
-      kyso-indexer: kyso-indexer
-      kyso-webhook: kyso-webhook
-      elasticsearch: elasticsearch
-      mongodb: mongodb
 tcp:
-  2020: "__PORTMAPS_NAMESPACE__/kyso-scs:2020"
+  22: "__PORTMAPS_NAMESPACE__/kyso-scs:22"
   4222: "__PORTMAPS_NAMESPACE__/nats:4222"
   8080: "__PORTMAPS_NAMESPACE__/kyso-scs:8080"
   9000: "__PORTMAPS_NAMESPACE__/kyso-scs:9000"
