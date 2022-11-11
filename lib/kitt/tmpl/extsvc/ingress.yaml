@@ -9,6 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
     nginx.ingress.kubernetes.io/backend-protocol: "__SERVER_PROTO__"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
+    nginx.ingress.kubernetes.io/proxy-body-size: "__MAX_BODY_SIZE__"
 spec:
   ingressClassName: nginx
 # BEG: USE_TLS

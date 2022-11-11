@@ -24,6 +24,7 @@ export APP_DEFAULT_EXTSVC_SERVER_ADDR=""
 export APP_DEFAULT_EXTSVC_SERVER_PORT="80"
 export APP_DEFAULT_EXTSVC_SERVER_PROTO="http"
 export APP_DEFAULT_EXTSVC_SERVICE_PREFIX="/"
+export APP_DEFAULT_EXTSVC_MAX_BODY_SIZE=""
 export APP_DEFAULT_EXTSVC_FORCE_SSL_REDIRECT="true"
 export APP_DEFAULT_EXTSVC_USE_BASIC_AUTH="false"
 export APP_DEFAULT_EXTSVC_BASIC_AUTH_USER="user"
@@ -118,6 +119,9 @@ EOF
   [ "$EXTSVC_USE_CERTS" ] ||
     EXTSVC_USE_CERTS="${APP_DEFAULT_EXTSVC_USE_CERTS}"
   export EXTSVC_USE_CERTS
+  [ "$EXTSVC_MAX_BODY_SIZE" ] ||
+    EXTSVC_MAX_BODY_SIZE="$APP_DEFAULT_EXTSVC_MAX_BODY_SIZE"
+  export EXTSVC_MAX_BODY_SIZE
   # Files
   EXTSVC_AUTH_FILE="$EXTSVC_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
   export EXTSVC_AUTH_FILE
@@ -182,6 +186,8 @@ extsvc_read_config_variables() {
   fi
   read_bool "Use specific TLS certs" "${EXTSVC_USE_CERTS}"
   EXTSVC_USE_CERTS=${READ_VALUE}
+  read_value "Ingress max body size" "${EXTSVC_MAX_BODY_SIZE}"
+  EXTSVC_MAX_BODY_SIZE=${READ_VALUE}
 }
 
 extsvc_print_config_variables() {
@@ -197,6 +203,7 @@ FORCE_SSL_REDIRECT=$EXTSVC_FORCE_SSL_REDIRECT
 USE_BASIC_AUTH=$EXTSVC_USE_BASIC_AUTH
 BASIC_AUTH_USER=$EXTSVC_BASIC_AUTH_USER
 USE_CERTS=$EXTSVC_USE_CERTS
+MAX_BODY_SIZE=$EXTSVC_MAX_BODY_SIZE
 EOF
 }
 
@@ -372,6 +379,7 @@ extsvc_install() {
   _server_proto="$EXTSVC_SERVER_PROTO"
   _internal_port="$EXTSVC_INTERNAL_PORT"
   _service_prefix="$EXTSVC_SERVICE_PREFIX"
+  _max_body_size="$EXTSVC_MAX_BODY_SIZE"
   # Check minimal values to continue
   emsg=""
   if [ -z "$_external_host" ]; then
@@ -425,6 +433,11 @@ extsvc_install() {
     # sed commands for the _ingress_yaml file
     basic_auth_sed="/nginx.ingress.kubernetes.io\/auth-/d"
   fi
+  if [ "$_max_body_size" ]; then
+    max_body_sed="s%__MAX_BODY_SIZE__%$_max_body_size%"
+  else
+    max_body_sed="/__MAX_BODY_SIZE__/d"
+  fi
   # Create endpoint YAML
   extsvc_create_endpoint_yaml "$_ns" "$_service_name" "$_server_addr" \
     "$_server_port" "$_endpoint_yaml"
@@ -439,6 +452,7 @@ extsvc_install() {
     -e "s%__SERVICE_NAME__%$_service_name%" \
     -e "s%__INTERNAL_PORT__%$_internal_port%" \
     -e "s%__SERVICE_PREFIX__%$_service_prefix%" \
+    -e "$max_body_sed" \
     "$_ingress_tmpl" >"$_ingress_yaml"
   # Create service YAML
   extsvc_create_service_yaml "$_ns" "$_service_name" "$_internal_port" \
