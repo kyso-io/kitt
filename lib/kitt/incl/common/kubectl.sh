@@ -61,40 +61,6 @@ kubectl_delete() {
   kubectl_op "delete" "$1"
 }
 
-create_basic_auth_yaml() {
-  if [ "$#" -ne "5" ]; then
-    echo "Wrong arguments, expecting NS, NAME, USER and TEXT & YAML file paths"
-    exit 1
-  fi
-  _ns="$1"
-  _auth="$2"
-  _user="$3"
-  _text="$4"
-  _apr1="${_text%.text}.apr1"
-  _yaml="$5"
-  # Create plain version if not present
-  if [ -f "$_text" ]; then
-    _pass="$(file_to_stdout "$_text" | sed -ne "s/^$_user://p")"
-  else
-    _pass=""
-  fi
-  if [ -z "$_pass" ]; then
-    _pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
-    : >"$_text"
-    chmod 0600 "$_text"
-    echo "$_user:$_pass" | stdout_to_file "$_text"
-  fi
-  : >"$_apr1"
-  chmod 0600 "$_apr1"
-  printf "%s\n" "$_user:$(openssl passwd -apr1 "$_pass")" >"$_apr1"
-  : >"$_yaml"
-  chmod 0600 "$_yaml"
-  kubectl create secret generic "$_auth" --dry-run=client -o yaml \
-    --namespace "$_ns" --from-file=auth="$_apr1" |
-    stdout_to_file "$_yaml"
-  rm -f "$_apr1"
-}
-
 create_tls_cert_yaml() {
   if [ "$#" -ne "5" ]; then
     echo "Wrong arguments, expecting NS, CERT_NAME, CRT, KEY & YAML file path"
