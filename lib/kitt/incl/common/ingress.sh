@@ -25,6 +25,34 @@ fi
 # Functions
 # ---------
 
+# Create or update plain auth_file, if the file exists but the user does not it
+# is updated, not replaced.
+auth_file_update() {
+  _auth_user="$1"
+  _auth_file="$2"
+  if [ "$#" -ne "2" ]; then
+    echo "Wrong number of arguments, expected 2:"
+    echo "- 'auth_user' & 'auth_file'"
+    exit 1
+  fi
+  if [ ! -f "$_auth_file" ]; then
+    _auth_pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
+    : >"$_auth_file"
+    chmod 0600 "$_auth_file"
+    echo "$_auth_user:$_auth_pass" | stdout_to_file "$_auth_file"
+  else
+    _auth_lines="$(file_to_stdout "$_auth_file")"
+    if [ -z "$(echo "$_auth_lines" | sed -ne "/^$_auth_user:/p")" ]; then
+      _auth_pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
+      (
+        echo "$_auth_lines"
+        echo "$_auth_user:$_auth_pass"
+      ) |
+        stdout_to_file "$_auth_file"
+    fi
+  fi
+}
+
 create_htpasswd_secret_yaml() {
   _ns="$1"
   _auth_name="$2"
@@ -39,21 +67,13 @@ create_htpasswd_secret_yaml() {
   _apr1="$_auth_file.apr1"
   # Do nothing if _auth_name is empty
   [ "$_auth_name" ] || return 0
-  # Create plain version if not present
-  if [ -f "$_auth_file" ]; then
-    _pass="$(file_to_stdout "$_auth_file" | sed -ne "s%^$_auth_user:%%p")"
-  else
-    _pass=""
-  fi
-  if [ -z "$_pass" ]; then
-    _pass="$(openssl rand -base64 12 | sed -e 's%+%-%g;s%/%_%g')"
-    : >"$_auth_file"
-    chmod 0600 "$_auth_file"
-    echo "$_auth_user:$_pass" | stdout_to_file "$_auth_file"
-  fi
+  # Create or update plain version if not present
+  auth_file_update "$_auth_name" "$_auth_file"
+  _auth_pass="$(file_to_stdout "$_auth_file" | sed -ne "s%^$_auth_user:%%p")"
   : >"$_apr1"
   chmod 0600 "$_apr1"
-  printf "%s:%s\n" "$_auth_user" "$(openssl passwd -apr1 "$_pass")" >"$_apr1"
+  printf "%s:%s\n" "$_auth_user" "$(openssl passwd -apr1 "$_auth_pass")" \
+    >"$_apr1"
   : >"$_auth_yaml"
   chmod 0600 "$_auth_yaml"
   kubectl create secret generic "$_auth_name" -n "$_ns" --dry-run=client \
@@ -109,30 +129,22 @@ create_app_cert_yamls() {
   fi
 }
 
-create_app_ingress_yaml() {
-  _ns="$1"
-  _app="$2"
-  _tmpl="$3"
-  _yaml="$4"
-  _auth_name="$5"
-  _max_body_size="$6"
-  if [ "$#" -ne "6" ]; then
-    echo "Wrong number of arguments, expected 6:"
-    echo "- 'ns', 'app', 'tmpl', 'yaml', 'auth_name' & 'max_body_size'"
+replace_app_ingress_values() {
+  _app="$1"
+  _yaml="$2"
+  if [ "$#" -ne "2" ]; then
+    echo "Wrong number of arguments, expected 2:"
+    echo "- 'app', 'yaml'"
     exit 1
   fi
-  if [ "$_auth_name" ]; then
-    basic_auth_sed="s%__AUTH_SECRET__%$_auth_name%"
-  else
-    basic_auth_sed="/nginx.ingress.kubernetes.io\/auth-/d"
-  fi
+  _yaml_orig="$_yaml.orig"
   _yaml_annotations="$_yaml.annotations"
   _yaml_hostname_rule="$_yaml.hostname_rule"
   _yaml_hostname_tls="$_yaml.hostname_tls"
   # Generate ingress hostname rules
   _cmnd="/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/"
   _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_RULE/d;p;}"
-  hostname_rule="$(sed -n -e "$_cmnd" "$_tmpl")"
+  hostname_rule="$(sed -n -e "$_cmnd" "$_yaml")"
   for hostname in $DEPLOYMENT_HOSTNAMES; do
     echo "$hostname_rule" | sed -e "s%__HOSTNAME__%$hostname%g"
   done >"$_yaml_hostname_rule"
@@ -159,11 +171,16 @@ create_app_ingress_yaml() {
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     _cmnd="/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/"
     _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_TLS/d;p;}"
-    hostname_tls="$(sed -n -e "$_cmnd" "$_tmpl")"
+    hostname_tls="$(sed -n -e "$_cmnd" "$_yaml")"
     for hostname in $DEPLOYMENT_HOSTNAMES; do
       echo "$hostname_tls" | sed -e "s%__HOSTNAME__%$hostname%g"
     done >"$_yaml_hostname_tls"
+    rm_tls_sed=""
+  else
+    rm_tls_sed="/^  tls:$/d"
   fi
+  # Copy a plain version the original _yaml file to use for the replacements
+  file_to_stdout "$_yaml" >"$_yaml_orig"
   # Generate ingress YAML file
   sed \
     -e "/annotations:/r $_yaml_annotations" \
@@ -171,15 +188,39 @@ create_app_ingress_yaml() {
     -e "/^# END: HOSTNAME_TLS/r $_yaml_hostname_tls" \
     -e "/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/d" \
     -e "/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/d" \
-    "$_tmpl" |
-    sed \
-      -e "$basic_auth_sed" \
-      -e "s%__APP__%$_app%" \
-      -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__MAX_BODY_SIZE__%$_max_body_size%g" \
-      -e "s%__FORCE_SSL_REDIRECT__%$CLUSTER_FORCE_SSL_REDIRECT%g" \
-      >"$_yaml"
-  rm -f "$_yaml_annotations" "$_yaml_hostname_rule" "$_yaml_hostname_tls"
+    -e "s%__FORCE_SSL_REDIRECT__%$CLUSTER_FORCE_SSL_REDIRECT%g" \
+    -e "$rm_tls_sed" \
+    "$_yaml_orig" | stdout_to_file "$_yaml"
+  rm -f "$_yaml_annotations" "$_yaml_hostname_rule" "$_yaml_hostname_tls" \
+    "$_yaml_orig"
+}
+
+create_app_ingress_yaml() {
+  _ns="$1"
+  _app="$2"
+  _tmpl="$3"
+  _yaml="$4"
+  _auth_name="$5"
+  _max_body_size="$6"
+  if [ "$#" -ne "6" ]; then
+    echo "Wrong number of arguments, expected 6:"
+    echo "- 'ns', 'app', 'tmpl', 'yaml', 'auth_name' & 'max_body_size'"
+    exit 1
+  fi
+  if [ "$_auth_name" ]; then
+    basic_auth_sed="s%__AUTH_SECRET__%$_auth_name%"
+  else
+    basic_auth_sed="/nginx.ingress.kubernetes.io\/auth-/d"
+  fi
+  # Generate ingress YAML file
+  sed \
+    -e "$basic_auth_sed" \
+    -e "s%__APP__%$_app%" \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__MAX_BODY_SIZE__%$_max_body_size%g" \
+    "$_tmpl" >"$_yaml"
+  # And replace app ingress values
+  replace_app_ingress_values "$_app" "$_yaml"
 }
 
 # ----
