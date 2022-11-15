@@ -1,0 +1,31 @@
+replicaCount: __MONGO_GUI_REPLICAS__
+image:                                                                                                                                                                                
+  repository: '__MONGO_GUI_IMAGE_REPO__'
+  tag: '__MONGO_GUI_IMAGE_TAG__'    
+  pullPolicy: '__IMAGE_PULL_POLICY__'
+imagePullSecrets:
+  - name: '__PULL_SECRETS_NAME__'
+# Service settings
+service:
+  targetPort: '__MONGO_GUI_SERVER_PORT__'
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: '__FORCE_SSL_REDIRECT__'
+  hosts:
+# BEG: HOSTNAME_RULE
+  - host: '__HOSTNAME__'
+# END: HOSTNAME_RULE
+  tls: # TLS_RULES
+# BEG: HOSTNAME_TLS
+  - hosts:
+    - '__HOSTNAME__'
+    secretName: '__HOSTNAME__'
+# END: HOSTNAME_TLS
+ingressAuth:
+  user: '__BASIC_AUTH_USER__'
+  pass: '__BASIC_AUTH_PASS__'
+# Kyso configuration file values
+secrets:
+  mongodbDatabaseUri: '__MONGODB_DATABASE_URI__'

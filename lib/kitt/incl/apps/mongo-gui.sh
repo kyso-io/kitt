@@ -19,10 +19,12 @@ INCL_APPS_MONGO_GUI_SH="1"
 # CMND_DSC="mongo-gui: manage mongo-gui deployment for kyso"
 
 # Defaults
-_image="registry.kyso.io/docker/mongo-gui:latest"
+_image="registry.kyso.io/docker/mongo-gui:1.0.0"
 export DEPLOYMENT_DEFAULT_MONGO_GUI_IMAGE="$_image"
 
 # Fixed values
+export MONGO_GUI_SERVER_PORT="4321"
+export MONGO_GUI_RELEASE="mongo-gui"
 export MONGO_GUI_BASIC_AUTH_NAME="basic-auth"
 export MONGO_GUI_BASIC_AUTH_USER="mongo-admin"
 
@@ -52,23 +54,26 @@ apps_mongo_gui_export_variables() {
   # Values
   export MONGO_GUI_NAMESPACE="mongo-gui-$DEPLOYMENT_NAME"
   # Directories
+  export MONGO_GUI_CHART_DIR="$CHARTS_DIR/mongo-gui"
   export MONGO_GUI_TMPL_DIR="$TMPL_DIR/apps/mongo-gui"
+  export MONGO_GUI_HELM_DIR="$DEPLOY_HELM_DIR/mongo-gui"
   export MONGO_GUI_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/mongo-gui"
   export MONGO_GUI_SECRETS_DIR="$DEPLOY_SECRETS_DIR/mongo-gui"
   # Templates
-  export MONGO_GUI_DEPLOY_TMPL="$MONGO_GUI_TMPL_DIR/deploy.yaml"
-  export MONGO_GUI_SECRET_TMPL="$MONGO_GUI_TMPL_DIR/secrets.yaml"
-  export MONGO_GUI_SVC_TMPL="$MONGO_GUI_TMPL_DIR/service.yaml"
-  export MONGO_GUI_INGRESS_TMPL="$MONGO_GUI_TMPL_DIR/ingress.yaml"
-  # Files
+  export MONGO_GUI_HELM_VALUES_TMPL="$MONGO_GUI_TMPL_DIR/values.yaml"
+  # BEG: deprecated files
   export MONGO_GUI_DEPLOY_YAML="$MONGO_GUI_KUBECTL_DIR/deploy.yaml"
   export MONGO_GUI_SECRET_YAML="$MONGO_GUI_SECRETS_DIR/secrets.yaml"
-  export MONGO_GUI_SVC_YAML="$MONGO_GUI_KUBECTL_DIR/service.yaml"
+  export MONGO_GUI_SERVICE_YAML="$MONGO_GUI_KUBECTL_DIR/service.yaml"
   export MONGO_GUI_INGRESS_YAML="$MONGO_GUI_KUBECTL_DIR/ingress.yaml"
-  _auth_file="$MONGO_GUI_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
-  export MONGO_GUI_AUTH_FILE="$_auth_file"
   _auth_yaml="$MONGO_GUI_KUBECTL_DIR/basic-auth${SOPS_EXT}.yaml"
   export MONGO_GUI_AUTH_YAML="$_auth_yaml"
+  # END: deprecated files
+  # Files
+  _auth_file="$MONGO_GUI_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
+  export MONGO_GUI_AUTH_FILE="$_auth_file"
+  _helm_values_yaml="$MONGO_GUI_HELM_DIR/values${SOPS_EXT}.yaml"
+  export MONGO_GUI_HELM_VALUES_YAML="$_helm_values_yaml"
   # Use defaults for variables missing from config files
   if [ "$DEPLOYMENT_MONGO_GUI_IMAGE" ]; then
     MONGO_GUI_IMAGE="$DEPLOYMENT_MONGO_GUI_IMAGE"
@@ -81,14 +86,16 @@ apps_mongo_gui_export_variables() {
 
 apps_mongo_gui_check_directories() {
   apps_common_check_directories
-  for _d in "$MONGO_GUI_KUBECTL_DIR" "$MONGO_GUI_SECRETS_DIR"; do
+  for _d in "$MONGO_GUI_HELM_DIR" "$MONGO_GUI_KUBECTL_DIR" \
+    "$MONGO_GUI_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 apps_mongo_gui_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in "$MONGO_GUI_KUBECTL_DIR" "$MONGO_GUI_SECRETS_DIR"; do
+  for _d in "$MONGO_GUI_HELM_DIR" "$MONGO_GUI_KUBECTL_DIR" \
+    "$MONGO_GUI_SECRETS_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
     fi
@@ -117,8 +124,25 @@ apps_mongo_gui_logs() {
   _cluster="$2"
   apps_mongo_gui_export_variables "$_deployment" "$_cluster"
   _ns="$MONGO_GUI_NAMESPACE"
-  _label="app=mongo-gui"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  _app="mongo-gui"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "deployments/$_app" -f
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
+}
+
+apps_mongo_gui_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _ns="$MONGO_GUI_NAMESPACE"
+  _app="mongo-gui"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "deployments/$_app" -- /bin/sh
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
 }
 
 apps_mongo_gui_install() {
@@ -128,24 +152,27 @@ apps_mongo_gui_install() {
   apps_mongo_gui_check_directories
   _app="mongo-gui"
   _ns="$MONGO_GUI_NAMESPACE"
-  _secret_tmpl="$MONGO_GUI_SECRET_TMPL"
-  _secret_yaml="$MONGO_GUI_SECRET_YAML"
-  _svc_tmpl="$MONGO_GUI_SVC_TMPL"
-  _svc_yaml="$MONGO_GUI_SVC_YAML"
-  _deploy_tmpl="$MONGO_GUI_DEPLOY_TMPL"
-  _deploy_yaml="$MONGO_GUI_DEPLOY_YAML"
-  _ingress_tmpl="$MONGO_GUI_INGRESS_TMPL"
-  _ingress_yaml="$MONGO_GUI_INGRESS_YAML"
-  if is_selected "$CLUSTER_USE_BASIC_AUTH"; then
-    _auth_name="$MONGO_GUI_BASIC_AUTH_NAME"
-    _auth_user="$MONGO_GUI_BASIC_AUTH_USER"
-    _auth_file="$MONGO_GUI_AUTH_FILE"
-  else
-    _auth_name=""
-    _auth_user=""
-    _auth_file=""
-  fi
+  # directories
+  _chart="$MONGO_GUI_CHART_DIR"
+  # deprecated yaml files
   _auth_yaml="$MONGO_GUI_AUTH_YAML"
+  _secret_yaml="$MONGO_GUI_SECRET_YAML"
+  _deploy_yaml="$MONGO_GUI_DEPLOY_YAML"
+  _ingress_yaml="$MONGO_GUI_INGRESS_YAML"
+  _service_yaml="$MONGO_GUI_SERVICE_YAML"
+  # files
+  _helm_values_tmpl="$MONGO_GUI_HELM_VALUES_TMPL"
+  _helm_values_yaml="$MONGO_GUI_HELM_VALUES_YAML"
+  # auth data
+  _auth_user="$MONGO_GUI_BASIC_AUTH_USER"
+  if is_selected "$CLUSTER_USE_BASIC_AUTH"; then
+    auth_file_update "$MONGO_GUI_BASIC_AUTH_USER" "$MONGO_GUI_AUTH_FILE"
+    _auth_pass="$(
+      file_to_stdout "$MONGO_GUI_AUTH_FILE" | sed -ne "s/^${_auth_user}://p"
+    )"
+  else
+    _auth_pass=""
+  fi
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$MONGO_GUI_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -154,62 +181,90 @@ apps_mongo_gui_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_secret_yaml" "$_auth_yaml" "$_svc_yaml" "$_deploy_yaml" \
+    rm -f "$_helm_values_yaml" \
+      "$_secret_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
       "$_ingress_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
   fi
-  # Create htpasswd for ingress if needed or remove the yaml if present
-  if [ "$_auth_name" ]; then
-    create_htpasswd_secret_yaml "$_ns" "$_auth_name" "$_auth_user" \
-      "$_auth_file" "$_auth_yaml"
-  else
-    kubectl_delete "$_auth_yaml" || true
+  # If we have a legacy deployment, remove the old objects
+  for _yaml in "$_secret_yaml" "$_auth_yaml" "$_service_yaml" \
+    "$_deploy_yaml" "$_ingress_yaml"; do
+    kubectl_delete "$_yaml" || true
+  done
+  # Image settings
+  _image_repo="${MONGO_GUI_IMAGE%:*}"
+  _image_tag="${MONGO_GUI_IMAGE#*:}"
+  if [ "$_image_repo" = "$_image_tag" ]; then
+    _image_tag="latest"
   fi
+  # Service settings
+  _server_port="$MONGO_GUI_SERVER_PORT"
+  # Get the database uri
+  _mongodb_root_database_uri="$(
+    apps_mongodb_print_root_database_uri "$_deployment" "$_cluster"
+  )"
+  # Prepare values.yaml file
+  sed \
+    -e "s%__MONGO_GUI_REPLICAS__%$MONGO_GUI_REPLICAS%" \
+    -e "s%__MONGO_GUI_IMAGE_REPO__%$_image_repo%" \
+    -e "s%__MONGO_GUI_IMAGE_TAG__%$_image_tag%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
+    -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
+    -e "s%__MONGO_GUI_SERVER_PORT__%$_server_port%" \
+    -e "s%__BASIC_AUTH_USER__%$_auth_user%" \
+    -e "s%__BASIC_AUTH_PASS__%$_auth_pass%" \
+    -e "s%__MONGODB_DATABASE_URI__%$_mongodb_root_database_uri%" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+  # Apply ingress values
+  replace_app_ingress_values "$_app" "$_helm_values_yaml"
   # Create certificate secrets if needed or remove them if not
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     create_app_cert_yamls "$_ns" "$MONGO_GUI_KUBECTL_DIR"
   else
-    for _hostname in $DEPLOYMENT_HOSTNAMES; do
-      _cert_yaml="$MONGO_GUI_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
+    for _cert_yaml in $_cert_yamls; do
       kubectl_delete "$_cert_yaml" || true
     done
   fi
-  # Create ingress definition
-  create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
-    "$_auth_name" ""
-  # Prepare service_yaml
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    "$_svc_tmpl" >"$_svc_yaml"
-  # Prepare secrets
-  : >"$_secret_yaml"
-  chmod 0600 "$_secret_yaml"
-  _mongodb_url_b64="$(
-    apps_mongodb_print_root_database_uri "$_deployment" "$_cluster" |
-      openssl base64 -e | tr -d '\n'
-  )"
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__MONGODB_URL_BASE64__%$_mongodb_url_b64%" \
-    "$_secret_tmpl" |
-    stdout_to_file "$_secret_yaml"
-  # Prepare deployment file
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__MONGO_GUI_IMAGE__%$MONGO_GUI_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
-    "$_deploy_tmpl" >"$_deploy_yaml"
-  for _yaml in "$_secret_yaml" "$_auth_yaml" "$_svc_yaml" "$_deploy_yaml" \
-    "$_ingress_yaml" $_cert_yamls; do
+  # Install certs
+  for _yaml in $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
+  # Install helm chart
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_app" "$_chart"
   # Wait until deployment succeds of fails
   kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "$_app"
+}
+
+apps_mongo_gui_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _app="mongo-gui"
+  _ns="$MONGO_GUI_NAMESPACE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_mongo_gui_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  _app="mongo-gui"
+  _ns="$MONGO_GUI_NAMESPACE"
+  _release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    # Execute the rollback
+    helm_rollback "$_ns" "$_app" "$_release"
+    # If we succeed update the api settings
+    apps_kyso_update_api_settings "$_deployment" "$_cluster"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
 }
 
 apps_mongo_gui_reinstall() {
@@ -239,11 +294,14 @@ apps_mongo_gui_remove() {
   apps_mongo_gui_export_variables "$_deployment" "$_cluster"
   _app="mongo-gui"
   _ns="$MONGO_GUI_NAMESPACE"
+  # deprecated yaml files
+  _auth_yaml="$MONGO_GUI_AUTH_YAML"
   _secret_yaml="$MONGO_GUI_SECRET_YAML"
-  _svc_yaml="$MONGO_GUI_SVC_YAML"
   _deploy_yaml="$MONGO_GUI_DEPLOY_YAML"
   _ingress_yaml="$MONGO_GUI_INGRESS_YAML"
-  _auth_yaml="$MONGO_GUI_AUTH_YAML"
+  _service_yaml="$MONGO_GUI_SERVICE_YAML"
+  # files
+  _helm_values_yaml="$MONGO_GUI_HELM_VALUES_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$MONGO_GUI_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -252,8 +310,18 @@ apps_mongo_gui_remove() {
   apps_mongo_gui_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_secret_yaml" "$_auth_yaml" "$_svc_yaml" "$_deploy_yaml" \
-      "$_ingress_yaml" $_cert_yamls; do
+    # Uninstall chart
+    if [ -f "$_helm_values_yaml" ]; then
+      helm uninstall -n "$_ns" "$_app" || true
+      rm -f "$_helm_values_yaml"
+    fi
+    # Remove objects
+    for _yaml in $_cert_yamls; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Remove legacy objects
+    for _yaml in "$_secret_yaml" "$_auth_yaml" "$_service_yaml" \
+      "$_deploy_yaml" "$_ingress_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -302,7 +370,7 @@ apps_mongo_gui_summary() {
 apps_mongo_gui_uris() {
   _deployment="$1"
   _cluster="$2"
-  apps_kyso_api_export_variables "$_deployment" "$_cluster"
+  apps_mongo_gui_export_variables "$_deployment" "$_cluster"
   _hostname="${DEPLOYMENT_HOSTNAMES%% *}"
   if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
     [ -f "$MONGO_GUI_AUTH_FILE" ]; then
@@ -401,11 +469,14 @@ apps_mongo_gui_command() {
   env-update | env_update)
     apps_mongo_gui_env_update "$_deployment" "$_cluster"
     ;;
-  logs) apps_mongo_gui_logs "$_deployment" "$_cluster" ;;
+  helm-history) apps_mongo_gui_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_mongo_gui_helm_rollback "$_deployment" "$_cluster" ;;
   install) apps_mongo_gui_install "$_deployment" "$_cluster" ;;
+  logs) apps_mongo_gui_logs "$_deployment" "$_cluster" ;;
   reinstall) apps_mongo_gui_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_mongo_gui_remove "$_deployment" "$_cluster" ;;
   restart) apps_mongo_gui_restart "$_deployment" "$_cluster" ;;
+  sh) apps_mongo_gui_sh "$_deployment" "$_cluster" ;;
   status) apps_mongo_gui_status "$_deployment" "$_cluster" ;;
   summary) apps_mongo_gui_summary "$_deployment" "$_cluster" ;;
   uris) apps_mongo_gui_uris "$_deployment" "$_cluster" ;;
@@ -417,8 +488,8 @@ apps_mongo_gui_command() {
 }
 
 apps_mongo_gui_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart status summary uris"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs reinstall remove restart sh status summary uris"
   echo "$_cmnds"
 }
 
