@@ -1,0 +1,84 @@
+replicaCount: __SCS_REPLICAS__
+dataPvcName: '__SCS_PVC_NAME__'
+dataVolName: '__SCS_VOL_NAME__'
+sftpPubUser: '__SCS_SFTP_PUB_USER__'
+sftpScsUser: '__SCS_SFTP_SCS_USER__'
+cronjobs:
+  hardlink:
+    enabled: true
+    image:
+      repository: __SCS_HARDLINK_IMAGE_REPO__
+      pullPolicy: '__IMAGE_PULL_POLICY__'
+      tag: '__SCS_HARDLINK_IMAGE_TAG__'
+    schedule: '__SCS_HARDLINK_SCHEDULE__'
+    webhookUrl: '__SCS_HARDLINK_WEBHOOK_URL__'
+containers:
+  indexer:
+    endpoint:
+      # if the endpoint is enabled we use it instead of the image
+      enabled: __SCS_INDEXER_ENDPOINT_ENABLED__
+      ip: '__SCS_INDEXER_ENDPOINT_ADDR__'
+      port: __SCS_INDEXER_ENDPOINT_PORT__
+    config:
+      # The following values are used by the application.yaml config file
+      cronExpr: '__SCS_INDEXER_CRON_EXPRESSION__'
+      elasticsearchUrl: '__ELASTICSEARCH_URL__'
+      mongodbDatabaseUri: '__MONGODB_DATABASE_URI__'
+    image:
+      repository: __SCS_INDEXER_IMAGE_REPO__
+      pullPolicy: '__IMAGE_PULL_POLICY__'
+      tag: "__SCS_INDEXER_IMAGE_TAG__"
+    service:
+      port: __SCS_INDEXER_SERVICE_PORT__
+      targetPort: __SCS_INDEXER_CONTAINER_PORT__
+  myssh:
+    image:
+      repository: __SCS_MYSSH_IMAGE_REPO__
+      pullPolicy: '__IMAGE_PULL_POLICY__'
+      tag: '__SCS_MYSSH_IMAGE_TAG__'
+    secretName: '__SCS_MYSSH_SECRET_NAME__'
+    service:
+      port: __SCS_MYSSH_SERVICE_PORT__
+      targetPort: __SCS_MYSSH_CONTAINER_PORT__
+  nginx:
+    image:
+      repository: __SCS_NGINX_IMAGE_REPO__
+      pullPolicy: '__IMAGE_PULL_POLICY__'
+      tag: '__SCS_NGINX_IMAGE_TAG__'
+    service:
+      port: __SCS_NGINX_SERVICE_PORT__
+      targetPort: __SCS_NGINX_CONTAINER_PORT__
+    env:
+      - name: AUTH_REQUEST_URI
+        value: '__AUTH_REQUEST_URI__'
+  webhook:
+    enabled: true
+    image:
+      repository: __SCS_WEBHOOK_IMAGE_REPO__
+      pullPolicy: '__IMAGE_PULL_POLICY__'
+      tag: '__SCS_WEBHOOK_IMAGE_TAG__'
+    service:
+      port: __SCS_WEBHOOK_SERVICE_PORT__
+      targetPort: __SCS_WEBHOOK_CONTAINER_PORT__
+    env:
+      - name: KYSO_URL
+        value: '__KYSO_URL__'
+imagePullSecrets:
+  - name: '__PULL_SECRETS_NAME__'
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: '__FORCE_SSL_REDIRECT__'
+  hosts:
+# BEG: HOSTNAME_RULE
+  - host: '__HOSTNAME__'
+# END: HOSTNAME_RULE
+  tls: # TLS_RULES
+# BEG: HOSTNAME_TLS
+  - hosts:
+    - '__HOSTNAME__'
+    secretName: '__HOSTNAME__'
+# END: HOSTNAME_TLS
+podAnnotations:
+  # Add annotations for velero
+  backup.velero.io/__BACKUP_ACTION__: '__SCS_VOL_NAME__'
