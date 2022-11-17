@@ -24,8 +24,8 @@ ZSH_COMPLETIONS="/usr/share/zsh/vendor-completions"
 AWS_IAM_AUTHENTICATOR_VERSION="1.21.2"
 # GET_HELM_URL ... set it to get the latest helm version
 # - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-HELM_VERSION="3.8.2"
-KUBECTL_VERSION="1.22.13"
+HELM_VERSION="3.10.0"
+KUBECTL_VERSION="1.22.15"
 
 # --------
 # Includes
