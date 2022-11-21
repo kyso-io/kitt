@@ -435,6 +435,32 @@ tools_check_velero() {
   fi
 }
 
+tools_check_yq() {
+  if tools_install_app "yq"; then
+    repo_path="mikefarah/yq"
+    case "$(uname)" in
+    Linux) os_arch="linux_amd64" ;;
+    Darwin) os_arch="darwin_amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    tmp_dir="$(mktemp -d)"
+    curl -sL "$download_url" -o "$tmp_dir/yq"
+    sudo install "$tmp_dir/yq" /usr/local/bin/
+    rm -rf "$tmp_dir"
+    yq --version
+    if [ -d "$BASH_COMPLETION" ]; then
+      sudo sh -c "yq shell-completion bash > $BASH_COMPLETION/yq"
+    fi
+    if [ -d "$ZSH_COMPLETIONS" ]; then
+      sudo sh -c "yq shell-completion zsh > $ZSH_COMPLETIONS/_yq"
+    fi
+  fi
+}
+
 tools_check() {
   for _app in "$@"; do
     case "$_app" in
@@ -456,6 +482,7 @@ tools_check() {
     tsp) tools_check_tsp ;;
     uuid) tools_check_uuid ;;
     velero) tools_check_velero ;;
+    yq) tools_check_yq ;;
     *) echo "Unknown application '$_app'" ;;
     esac
   done
@@ -463,7 +490,7 @@ tools_check() {
 
 tools_apps_list() {
   tools="aws aws-iam-authenticator docker eksctl helm jq k3d krew kubectl"
-  tools="$tools kubectx kubelogin sops velero"
+  tools="$tools kubectx kubelogin sops velero yq"
   echo "$tools"
 }
 
