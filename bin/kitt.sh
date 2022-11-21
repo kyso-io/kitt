@@ -71,6 +71,7 @@ setup_app_dirs() {
   export BASE_DIR
   # Set paths for the directories
   export LIB_DIR="$BASE_DIR/lib/$APP_NAME"
+  export CHARTS_DIR="$LIB_DIR/charts"
   export CMND_DIR="$LIB_DIR/cmnd"
   export INCL_DIR="$LIB_DIR/incl"
   export TMPL_DIR="$LIB_DIR/tmpl"

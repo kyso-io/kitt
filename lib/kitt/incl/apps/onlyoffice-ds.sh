@@ -23,6 +23,10 @@ INCL_APPS_ONLYOFFICE_DS_SH="1"
 _image="registry.kyso.io/docker/onlyoffice-documentserver:7.2.0.204"
 export DEPLOYMENT_DEFAULT_ONLYOFFICE_DS_IMAGE="$_image"
 
+# Fixed values
+export ONLYOFFICE_DS_SERVER_PORT="80"
+export ONLYOFFICE_DS_RELEASE="onlyoffice-ds"
+
 # --------
 # Includes
 # --------
@@ -49,16 +53,21 @@ apps_onlyoffice_ds_export_variables() {
   # Values
   export ONLYOFFICE_DS_NAMESPACE="onlyoffice-ds-$DEPLOYMENT_NAME"
   # Directories
+  export ONLYOFFICE_DS_CHART_DIR="$CHARTS_DIR/onlyoffice-ds"
   export ONLYOFFICE_DS_TMPL_DIR="$TMPL_DIR/apps/onlyoffice-ds"
+  export ONLYOFFICE_DS_HELM_DIR="$DEPLOY_HELM_DIR/onlyoffice-ds"
   export ONLYOFFICE_DS_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/onlyoffice-ds"
   # Templates
-  export ONLYOFFICE_DS_DEPLOY_TMPL="$ONLYOFFICE_DS_TMPL_DIR/deploy.yaml"
-  export ONLYOFFICE_DS_SVC_TMPL="$ONLYOFFICE_DS_TMPL_DIR/service.yaml"
-  export ONLYOFFICE_DS_INGRESS_TMPL="$ONLYOFFICE_DS_TMPL_DIR/ingress.yaml"
-  # Files
+  export ONLYOFFICE_DS_HELM_VALUES_TMPL="$ONLYOFFICE_DS_TMPL_DIR/values.yaml"
+  export ONLYOFFICE_DS_SVC_MAP_TMPL="$ONLYOFFICE_DS_TMPL_DIR/svc_map.yaml"
+  # BEG: deprecated files
   export ONLYOFFICE_DS_DEPLOY_YAML="$ONLYOFFICE_DS_KUBECTL_DIR/deploy.yaml"
   export ONLYOFFICE_DS_SVC_YAML="$ONLYOFFICE_DS_KUBECTL_DIR/service.yaml"
   export ONLYOFFICE_DS_INGRESS_YAML="$ONLYOFFICE_DS_KUBECTL_DIR/ingress.yaml"
+  # END: deprecated files
+  # Files
+  export ONLYOFFICE_DS_HELM_VALUES_YAML="$ONLYOFFICE_DS_HELM_DIR/values.yaml"
+  export ONLYOFFICE_DS_SVC_MAP_YAML="$ONLYOFFICE_DS_KUBECTL_DIR/svc_map.yaml"
   # Use defaults for variables missing from config files
   if [ "$DEPLOYMENT_ONLYOFFICE_DS_IMAGE" ]; then
     ONLYOFFICE_DS_IMAGE="$DEPLOYMENT_ONLYOFFICE_DS_IMAGE"
@@ -71,14 +80,14 @@ apps_onlyoffice_ds_export_variables() {
 
 apps_onlyoffice_ds_check_directories() {
   apps_common_check_directories
-  for _d in $ONLYOFFICE_DS_KUBECTL_DIR; do
+  for _d in "$ONLYOFFICE_DS_HELM_DIR" "$ONLYOFFICE_DS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 apps_onlyoffice_ds_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in $ONLYOFFICE_DS_KUBECTL_DIR; do
+  for _d in "$ONLYOFFICE_DS_HELM_DIR" "$ONLYOFFICE_DS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
     fi
@@ -106,24 +115,49 @@ apps_onlyoffice_ds_logs() {
   _deployment="$1"
   _cluster="$2"
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  _app="onlyoffice-ds"
   _ns="$ONLYOFFICE_DS_NAMESPACE"
-  _label="app=onlyoffice-ds"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "deployments/$_app" -f
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
+}
+
+apps_onlyoffice_ds_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  _app="onlyoffice-ds"
+  _ns="$ONLYOFFICE_DS_NAMESPACE"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "deployments/$_app" -- /bin/sh
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
 }
 
 apps_onlyoffice_ds_install() {
   _deployment="$1"
   _cluster="$2"
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_onlyoffice_ds_check_directories
+  # Adjust variables
   _app="onlyoffice-ds"
   _ns="$ONLYOFFICE_DS_NAMESPACE"
-  _svc_tmpl="$ONLYOFFICE_DS_SVC_TMPL"
-  _svc_yaml="$ONLYOFFICE_DS_SVC_YAML"
-  _deploy_tmpl="$ONLYOFFICE_DS_DEPLOY_TMPL"
+  # directories
+  _chart="$ONLYOFFICE_DS_CHART_DIR"
+  # deprecated yaml files
+  _service_yaml="$ONLYOFFICE_DS_SVC_YAML"
   _deploy_yaml="$ONLYOFFICE_DS_DEPLOY_YAML"
-  _ingress_tmpl="$ONLYOFFICE_DS_INGRESS_TMPL"
   _ingress_yaml="$ONLYOFFICE_DS_INGRESS_YAML"
+  # files
+  _helm_values_tmpl="$ONLYOFFICE_DS_HELM_VALUES_TMPL"
+  _helm_values_yaml="$ONLYOFFICE_DS_HELM_VALUES_YAML"
+  _svc_map_tmpl="$ONLYOFFICE_DS_SVC_MAP_TMPL"
+  _svc_map_yaml="$ONLYOFFICE_DS_SVC_MAP_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$ONLYOFFICE_DS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -132,42 +166,89 @@ apps_onlyoffice_ds_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_svc_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls
+    rm -f "$_helm_values_yaml" "$_svc_map_yaml" \
+      "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
   fi
+  # If we have a legacy deployment, remove the old objects
+  for _yaml in "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml"; do
+    kubectl_delete "$_yaml" || true
+  done
+  # Image settings
+  _image_repo="${ONLYOFFICE_DS_IMAGE%:*}"
+  _image_tag="${ONLYOFFICE_DS_IMAGE#*:}"
+  if [ "$_image_repo" = "$_image_tag" ]; then
+    _image_tag="latest"
+  fi
+  # Service settings
+  _server_port="$ONLYOFFICE_DS_SERVER_PORT"
+  # Prepare values.yaml file
+  sed \
+    -e "s%__ONLYOFFICE_DS_REPLICAS__%$ONLYOFFICE_DS_REPLICAS%" \
+    -e "s%__ONLYOFFICE_DS_IMAGE_REPO__%$_image_repo%" \
+    -e "s%__ONLYOFFICE_DS_IMAGE_TAG__%$_image_tag%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
+    -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
+    -e "s%__ONLYOFFICE_DS_SERVER_PORT__%$_server_port%" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+  # Apply ingress values
+  replace_app_ingress_values "$_app" "$_helm_values_yaml"
+  # Prepare svc_map file
+  sed \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
+    -e "s%__KYSO_SCS_SVC_HOSTNAME__%$KYSO_SCS_SVC_HOSTNAME%" \
+    -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
+    -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
+    "$_svc_map_tmpl" >"$_svc_map_yaml"
   # Create certificate secrets if needed or remove them if not
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     create_app_cert_yamls "$_ns" "$ONLYOFFICE_DS_KUBECTL_DIR"
   else
-    for _hostname in $DEPLOYMENT_HOSTNAMES; do
-      _cert_yaml="$ONLYOFFICE_DS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
+    for _cert_yaml in $_cert_yamls; do
       kubectl_delete "$_cert_yaml" || true
     done
   fi
-  # Create ingress definition
-  create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
-    "" ""
-  # Prepare service_yaml
-  _kyso_scs_nginx="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__KYSO_SCS_NGINX__%$_kyso_scs_nginx%" \
-    "$_svc_tmpl" >"$_svc_yaml"
-  # Prepare deployment file
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__ONLYOFFICE_DS_IMAGE__%$ONLYOFFICE_DS_IMAGE%" \
-    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
-    "$_deploy_tmpl" >"$_deploy_yaml"
-  for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls; do
+  # Install map and certs
+  for _yaml in "$_svc_map_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
-  # Wait until deployment succeds of fails
+  # Install helm chart
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_app" "$_chart"
+  # Wait until deployment succeds or fails
   kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "$_app"
+}
+
+apps_onlyoffice_ds_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  _app="onlyoffice-ds"
+  _ns="$ONLYOFFICE_DS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_onlyoffice_ds_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  _app="onlyoffice-ds"
+  _ns="$ONLYOFFICE_DS_NAMESPACE"
+  _release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    # Execute the rollback
+    helm_rollback "$_ns" "$_app" "$_release"
+    # If we succeed update the api settings
+    apps_kyso_update_api_settings "$_deployment" "$_cluster"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
 }
 
 apps_onlyoffice_ds_reinstall() {
@@ -197,9 +278,13 @@ apps_onlyoffice_ds_remove() {
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
   _app="onlyoffice-ds"
   _ns="$ONLYOFFICE_DS_NAMESPACE"
-  _svc_yaml="$ONLYOFFICE_DS_SVC_YAML"
+  # deprecated yaml files
+  _service_yaml="$ONLYOFFICE_DS_SVC_YAML"
   _deploy_yaml="$ONLYOFFICE_DS_DEPLOY_YAML"
   _ingress_yaml="$ONLYOFFICE_DS_INGRESS_YAML"
+  # yaml files
+  _helm_values_yaml="$ONLYOFFICE_DS_HELM_VALUES_YAML"
+  _svc_map_yaml="$ONLYOFFICE_DS_SVC_MAP_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$ONLYOFFICE_DS_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -208,7 +293,17 @@ apps_onlyoffice_ds_remove() {
   apps_onlyoffice_ds_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls; do
+    # Uninstall chart
+    if [ -f "$_helm_values_yaml" ]; then
+      helm uninstall -n "$_ns" "$_app" || true
+      rm -f "$_helm_values_yaml"
+    fi
+    # Remove objects
+    for _yaml in "$_svc_map_yaml" $_cert_yamls; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Remove legacy objects
+    for _yaml in "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -350,11 +445,14 @@ apps_onlyoffice_ds_command() {
   env-update | env_update)
     apps_onlyoffice_ds_env_update "$_deployment" "$_cluster"
     ;;
-  logs) apps_onlyoffice_ds_logs "$_deployment" "$_cluster" ;;
+  helm-history) apps_onlyoffice_ds_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_onlyoffice_ds_helm_rollback "$_deployment" "$_cluster" ;;
   install) apps_onlyoffice_ds_install "$_deployment" "$_cluster" ;;
+  logs) apps_onlyoffice_ds_logs "$_deployment" "$_cluster" ;;
   reinstall) apps_onlyoffice_ds_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_onlyoffice_ds_remove "$_deployment" "$_cluster" ;;
   restart) apps_onlyoffice_ds_restart "$_deployment" "$_cluster" ;;
+  sh) apps_onlyoffice_ds_sh "$_deployment" "$_cluster" ;;
   status) apps_onlyoffice_ds_status "$_deployment" "$_cluster" ;;
   summary) apps_onlyoffice_ds_summary "$_deployment" "$_cluster" ;;
   uris) apps_onlyoffice_ds_uris "$_deployment" "$_cluster" ;;
@@ -366,8 +464,8 @@ apps_onlyoffice_ds_command() {
 }
 
 apps_onlyoffice_ds_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart status summary uris"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs reinstall remove restart sh status summary uris"
   echo "$_cmnds"
 }
 

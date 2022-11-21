@@ -204,9 +204,31 @@ apps_nats_logs() {
   _deployment="$1"
   _cluster="$2"
   apps_nats_export_variables "$_deployment" "$_cluster"
+  _app="nats"
+  _container="nats"
+  _release="$NATS_RELEASE"
   _ns="$NATS_NAMESPACE"
-  _label="app=nats-master"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "statefulset/$_release" -c "$_container" -f
+  else
+    echo "Statefulset '$_release' not found on namespace '$_ns'"
+  fi
+}
+
+apps_nats_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_nats_export_variables "$_deployment" "$_cluster"
+  _app="nats"
+  _container="nats"
+  _release="$NATS_RELEASE"
+  _ns="$NATS_NAMESPACE"
+  if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "statefulset/$_release" -c "$_container" \
+      -- /bin/sh
+  else
+    echo "Statefulset '$_release' not found on namespace '$_ns'"
+  fi
 }
 
 apps_nats_install() {
@@ -337,6 +359,35 @@ EOF
   done <<EOF
 $(find "$NATS_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
 EOF
+}
+
+apps_nats_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_nats_export_variables "$_deployment" "$_cluster"
+  _app="nats"
+  _ns="$NATS_NAMESPACE"
+  _release="$NATS_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_nats_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_nats_export_variables "$_deployment" "$_cluster"
+  _app="nats"
+  _ns="$NATS_NAMESPACE"
+  _release="$NATS_RELEASE"
+  _rollback_release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_rollback "$_ns" "$_release" "$_rollback_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
 }
 
 apps_nats_remove() {
@@ -510,10 +561,13 @@ apps_nats_command() {
   env-update | env_update)
     apps_nats_env_update "$_deployment" "$_cluster"
     ;;
+  helm-history) apps_nats_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_nats_helm_rollback "$_deployment" "$_cluster" ;;
   logs) apps_nats_logs "$_deployment" "$_cluster" ;;
   install) apps_nats_install "$_deployment" "$_cluster" ;;
   remove) apps_nats_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_nats_rmvols "$_deployment" "$_cluster" ;;
+  sh) apps_nats_sh "$_deployment" "$_cluster" ;;
   status) apps_nats_status "$_deployment" "$_cluster" ;;
   summary) apps_nats_summary "$_deployment" "$_cluster" ;;
   *)
@@ -524,8 +578,8 @@ apps_nats_command() {
 }
 
 apps_nats_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs remove rmvols"
-  _cmnds="$_cmnds status summary"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs remove rmvols sh status summary"
   echo "$_cmnds"
 }
 

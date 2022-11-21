@@ -22,6 +22,9 @@ INCL_APPS_NOTIFICATION_CONSUMER_SH="1"
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_IMAGE=""
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_REPLICAS="1"
 
+# Fixed values
+export NOTIFICATION_CONSUMER_RELEASE="notification-consumer"
+
 # --------
 # Includes
 # --------
@@ -47,28 +50,32 @@ apps_notification_consumer_export_variables() {
   _ns="notification-consumer-$DEPLOYMENT_NAME"
   export NOTIFICATION_CONSUMER_NAMESPACE="$_ns"
   # Directories
+  export NOTIFICATION_CONSUMER_CHART_DIR="$CHARTS_DIR/notification-consumer"
   _tmpl_dir="$TMPL_DIR/apps/notification-consumer"
-  _kubectl_dir="$DEPLOY_KUBECTL_DIR/notification-consumer"
-  _secrets_dir="$DEPLOY_SECRETS_DIR/notification-consumer"
   export NOTIFICATION_CONSUMER_TMPL_DIR="$_tmpl_dir"
+  _helm_dir="$DEPLOY_HELM_DIR/notification-consumer"
+  export NOTIFICATION_CONSUMER_HELM_DIR="$_helm_dir"
+  _kubectl_dir="$DEPLOY_KUBECTL_DIR/notification-consumer"
   export NOTIFICATION_CONSUMER_KUBECTL_DIR="$_kubectl_dir"
+  # BEG: Deprecated directories
+  _secrets_dir="$DEPLOY_SECRETS_DIR/notification-consumer"
   export NOTIFICATION_CONSUMER_SECRETS_DIR="$_secrets_dir"
+  # END: Deprecated directories
   # Templates
-  _env_tmpl="$_tmpl_dir/notification-consumer.env"
-  _deploy_tmpl="$_tmpl_dir/deploy.yaml"
-  _svc_map_tmpl="$_tmpl_dir/svc_map.yaml"
-  export NOTIFICATION_CONSUMER_ENV_TMPL="$_env_tmpl"
-  export NOTIFICATION_CONSUMER_DEPLOY_TMPL="$_deploy_tmpl"
-  export NOTIFICATION_CONSUMER_SVC_MAP_TMPL="$_svc_map_tmpl"
-  # Files
+  export NOTIFICATION_CONSUMER_SVC_MAP_TMPL="$_tmpl_dir/svc_map.yaml"
+  export NOTIFICATION_CONSUMER_HELM_VALUES_TMPL="$_tmpl_dir/values.yaml"
+  # BEG: deprecated files
   _env_secret="$_secrets_dir/notification-consumer${SOPS_EXT}.env"
-  _deploy_yaml="$_kubectl_dir/deploy.yaml"
-  _secret_yaml="$_kubectl_dir/secrets${SOPS_EXT}.yaml"
-  _svc_map_yaml="$_kubectl_dir/svc_map.yaml"
   export NOTIFICATION_CONSUMER_ENV_SECRET="$_env_secret"
-  export NOTIFICATION_CONSUMER_DEPLOY_YAML="$_deploy_yaml"
+  export NOTIFICATION_CONSUMER_DEPLOY_YAML="$_kubectl_dir/deploy.yaml"
+  _secret_yaml="$_kubectl_dir/secrets${SOPS_EXT}.yaml"
   export NOTIFICATION_CONSUMER_SECRET_YAML="$_secret_yaml"
+  # END: deprecated files
+  # Files
+  _svc_map_yaml="$_kubectl_dir/svc_map.yaml"
   export NOTIFICATION_CONSUMER_SVC_MAP_YAML="$_svc_map_yaml"
+  _helm_values_yaml="$_helm_dir/values${SOPS_EXT}.yaml"
+  export NOTIFICATION_CONSUMER_HELM_VALUES_YAML="$_helm_values_yaml"
   # By default don't auto save the environment
   NOTIFICATION_CONSUMER_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
@@ -96,15 +103,16 @@ apps_notification_consumer_export_variables() {
 
 apps_notification_consumer_check_directories() {
   apps_common_check_directories
-  for _d in "$NOTIFICATION_CONSUMER_KUBECTL_DIR" \
-    "$NOTIFICATION_CONSUMER_SECRETS_DIR"; do
+  for _d in "$NOTIFICATION_CONSUMER_HELM_DIR" \
+    "$NOTIFICATION_CONSUMER_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 apps_notification_consumer_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in "$NOTIFICATION_CONSUMER_KUBECTL_DIR" \
+  for _d in "$NOTIFICATION_CONSUMER_HELM_DIR" \
+    "$NOTIFICATION_CONSUMER_KUBECTL_DIR" \
     "$NOTIFICATION_CONSUMER_SECRETS_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
@@ -147,9 +155,26 @@ apps_notification_consumer_logs() {
   _deployment="$1"
   _cluster="$2"
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
+  _app="notification-consumer"
   _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
-  _label="app=notification-consumer"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "deployments/$_app" -f
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
+}
+
+apps_notification_consumer_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_notification_consumer_export_variables "$_deployment" "$_cluster"
+  _app="notification-consumer"
+  _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "deployments/$_app" -- /bin/sh
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
 }
 
 apps_notification_consumer_install() {
@@ -177,46 +202,50 @@ apps_notification_consumer_install() {
   # Adjust variables
   _app="notification-consumer"
   _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
-  _env_tmpl="$NOTIFICATION_CONSUMER_ENV_TMPL"
+  # directories
+  _chart="$NOTIFICATION_CONSUMER_CHART_DIR"
+  # deprecated files
   _secret_env="$NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"
-  _svc_map_tmpl="$NOTIFICATION_CONSUMER_SVC_MAP_TMPL"
   _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   _deploy_tmpl="$NOTIFICATION_CONSUMER_DEPLOY_TMPL"
   _deploy_yaml="$NOTIFICATION_CONSUMER_DEPLOY_YAML"
+  # files
+  _helm_values_tmpl="$NOTIFICATION_CONSUMER_HELM_VALUES_TMPL"
+  _helm_values_yaml="$NOTIFICATION_CONSUMER_HELM_VALUES_YAML"
+  _svc_map_tmpl="$NOTIFICATION_CONSUMER_SVC_MAP_TMPL"
+  _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_svc_map_yaml" "$_deploy_yaml" "$_ingress_yaml"
+    rm -f "$_helm_values_yaml" "$_svc_map_yaml" \
+      "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml"
     # Create namespace
     create_namespace "$_ns"
   fi
-  # Prepare secrets
-  : >"$_secret_env"
-  chmod 0600 "$_secret_env"
+  # If we have a legacy deployment, remove the old objects
+  for _yaml in "$_secret_env" "$_secret_yaml" "$_deploy_yaml"; do
+    kubectl_delete "$_yaml" || true
+  done
+  # Image settings
+  _image_repo="${NOTIFICATION_CONSUMER_IMAGE%:*}"
+  _image_tag="${NOTIFICATION_CONSUMER_IMAGE#*:}"
+  if [ "$_image_repo" = "$_image_tag" ]; then
+    _image_tag="latest"
+  fi
+  # Get the database uri
   _mongodb_user_database_uri="$(
     apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
   )"
+  # Prepare values.yaml file
   sed \
-    -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
-    "$_env_tmpl" |
-    stdout_to_file "$_secret_env"
-  : >"$_secret_yaml"
-  chmod 0600 "$_secret_yaml"
-  tmp_dir="$(mktemp -d)"
-  file_to_stdout "$_secret_env" >"$tmp_dir/env"
-  kubectl create secret generic "$_app-secrets" --dry-run=client -o yaml \
-    --from-file=env="$tmp_dir/env" --namespace="$_ns" |
-    stdout_to_file "$_secret_yaml"
-  rm -rf "$tmp_dir"
-  # Prepare deployment file
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__NOTIFICATION_CONSUMER_REPLICAS__%$NOTIFICATION_CONSUMER_REPLICAS%" \
-    -e "s%__NOTIFICATION_CONSUMER_IMAGE__%$NOTIFICATION_CONSUMER_IMAGE%" \
+    -e "s%__NOTIFICATION_CONSUMER_IMAGE_REPO__%$_image_repo%" \
+    -e "s%__NOTIFICATION_CONSUMER_IMAGE_TAG__%$_image_tag%" \
     -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
-    "$_deploy_tmpl" >"$_deploy_yaml"
+    -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
+    -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Prepare svc_map file
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
@@ -225,14 +254,44 @@ apps_notification_consumer_install() {
     -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
     -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
     "$_svc_map_tmpl" >"$_svc_map_yaml"
-  # update secret, svc_map & deployment
-  for _yaml in "$_svc_map_yaml" "$_secret_yaml" "$_deploy_yaml"; do
+  # Install map
+  for _yaml in $_svc_map_yaml; do
     kubectl_apply "$_yaml"
   done
-  # Wait until deployment succeds or fails (if there is one, of course)
-  if [ -f "$_deploy_yaml" ]; then
-    kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
-      -n "$_ns" "$_app"
+  # Install helm chart
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_app" "$_chart"
+  # Wait until deployment succeds or fails
+  kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
+    -n "$_ns" "$_app"
+}
+
+apps_notification_consumer_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_notification_consumer_export_variables "$_deployment" "$_cluster"
+  _app="notification-consumer"
+  _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_notification_consumer_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_notification_consumer_export_variables "$_deployment" "$_cluster"
+  _app="notification-consumer"
+  _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
+  _release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    # Execute the rollback
+    helm_rollback "$_ns" "$_app" "$_release"
+    # If we succeed update the api settings
+    apps_kyso_update_api_settings "$_deployment" "$_cluster"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
   fi
 }
 
@@ -263,15 +322,33 @@ apps_notification_consumer_remove() {
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   _app="notification-consumer"
   _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
+  # deprecated files
+  _secret_env="$NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"
-  _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   _deploy_yaml="$NOTIFICATION_CONSUMER_DEPLOY_YAML"
+  # files
+  _helm_values_yaml="$NOTIFICATION_CONSUMER_HELM_VALUES_YAML"
+  _svc_map_yaml="$NOTIFICATION_CONSUMER_SVC_MAP_YAML"
   apps_notification_consumer_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_svc_yaml" "$_deploy_yaml" "$_secret_yaml"; do
+    # Uninstall chart
+    if [ -f "$_helm_values_yaml" ]; then
+      helm uninstall -n "$_ns" "$_app" || true
+      rm -f "$_helm_values_yaml"
+    fi
+    # Remove objects
+    for _yaml in $_svc_map_yaml; do
       kubectl_delete "$_yaml" || true
     done
+    # Remove legacy objects
+    for _yaml in "$_secret_yaml" "$_deploy_yaml"; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Remove legacy files
+    if [ -f "$_secret_env" ]; then
+      rm -f "$_secret_env"
+    fi
     delete_namespace "$_ns"
     footer
   else
@@ -405,11 +482,18 @@ apps_notification_consumer_command() {
   env-update | env_update)
     apps_notification_consumer_env_update "$_deployment" "$_cluster"
     ;;
-  logs) apps_notification_consumer_logs "$_deployment" "$_cluster" ;;
+  helm-history)
+    apps_notification_consumer_helm_history "$_deployment" "$_cluster"
+    ;;
+  helm-rollback)
+    apps_notification_consumer_helm_rollback "$_deployment" "$_cluster"
+    ;;
   install) apps_notification_consumer_install "$_deployment" "$_cluster" ;;
+  logs) apps_notification_consumer_logs "$_deployment" "$_cluster" ;;
   reinstall) apps_notification_consumer_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_notification_consumer_remove "$_deployment" "$_cluster" ;;
   restart) apps_notification_consumer_restart "$_deployment" "$_cluster" ;;
+  sh) apps_notification_consumer_sh "$_deployment" "$_cluster" ;;
   status) apps_notification_consumer_status "$_deployment" "$_cluster" ;;
   summary) apps_notification_consumer_summary "$_deployment" "$_cluster" ;;
   *)
@@ -420,8 +504,8 @@ apps_notification_consumer_command() {
 }
 
 apps_notification_consumer_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart status summary"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs reinstall remove restart sh status summary"
   echo "$_cmnds"
 }
 

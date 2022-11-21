@@ -1,3 +1,19 @@
+# The first service will be removed, it is used only while moving from kitt 1.x
+# to 2.x (it is needed if kyso-api is updated before kyso-scs, as we have
+# changed the service name removing the '-svc' suffix)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-api-svc
+  namespace: __NAMESPACE__
+spec:
+  type: ExternalName
+  externalName: kyso-api
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+---
 apiVersion: v1
 kind: Service
 metadata:

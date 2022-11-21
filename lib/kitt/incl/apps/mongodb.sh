@@ -251,9 +251,31 @@ apps_mongodb_logs() {
   _deployment="$1"
   _cluster="$2"
   apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _container="mongodb"
+  _release="$MONGODB_RELEASE"
   _ns="$MONGODB_NAMESPACE"
-  _label="app.kubernetes.io/name=mongodb"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "statefulset/$_release" -c "$_container" -f
+  else
+    echo "Statefulset '$_release' not found on namespace '$_ns'"
+  fi
+}
+
+apps_mongodb_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _container="mongodb"
+  _release="$MONGODB_RELEASE"
+  _ns="$MONGODB_NAMESPACE"
+  if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "statefulset/$_release" -c "$_container" \
+      -- /bin/sh
+  else
+    echo "Statefulset '$_release' not found on namespace '$_ns'"
+  fi
 }
 
 apps_mongodb_install() {
@@ -417,6 +439,35 @@ EOF
   done <<EOF
 $(find "$MONGODB_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
 EOF
+}
+
+apps_mongodb_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  _release="$MONGODB_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_mongodb_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_mongodb_export_variables "$_deployment" "$_cluster"
+  _app="mongodb"
+  _ns="$MONGODB_NAMESPACE"
+  _release="$MONGODB_RELEASE"
+  _rollback_release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_rollback "$_ns" "$_release" "$_rollback_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
 }
 
 apps_mongodb_remove() {
@@ -599,10 +650,13 @@ apps_mongodb_command() {
   env-update | env_update)
     apps_mongodb_env_update "$_deployment" "$_cluster"
     ;;
+  helm-history) apps_mongodb_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_mongodb_helm_rollback "$_deployment" "$_cluster" ;;
   logs) apps_mongodb_logs "$_deployment" "$_cluster" ;;
   install) apps_mongodb_install "$_deployment" "$_cluster" ;;
   remove) apps_mongodb_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_mongodb_rmvols "$_deployment" "$_cluster" ;;
+  sh) apps_mongodb_sh "$_deployment" "$_cluster" ;;
   status) apps_mongodb_status "$_deployment" "$_cluster" ;;
   summary) apps_mongodb_summary "$_deployment" "$_cluster" ;;
   uris) apps_mongodb_uris "$_deployment" "$_cluster" ;;
@@ -614,8 +668,8 @@ apps_mongodb_command() {
 }
 
 apps_mongodb_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs remove rmvols"
-  _cmnds="$_cmnds status summary uris"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs remove rmvols sh status summary uris"
   echo "$_cmnds"
 }
 

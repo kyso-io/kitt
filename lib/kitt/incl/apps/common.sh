@@ -190,7 +190,9 @@ apps_common_export_service_hostnames() {
   _elasticsearch_svc_domain="$ELASTICSEARCH_NAMESPACE.svc.cluster.local"
   ELASTICSEARCH_SVC_HOSTNAME="elasticsearch-master.$_elasticsearch_svc_domain"
   export ELASTICSEARCH_SVC_HOSTNAME
-  KYSO_SCS_SVC_HOSTNAME="kyso-scs-svc.$KYSO_SCS_NAMESPACE.svc.cluster.local"
+  KYSO_API_SVC_HOSTNAME="kyso-api.$KYSO_API_NAMESPACE.svc.cluster.local"
+  export KYSO_API_SVC_HOSTNAME
+  KYSO_SCS_SVC_HOSTNAME="kyso-scs.$KYSO_SCS_NAMESPACE.svc.cluster.local"
   export KYSO_SCS_SVC_HOSTNAME
   _mongodb_svc_domain="$MONGODB_NAMESPACE.svc.cluster.local"
   MONGODB_SVC_HOSTNAME="$MONGODB_RELEASE-headless.$_mongodb_svc_domain"
@@ -225,16 +227,18 @@ apps_kyso_print_api_settings() {
   # SCS Vars
   _sftp_host="$KYSO_SCS_SVC_HOSTNAME"
   _kyso_indexer_api_base_url="http://$KYSO_SCS_SVC_HOSTNAME:8080"
-  if [ -f "$KYSO_SCS_USERS_TAR" ]; then
+  _user_pass_txt="$(
+    apps_kyso_scs_secret_cat_file "user_pass.txt" "$_deployment" "$_cluster"
+  )"
+  if [ "$_user_pass_txt" ]; then
+
     _user_and_pass="$(
-      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
-        grep "^$KYSO_SCS_REPORTS_USER:"
+      echo "$_user_pass_txt" | grep "^$KYSO_SCS_SFTP_SCS_USER:"
     )" || true
     _sftp_username="${_user_and_pass%%:*}"
     _sftp_password="${_user_and_pass#*:}"
     _pub_user_and_pass="$(
-      file_to_stdout "$KYSO_SCS_USERS_TAR" | tar xOf - user_pass.txt |
-        grep "^$KYSO_SCS_PUBLIC_USER:"
+      echo "$_user_pass_txt" | grep "^$KYSO_SCS_SFTP_PUB_USER:"
     )" || true
     _sftp_pub_username="${_pub_user_and_pass%%:*}"
     _sftp_pub_password="${_pub_user_and_pass#*:}"

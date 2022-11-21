@@ -25,7 +25,8 @@ export DEPLOYMENT_DEFAULT_KYSO_FRONT_PATH_PREFIX="/"
 export DEPLOYMENT_DEFAULT_KYSO_FRONT_REPLICAS="1"
 
 # Fixed values
-export KYSO_FRONT_PORT="3000"
+export KYSO_FRONT_SERVER_PORT="3000"
+export KYSO_FRONT_RELEASE="kyso-api"
 
 # --------
 # Includes
@@ -51,22 +52,23 @@ apps_kyso_front_export_variables() {
   # Values
   export KYSO_FRONT_NAMESPACE="kyso-front-$DEPLOYMENT_NAME"
   # Directories
+  export KYSO_FRONT_CHART_DIR="$CHARTS_DIR/kyso-front"
   export KYSO_FRONT_TMPL_DIR="$TMPL_DIR/apps/kyso-front"
+  export KYSO_FRONT_HELM_DIR="$DEPLOY_HELM_DIR/kyso-front"
   export KYSO_FRONT_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/kyso-front"
   export KYSO_FRONT_SECRETS_DIR="$DEPLOY_SECRETS_DIR/kyso-front"
   # Templates
-  export KYSO_FRONT_DEPLOY_TMPL="$KYSO_FRONT_TMPL_DIR/deploy.yaml"
-  export KYSO_FRONT_ENDPOINT_TMPL="$KYSO_FRONT_TMPL_DIR/endpoint.yaml"
-  export KYSO_FRONT_ENDPOINT_SVC_TMPL="$KYSO_FRONT_TMPL_DIR/endpoint_svc.yaml"
-  export KYSO_FRONT_SERVICE_TMPL="$KYSO_FRONT_TMPL_DIR/service.yaml"
+  export KYSO_FRONT_HELM_VALUES_TMPL="$KYSO_FRONT_TMPL_DIR/values.yaml"
   export KYSO_FRONT_SVC_MAP_TMPL="$KYSO_FRONT_TMPL_DIR/svc_map.yaml"
-  export KYSO_FRONT_INGRESS_TMPL="$KYSO_FRONT_TMPL_DIR/ingress.yaml"
-  # Files
+  # BEG: deprecated files
   export KYSO_FRONT_DEPLOY_YAML="$KYSO_FRONT_KUBECTL_DIR/deploy.yaml"
   export KYSO_FRONT_ENDPOINT_YAML="$KYSO_FRONT_KUBECTL_DIR/endpoint.yaml"
   export KYSO_FRONT_SERVICE_YAML="$KYSO_FRONT_KUBECTL_DIR/service.yaml"
-  export KYSO_FRONT_SVC_MAP_YAML="$KYSO_FRONT_KUBECTL_DIR/svc_map.yaml"
   export KYSO_FRONT_INGRESS_YAML="$KYSO_FRONT_KUBECTL_DIR/ingress.yaml"
+  # END: deprecated files
+  # Files
+  export KYSO_FRONT_HELM_VALUES_YAML="$KYSO_FRONT_HELM_DIR/values.yaml"
+  export KYSO_FRONT_SVC_MAP_YAML="$KYSO_FRONT_KUBECTL_DIR/svc_map.yaml"
   # By default don't auto save the environment
   KYSO_FRONT_AUTO_SAVE_ENV="false"
   # Use defaults for variables missing from config files / enviroment
@@ -112,14 +114,16 @@ apps_kyso_front_export_variables() {
 
 apps_kyso_front_check_directories() {
   apps_common_check_directories
-  for _d in "$KYSO_FRONT_KUBECTL_DIR" "$KYSO_FRONT_SECRETS_DIR"; do
+  for _d in "$KYSO_FRONT_HELM_DIR" "$KYSO_FRONT_KUBECTL_DIR" \
+    "$KYSO_FRONT_SECRETS_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 apps_kyso_front_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in "$KYSO_FRONT_KUBECTL_DIR" "$KYSO_FRONT_SECRETS_DIR"; do
+  for _d in "$KYSO_FRONT_HELM_DIR" "$KYSO_FRONT_KUBECTL_DIR" \
+    "$KYSO_FRONT_SECRETS_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
     fi
@@ -129,7 +133,7 @@ apps_kyso_front_clean_directories() {
 apps_kyso_front_read_variables() {
   _app="kyso-front"
   header "Reading $_app settings"
-  _ex_ep="$LINUX_HOST_IP:$KYSO_FRONT_PORT"
+  _ex_ep="$LINUX_HOST_IP:$KYSO_FRONT_SERVER_PORT"
   read_value "kyso-front endpoint (i.e. '$_ex_ep' or '-' to deploy image)" \
     "${KYSO_FRONT_ENDPOINT}"
   KYSO_FRONT_ENDPOINT=${READ_VALUE}
@@ -151,8 +155,8 @@ apps_kyso_front_print_variables() {
 # ---
 # Endpoint for Kyso Front (replaces the real deployment on development systems),
 # set to:
-# - '$LINUX_HOST_IP:$KYSO_FRONT_PORT' on Linux
-# - '$MACOS_HOST_IP:$KYSO_FRONT_PORT' on systems using Docker Desktop (Mac/Win)
+# - '$LINUX_HOST_IP:$KYSO_FRONT_SERVER_PORT' on Linux
+# - '$MACOS_HOST_IP:$KYSO_FRONT_SERVER_PORT' on systems using Docker Desktop (Mac/Win)
 KYSO_FRONT_ENDPOINT=$KYSO_FRONT_ENDPOINT
 # Kyso Front Image URI, examples for local testing:
 # - 'registry.kyso.io/kyso-io/kyso-front/develop:latest'
@@ -173,8 +177,25 @@ apps_kyso_front_logs() {
   _cluster="$2"
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   _ns="$KYSO_FRONT_NAMESPACE"
-  _label="app=kyso-front"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  _app="kyso-front"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "deployments/$_app" -f
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
+}
+
+apps_kyso_front_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_front_export_variables "$_deployment" "$_cluster"
+  _ns="$KYSO_FRONT_NAMESPACE"
+  _app="kyso-front"
+  if kubectl get -n "$_ns" "deployments/$_app" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "deployments/$_app" -- /bin/sh
+  else
+    echo "Deployment '$_app' not found on namespace '$_ns'"
+  fi
 }
 
 apps_kyso_front_install() {
@@ -186,6 +207,13 @@ apps_kyso_front_install() {
     echo "Export KYSO_FRONT_IMAGE or KYSO_FRONT_ENDPOINT or reconfigure."
     exit 1
   fi
+  # Initial test
+  if ! find_namespace "$MONGODB_NAMESPACE"; then
+    read_bool "mongodb namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
   # Auto save the configuration if requested
   if is_selected "$KYSO_FRONT_AUTO_SAVE_ENV"; then
     apps_kyso_front_env_save "$_deployment" "$_cluster"
@@ -196,16 +224,29 @@ apps_kyso_front_install() {
   # Adjust variables
   _app="kyso-front"
   _ns="$KYSO_FRONT_NAMESPACE"
-  _ep_tmpl="$KYSO_FRONT_ENDPOINT_TMPL"
-  _ep_yaml="$KYSO_FRONT_ENDPOINT_YAML"
-  _service_tmpl="$KYSO_FRONT_SERVICE_TMPL"
+  # directory
+  _chart="$KYSO_FRONT_CHART_DIR"
+  # deprecated yaml files
+  _auth_yaml="$KYSO_FRONT_AUTH_YAML"
+  _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
+  _ingress_docs_yaml="$KYSO_FRONT_INGRESS_DOCS_YAML"
+  _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
   _service_yaml="$KYSO_FRONT_SERVICE_YAML"
+  # files
+  _helm_values_tmpl="$KYSO_FRONT_HELM_VALUES_TMPL"
+  _helm_values_yaml="$KYSO_FRONT_HELM_VALUES_YAML"
   _svc_map_tmpl="$KYSO_FRONT_SVC_MAP_TMPL"
   _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
-  _deploy_tmpl="$KYSO_FRONT_DEPLOY_TMPL"
-  _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
-  _ingress_tmpl="$KYSO_FRONT_INGRESS_TMPL"
-  _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
+  _auth_user="$KYSO_FRONT_BASIC_AUTH_USER"
+  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
+    is_selected "$KYSO_FRONT_DOCS_INGRESS"; then
+    auth_file_update "$KYSO_FRONT_BASIC_AUTH_USER" "$KYSO_FRONT_AUTH_FILE"
+    _auth_pass="$(
+      file_to_stdout "$KYSO_FRONT_AUTH_FILE" | sed -ne "s/^${_auth_user}://p"
+    )"
+  else
+    _auth_pass=""
+  fi
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$KYSO_FRONT_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -214,68 +255,54 @@ apps_kyso_front_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_ep_yaml" "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
-      "$_ingress_yaml" $_cert_yamls
+    rm -f "$_helm_values_yaml" "$_svc_map_yaml" \
+      "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
+      "$_ingress_yaml" "$_ingress_docs_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
   fi
+  # If we have a legacy deployment, remove the old objects
+  for _yaml in "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
+    "$_ingress_yaml" "$_ingress_docs_yaml"; do
+    kubectl_delete "$_yaml" || true
+  done
+  # Image settings
+  _image_repo="${KYSO_FRONT_IMAGE%:*}"
+  _image_tag="${KYSO_FRONT_IMAGE#*:}"
+  if [ "$_image_repo" = "$_image_tag" ]; then
+    _image_tag="latest"
+  fi
+  # Endpoint settings
   if [ "$KYSO_FRONT_ENDPOINT" ]; then
-    # Remove service if we are switching from a deployment, otherwise we already
-    # have an endpoint linked to the service and the creation generates a warn
-    if [ -f "$_service_yaml" ]; then
-      if [ ! -f "$_ep_yaml" ]; then
-        kubectl_delete "$_service_yaml" || true
-      fi
-    fi
-    # Remove deployment related files
-    kubectl_delete "$_deploy_yaml" || true
-    # Generate / update endpoint yaml
-    _front_addr="${KYSO_FRONT_ENDPOINT%:*}"
-    _front_port="${KYSO_FRONT_ENDPOINT#*:}"
-    [ "$_front_port" != "$_front_addr" ] || _front_port="$KYSO_FRONT_PORT"
-    sed \
-      -e "s%__APP__%$_app%" \
-      -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__SERVER_ADDR__%$_front_addr%" \
-      -e "s%__SERVER_PORT__%$_front_port%" \
-      "$_ep_tmpl" >"$_ep_yaml"
-    # Use the right service template
-    _service_tmpl="$KYSO_FRONT_ENDPOINT_SVC_TMPL"
+    # Generate / update endpoint values
+    _ep_enabled="true"
   else
-    # Remove endpoint if switching
-    kubectl_delete "$_ep_yaml" || true
     # Adjust the front port
-    _front_port="$KYSO_FRONT_PORT"
-    # Use the right service template
-    _service_tmpl="$KYSO_FRONT_SERVICE_TMPL"
-    # Prepare deployment file
-    sed \
-      -e "s%__APP__%$_app%" \
-      -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__FRONT_REPLICAS__%$KYSO_FRONT_REPLICAS%" \
-      -e "s%__FRONT_IMAGE__%$KYSO_FRONT_IMAGE%" \
-      -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
-      "$_deploy_tmpl" >"$_deploy_yaml"
+    _ep_enabled="false"
   fi
-  # Create certificate secrets if needed or remove them if not
-  if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
-    create_app_cert_yamls "$_ns" "$KYSO_FRONT_KUBECTL_DIR"
-  else
-    for _hostname in $DEPLOYMENT_HOSTNAMES; do
-      _cert_yaml="$KYSO_FRONT_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
-      kubectl_delete "$_cert_yaml" || true
-    done
-  fi
-  # Create ingress definition
-  create_app_ingress_yaml "$_ns" "$_app" "$_ingress_tmpl" "$_ingress_yaml" \
-    "" ""
-  sed -i -e "s%__PATH_PREFIX__%$KYSO_FRONT_PATH_PREFIX%" "$_ingress_yaml"
-  # Prepare service_yaml
+  _ep_addr="${KYSO_FRONT_ENDPOINT%:*}"
+  _ep_port="${KYSO_FRONT_ENDPOINT#*:}"
+  [ "$_ep_port" != "$_ep_addr" ] || _ep_port="$KYSO_FRONT_SERVER_PORT"
+  # Service settings
+  _server_port="$KYSO_FRONT_SERVER_PORT"
+  # Get the database uri
+  _mongodb_user_database_uri="$(
+    apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
+  )"
+  # Prepare values.yaml file
   sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__SERVER_PORT__%$_front_port%" \
-    "$_service_tmpl" >"$_service_yaml"
+    -e "s%__FRONT_REPLICAS__%$KYSO_FRONT_REPLICAS%" \
+    -e "s%__FRONT_IMAGE_REPO__%$_image_repo%" \
+    -e "s%__FRONT_IMAGE_TAG__%$_image_tag%" \
+    -e "s%__IMAGE_PULL_POLICY__%$DEPLOYMENT_IMAGE_PULL_POLICY%" \
+    -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
+    -e "s%__FRONT_ENDPOINT_ENABLED__%$_ep_enabled%" \
+    -e "s%__FRONT_ENDPOINT_ADDR__%$_ep_addr%" \
+    -e "s%__FRONT_ENDPOINT_PORT__%$_ep_port%" \
+    -e "s%__FRONT_SERVER_PORT__%$_server_port%" \
+    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+  # Apply ingress values
+  replace_app_ingress_values "$_app" "$_helm_values_yaml"
   # Prepare svc_map file
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
@@ -284,14 +311,69 @@ apps_kyso_front_install() {
     -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
     -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
     "$_svc_map_tmpl" >"$_svc_map_yaml"
-  for _yaml in "$_ep_yaml" "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
-    "$_ingress_yaml" $_cert_yamls; do
+  # Create certificate secrets if needed or remove them if not
+  if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
+    create_app_cert_yamls "$_ns" "$KYSO_FRONT_KUBECTL_DIR"
+  else
+    for _cert_yaml in $_cert_yamls; do
+      kubectl_delete "$_cert_yaml" || true
+    done
+  fi
+  # Install map and certs
+  for _yaml in "$_svc_map_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
+  # If moving from deployment to endpoint add annotations to the automatic
+  # endpoint to avoid issues with the upgrade
+  if [ "$KYSO_FRONT_ENDPOINT" ]; then
+    if [ "$(kubectl get -n "$_ns" "deployments" -o name)" ]; then
+      kubectl annotate -n "$_ns" --overwrite "endpoints/$_app" \
+        "meta.helm.sh/release-name=$_app" \
+        "meta.helm.sh/release-namespace=$_ns"
+    fi
+  fi
+  # Install helm chart
+  helm_upgrade "$_ns" "$_helm_values_yaml" "$_app" "$_chart"
   # Wait until deployment succeds or fails (if there is one, of course)
-  if [ -f "$_deploy_yaml" ]; then
+  if [ -z "$KYSO_FRONT_ENDPOINT" ]; then
     kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
       -n "$_ns" "$_app"
+  fi
+}
+
+apps_kyso_front_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_front_export_variables "$_deployment" "$_cluster"
+  _app="kyso-front"
+  _ns="$KYSO_FRONT_NAMESPACE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_app"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_kyso_front_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_front_export_variables "$_deployment" "$_cluster"
+  _app="kyso-front"
+  _ns="$KYSO_FRONT_NAMESPACE"
+  _release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    # Add annotations to the endpoint if we have a deployment, just in case
+    if [ "$(kubectl get -n "$_ns" "deployments" -o name)" ]; then
+      kubectl annotate -n "$_ns" --overwrite "endpoints/$_app" \
+        "meta.helm.sh/release-name=$_app" \
+        "meta.helm.sh/release-namespace=$_ns"
+    fi
+    # Execute the rollback
+    helm_rollback "$_ns" "$_app" "$_release"
+    # If we succeed update the front settings
+    apps_kyso_update_front_settings "$_deployment" "$_cluster"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
   fi
 }
 
@@ -322,20 +404,34 @@ apps_kyso_front_remove() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   _app="kyso-front"
   _ns="$KYSO_FRONT_NAMESPACE"
-  _service_yaml="$KYSO_FRONT_SERVICE_YAML"
-  _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
+  # deprecated yaml files
+  _auth_yaml="$KYSO_FRONT_AUTH_YAML"
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
+  _ep_yaml="$KYSO_FRONT_ENDPOINT_YAML"
   _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
+  _service_yaml="$KYSO_FRONT_SERVICE_YAML"
+  # files
+  _helm_values_yaml="$KYSO_FRONT_HELM_VALUES_YAML"
+  _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$KYSO_FRONT_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
     _cert_yamls="$_cert_yamls $_cert_yaml"
   done
-  apps_kyso_front_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
-    for _yaml in "$_service_yaml" "$_svc_map_yaml" "$_deploy_yaml" \
-      "$_ingress_yaml" $_cert_yamls; do
+    # Uninstall chart
+    if [ -f "$_helm_values_yaml" ]; then
+      helm uninstall -n "$_ns" "$_app" || true
+      rm -f "$_helm_values_yaml"
+    fi
+    # Remove objects
+    for _yaml in "$_svc_map_yaml" $_cert_yamls; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Remove legacy objects
+    for _yaml in "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
+      "$_ingress_yaml"; do
       kubectl_delete "$_yaml" || true
     done
     delete_namespace "$_ns"
@@ -491,11 +587,14 @@ apps_kyso_front_command() {
   env-update | env_update)
     apps_kyso_front_env_update "$_deployment" "$_cluster"
     ;;
-  logs) apps_kyso_front_logs "$_deployment" "$_cluster" ;;
+  helm-history) apps_kyso_front_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_kyso_front_helm_rollback "$_deployment" "$_cluster" ;;
   install) apps_kyso_front_install "$_deployment" "$_cluster" ;;
+  logs) apps_kyso_front_logs "$_deployment" "$_cluster" ;;
   reinstall) apps_kyso_front_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_front_remove "$_deployment" "$_cluster" ;;
   restart) apps_kyso_front_restart "$_deployment" "$_cluster" ;;
+  sh) apps_kyso_front_sh "$_deployment" "$_cluster" ;;
   status) apps_kyso_front_status "$_deployment" "$_cluster" ;;
   summary) apps_kyso_front_summary "$_deployment" "$_cluster" ;;
   uris) apps_kyso_front_uris "$_deployment" "$_cluster" ;;
@@ -507,8 +606,8 @@ apps_kyso_front_command() {
 }
 
 apps_kyso_front_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs reinstall remove"
-  _cmnds="$_cmnds restart status summary uris"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs reinstall remove restart sh status summary uris"
   echo "$_cmnds"
 }
 

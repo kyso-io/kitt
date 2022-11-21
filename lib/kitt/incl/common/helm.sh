@@ -52,6 +52,11 @@ check_helm_chart() {
     [ "$(helm search repo "$chart" -l -o json --version "$version")" = "[]" ] ||
       return 0
   else
+    # If no version is passed check first if it is a local chart
+    if [ -f "$chart/Chart.yaml" ]; then
+      return 0
+    fi
+    # Check if the chart is in our repos otherwise
     [ "$(helm search repo "$chart" -l -o json)" = "[]" ] || return 0
   fi
   # If we arrive here the chart or the chart + version is not available
@@ -59,7 +64,7 @@ check_helm_chart() {
 }
 
 
-# Call help update
+# Call helm upgrade
 helm_upgrade() {
   _ns="$1"
   _values_yaml="$2"
@@ -88,6 +93,20 @@ helm_upgrade() {
   else
     helm upgrade --install -n "$_ns" "$_release" "$_chart" $_version_op
   fi
+}
+
+helm_history() {
+  _ns="$1"
+  _release="$2"
+  helm history -n "$_ns" "$_release"
+}
+
+helm_rollback() {
+  _ns="$1"
+  _release="$2"
+  _revision="$3"
+  # shellcheck disable=SC2086
+  helm rollback -n "$_ns" "$_release" $_revision
 }
 
 print_helm_summary() {

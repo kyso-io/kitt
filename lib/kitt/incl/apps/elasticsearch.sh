@@ -202,9 +202,26 @@ apps_elasticsearch_logs() {
   _deployment="$1"
   _cluster="$2"
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
-  _label="app=elasticsearch-master"
-  kubectl -n "$_ns" logs -l "$_label" -f
+  if kubectl get -n "$_ns" "statefulset/$_app-master" >/dev/null 2>&1; then
+    kubectl -n "$_ns" logs "statefulset/$_app-master" -f
+  else
+    echo "Statefulset '$_app-master' not found on namespace '$_ns'"
+  fi
+}
+
+apps_elasticsearch_sh() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  if kubectl get -n "$_ns" "statefulset/$_app-master" >/dev/null 2>&1; then
+    kubectl -n "$_ns" exec -ti "statefulset/$_app-master" -- /bin/sh
+  else
+    echo "Statefulset '$_app-master' not found on namespace '$_ns'"
+  fi
 }
 
 apps_elasticsearch_install() {
@@ -318,6 +335,35 @@ EOF
   done <<EOF
 $(find "$ELASTICSEARCH_KUBECTL_DIR" -name "pv-*.yaml" | sort -n)
 EOF
+}
+
+apps_elasticsearch_helm_history() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _release="$ELASTICSEARCH_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+}
+
+apps_elasticsearch_helm_rollback() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_elasticsearch_export_variables "$_deployment" "$_cluster"
+  _app="elasticsearch"
+  _ns="$ELASTICSEARCH_NAMESPACE"
+  _release="$ELASTICSEARCH_RELEASE"
+  _rollback_release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_rollback "$_ns" "$_release" "$_rollback_release"
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
 }
 
 apps_elasticsearch_remove() {
@@ -491,10 +537,13 @@ apps_elasticsearch_command() {
   env-update | env_update)
     apps_elasticsearch_env_update "$_deployment" "$_cluster"
     ;;
+  helm-history) apps_elasticsearch_helm_history "$_deployment" "$_cluster" ;;
+  helm-rollback) apps_elasticsearch_helm_rollback "$_deployment" "$_cluster" ;;
   install) apps_elasticsearch_install "$_deployment" "$_cluster" ;;
   logs) apps_elasticsearch_logs "$_deployment" "$_cluster" ;;
   remove) apps_elasticsearch_remove "$_deployment" "$_cluster" ;;
   rmvols) apps_elasticsearch_rmvols "$_deployment" "$_cluster" ;;
+  sh) apps_elasticsearch_sh "$_deployment" "$_cluster" ;;
   status) apps_elasticsearch_status "$_deployment" "$_cluster" ;;
   summary) apps_elasticsearch_summary "$_deployment" "$_cluster" ;;
   *)
@@ -505,8 +554,8 @@ apps_elasticsearch_command() {
 }
 
 apps_elasticsearch_command_list() {
-  _cmnds="env-edit env-path env-show env-update install logs remove rmvols"
-  _cmnds="$_cmnds status summary"
+  _cmnds="env-edit env-path env-show env-update helm-history helm-rollback"
+  _cmnds="$_cmnds install logs remove rmvols sh status summary"
   echo "$_cmnds"
 }
 

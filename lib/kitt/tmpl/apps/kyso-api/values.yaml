@@ -1,0 +1,44 @@
+replicaCount: __API_REPLICAS__
+image:
+  repository: '__API_IMAGE_REPO__'
+  tag: '__API_IMAGE_TAG__'
+  pullPolicy: '__IMAGE_PULL_POLICY__'
+imagePullSecrets:
+  - name: '__PULL_SECRETS_NAME__'
+# Endpoint settings
+endpoint:
+  enabled: __API_ENDPOINT_ENABLED__
+  ip: '__API_ENDPOINT_ADDR__'
+  port: '__API_ENDPOINT_PORT__'
+# Service settings
+service:
+  targetPort: '__API_SERVER_PORT__'
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: '__FORCE_SSL_REDIRECT__'
+    nginx.ingress.kubernetes.io/proxy-body-size: '__MAX_BODY_SIZE__'
+  hosts:
+# BEG: HOSTNAME_RULE
+  - host: '__HOSTNAME__'
+# END: HOSTNAME_RULE
+  tls: # TLS_RULES
+# BEG: HOSTNAME_TLS
+  - hosts:
+    - '__HOSTNAME__'
+    secretName: '__HOSTNAME__'
+# END: HOSTNAME_TLS
+# Ingress Docs configuration
+ingressDocs:
+  enabled: __API_DOCS_INGRESS__
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: '__FORCE_SSL_REDIRECT__'
+ingressDocsAuth:
+  user: '__BASIC_AUTH_USER__'
+  pass: '__BASIC_AUTH_PASS__'
+# Kyso configuration file values
+envSecret:
+  mongodbDatabaseUri: '__MONGODB_DATABASE_URI__'
+  populateMailPrefix: '__POPULATE_MAIL_PREFIX__'
+  populateTestData: __POPULATE_TEST_DATA__
