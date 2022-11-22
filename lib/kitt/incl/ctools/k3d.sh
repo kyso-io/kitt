@@ -117,10 +117,9 @@ ctool_k3d_check_directories() {
 }
 
 ctool_k3d_read_variables() {
-  read_value "Cluster Kubectl Context" "${CLUSTER_KUBECTL_CONTEXT}"
-  CLUSTER_KUBECTL_CONTEXT=${READ_VALUE}
-  read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
-  CLUSTER_DOMAIN=${READ_VALUE}
+  # Read common cluster variables
+  cluster_read_variables
+  # Read k3d cluster settings
   read_value "Number of servers (Master + Agent)" "${CLUSTER_NUM_SERVERS}"
   CLUSTER_NUM_SERVERS=${READ_VALUE}
   read_value "Number of workers (Agents)" "${CLUSTER_NUM_WORKERS}"
@@ -137,12 +136,6 @@ ctool_k3d_read_variables() {
   CLUSTER_LB_HTTP_PORT=${READ_VALUE}
   read_value "LoadBalancer HTTPS Port" "${CLUSTER_LB_HTTPS_PORT}"
   CLUSTER_LB_HTTPS_PORT=${READ_VALUE}
-  read_bool "Keep cluster data in git?" "${CLUSTER_DATA_IN_GIT}"
-  CLUSTER_DATA_IN_GIT=${READ_VALUE}
-  read_value "Cluster Ingress Replicas" "${CLUSTER_INGRESS_REPLICAS}"
-  CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
-  read_bool "Force SSL redirect on ingress?" "${CLUSTER_FORCE_SSL_REDIRECT}"
-  CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
   read_bool "Map Kyso development ports?" "${CLUSTER_MAP_KYSO_DEV_PORTS}"
   CLUSTER_MAP_KYSO_DEV_PORTS=${READ_VALUE}
   read_bool "Use local storage?" "${CLUSTER_USE_LOCAL_STORAGE}"
@@ -157,29 +150,13 @@ ctool_k3d_read_variables() {
     read_bool "Add pull secrets to namespaces?" "${CLUSTER_PULL_SECRETS_IN_NS}"
     CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
   fi
-  read_bool "Use basic auth?" "${CLUSTER_USE_BASIC_AUTH}"
-  CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
-  read_bool "Use SOPS?" "${CLUSTER_USE_SOPS}"
-  CLUSTER_USE_SOPS=${READ_VALUE}
-  if is_selected "$CLUSTER_USE_SOPS"; then
-    export SOPS_EXT="${APP_DEFAULT_SOPS_EXT}"
-  else
-    export SOPS_EXT=""
-  fi
 }
 
 ctool_k3d_print_variables() {
+  # Print common cluster variables
+  cluster_print_variables
+  # Print k3d variables
   cat <<EOF
-# KITT K3d Cluster Configuration File
-# ---
-# Cluster name
-NAME=$CLUSTER_NAME
-# Kubectl context
-KUBECTL_CONTEXT=$CLUSTER_KUBECTL_CONTEXT
-# Cluster kind (one of eks, ext or k3d for now)
-KIND=$CLUSTER_KIND
-# Public DNS domain used with the cluster ingress by default
-DOMAIN=$CLUSTER_DOMAIN
 # Number of server nodes (1, set to 3 if testing etcd, servers are also workers)
 NUM_SERVERS=$CLUSTER_NUM_SERVERS
 # Number of worker nodes (0 for development, 2 for testing (2+1 = 3 workers))
@@ -198,12 +175,6 @@ LB_HOST_IP=$CLUSTER_LB_HOST_IP
 LB_HTTP_PORT=$CLUSTER_LB_HTTP_PORT
 # HTTPS Port (use the default unless you have a conflict)
 LB_HTTPS_PORT=$CLUSTER_LB_HTTPS_PORT
-# Number of ingress replicas
-INGRESS_REPLICAS=$CLUSTER_INGRESS_REPLICAS
-# Force SSL redirect on ingress
-FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
-# Keep cluster data in git or not
-DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
 # Map Kyso development ports to the ingress service
 MAP_KYSO_DEV_PORTS=$CLUSTER_MAP_KYSO_DEV_PORTS
 # Configure k3d to use a couple of local directories for storage and volumes,
@@ -217,12 +188,6 @@ USE_LOCAL_REGISTRY=$CLUSTER_USE_LOCAL_REGISTRY
 # need to add the credentials to namespaces (in fact the setting is disabled if
 # this one is enabled)
 USE_REMOTE_REGISTRY=$CLUSTER_USE_REMOTE_REGISTRY
-# Enable to add credentials to namespaces to pull images from a private registry
-PULL_SECRETS_IN_NS=$CLUSTER_PULL_SECRETS_IN_NS
-# Enable basic auth for sensible services (disable only on dev deployments)
-USE_BASIC_AUTH=$CLUSTER_USE_BASIC_AUTH
-# Use sops to encrypt files (needs a ~/.sops.yaml file to be useful)
-USE_SOPS=$CLUSTER_USE_SOPS
 EOF
 }
 

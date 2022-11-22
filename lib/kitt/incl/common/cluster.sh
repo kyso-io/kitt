@@ -171,6 +171,84 @@ cluster_git_update() {
   fi
 }
 
+cluster_read_variables() {
+  # Read external cluster settings
+  read_value "Cluster Kubectl Context" "${CLUSTER_KUBECTL_CONTEXT}"
+  CLUSTER_KUBECTL_CONTEXT=${READ_VALUE}
+  read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
+  CLUSTER_DOMAIN=${READ_VALUE}
+  read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
+  CLUSTER_DATA_IN_GIT=${READ_VALUE}
+  read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
+  CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
+  read_value "Cluster Ingress Replicas" "${CLUSTER_INGRESS_REPLICAS}"
+  CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
+  read_bool "Add pull secrets to namespaces" "${CLUSTER_PULL_SECRETS_IN_NS}"
+  CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
+  read_bool "Use basic auth" "${CLUSTER_USE_BASIC_AUTH}"
+  CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
+  read_bool "Use SOPS" "${CLUSTER_USE_SOPS}"
+  CLUSTER_USE_SOPS=${READ_VALUE}
+  if is_selected "$CLUSTER_USE_SOPS"; then
+    if [ ! -f "$SOPS_YAML" ]; then
+      read_bool "File '$SOPS_YAML' not found, configure SOPS?" "true"
+      CONFIGURE_SOPS=${READ_VALUE}
+      if is_selected "$CONFIGURE_SOPS"; then
+        if [ ! -f "$SOPS_AGE_KEYS" ]; then
+          read_bool "Create '$SOPS_AGE_KEYS' file?" "true"
+          CREATE_AGE_KEYS=${READ_VALUE}
+          if is_selected "$CREATE_AGE_KEYS"; then
+            [ -d "$SOPS_AGE_DIR" ] || mkdir -p "$SOPS_AGE_DIR"
+            age-keygen -o "$SOPS_AGE_KEYS"
+          fi
+        fi
+        if [ -f "$SOPS_AGE_KEYS" ]; then
+          _age_pub_key="$(
+            sed -ne 's/^# public key: //p' "$SOPS_AGE_KEYS" | head -1
+          )"
+          cat >"$SOPS_AGE_KEYS" <<EOF
+creation_rules:
+- age: ${_age_pub_key}
+EOF
+        else
+          echo "Can't autoconfigure SOPS without the '$SOPS_AGE_KEYS' file"
+          return 1
+        fi
+      fi
+    fi
+    export SOPS_EXT="${APP_DEFAULT_SOPS_EXT}"
+  else
+    export SOPS_EXT=""
+  fi
+}
+
+cluster_print_variables() {
+  cat <<EOF
+# KITT Cluster Configuration File
+# ---
+# Cluster kind (one of eks, ext or k3d for now)
+KIND=$CLUSTER_KIND
+# Cluster name
+NAME=$CLUSTER_NAME
+# Kubectl context
+KUBECTL_CONTEXT=$CLUSTER_KUBECTL_CONTEXT
+# Public DNS domain used with the cluster ingress by default
+DOMAIN=$CLUSTER_DOMAIN
+# Force SSL redirect on ingress
+FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
+# Number of ingress replicas
+INGRESS_REPLICAS=$CLUSTER_INGRESS_REPLICAS
+# Keep cluster data in git or not
+DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
+# Enable to add credentials to namespaces to pull images from a private registry
+PULL_SECRETS_IN_NS=$CLUSTER_PULL_SECRETS_IN_NS
+# Enable basic auth for sensible services (disable only on dev deployments)
+USE_BASIC_AUTH=$CLUSTER_USE_BASIC_AUTH
+# Use sops to encrypt files (needs a ~/.sops.yaml file to be useful)
+USE_SOPS=$CLUSTER_USE_SOPS
+EOF
+}
+
 cluster_remove_directories() {
   for _d in "$CLUST_EKS_DIR" "$CLUST_ENVS_DIR" "$CLUST_EXTSVC_DIR" \
     "$CLUST_HELM_DIR" "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" \

@@ -132,10 +132,9 @@ ctool_eks_check_directories() {
 }
 
 ctool_eks_read_variables() {
-  read_value "Cluster Kubectl Context" "${CLUSTER_KUBECTL_CONTEXT}"
-  CLUSTER_KUBECTL_CONTEXT=${READ_VALUE}
-  read_value "Cluster DNS Domain" "${CLUSTER_DOMAIN}"
-  CLUSTER_DOMAIN=${READ_VALUE}
+  # Read common cluster variables
+  cluster_read_variables
+  # Read eks specific settings
   read_value "EKS Version" "${CLUSTER_EKS_VERSION}"
   CLUSTER_EKS_VERSION=${READ_VALUE}
   read_value "Cluster Region" "${CLUSTER_REGION}"
@@ -179,38 +178,14 @@ ctool_eks_read_variables() {
   CLUSTER_NUM_WORKERS_MNG3=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
   CLUSTER_EFS_FILESYSTEMID=${READ_VALUE}
-  read_value "Cluster Ingress Replicas" "${CLUSTER_INGRESS_REPLICAS}"
-  CLUSTER_INGRESS_REPLICAS=${READ_VALUE}
-  read_bool "Force SSL redirect on ingress" "${CLUSTER_FORCE_SSL_REDIRECT}"
-  CLUSTER_FORCE_SSL_REDIRECT=${READ_VALUE}
-  read_bool "Keep cluster data in git" "${CLUSTER_DATA_IN_GIT}"
-  CLUSTER_DATA_IN_GIT=${READ_VALUE}
-  read_bool "Add pull secrets to namespaces" "${CLUSTER_PULL_SECRETS_IN_NS}"
-  CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
-  read_bool "Use basic auth" "${CLUSTER_USE_BASIC_AUTH}"
-  CLUSTER_USE_BASIC_AUTH=${READ_VALUE}
-  read_bool "Use SOPS" "${CLUSTER_USE_SOPS}"
-  CLUSTER_USE_SOPS=${READ_VALUE}
-  if is_selected "$CLUSTER_USE_SOPS"; then
-    export SOPS_EXT="${APP_DEFAULT_SOPS_EXT}"
-  else
-    export SOPS_EXT=""
-  fi
+
 }
 
 ctool_eks_print_variables() {
+  # Print common cluster variables
+  cluster_print_variables
+  # Print eks variables
   cat <<EOF
-# KITT EKS Cluster Configuration File
-# ---
-# Cluster name
-NAME=$CLUSTER_NAME
-# Kubectl context
-KUBECTL_CONTEXT=$CLUSTER_KUBECTL_CONTEXT
-# Cluster kind (one of eks, ext or k3d for now)
-KIND=$CLUSTER_KIND
-# Public DNS domain used with the cluster ingress by default
-DOMAIN=$CLUSTER_DOMAIN
-# Version of EKS to use (the default is usually one or two versions behind k8s)
 EKS_VERSION=$CLUSTER_EKS_VERSION
 # AWS Region to use for the EKS deployment
 REGION=$CLUSTER_REGION
@@ -244,18 +219,6 @@ NUM_WORKERS_MNG2=$CLUSTER_NUM_WORKERS_MNG2
 NUM_WORKERS_MNG3=$CLUSTER_NUM_WORKERS_MNG3
 # EFS filesystem to use for dynamic volumes
 EFS_FILESYSTEMID=$CLUSTER_EFS_FILESYSTEMID
-# Number of ingress replicas
-INGRESS_REPLICAS=$CLUSTER_INGRESS_REPLICAS
-# Force SSL redirect on ingress
-FORCE_SSL_REDIRECT=$CLUSTER_FORCE_SSL_REDIRECT
-# Keep cluster data in git or not
-CLUSTER_DATA_IN_GIT=$CLUSTER_DATA_IN_GIT
-# Enable to add credentials to namespaces to pull images from a private registry
-PULL_SECRETS_IN_NS=$CLUSTER_PULL_SECRETS_IN_NS
-# Enable basic auth for sensible services (disable only on dev deployments)
-USE_BASIC_AUTH=$CLUSTER_USE_BASIC_AUTH
-# Use sops to encrypt files (needs a ~/.sops.yaml file to be useful)
-USE_SOPS=$CLUSTER_USE_SOPS
 EOF
 }
 

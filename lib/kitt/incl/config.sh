@@ -63,13 +63,18 @@ export APP_DEFAULT_CLUSTER_PULL_SECRETS_IN_NS
   APP_DEFAULT_CLUSTER_USE_BASIC_AUTH="true"
 export APP_DEFAULT_CLUSTER_USE_BASIC_AUTH
 
-[ "$APP_DEFAULT_CLUSTER_USE_SOPS" ] || APP_DEFAULT_CLUSTER_USE_SOPS="false"
+[ "$APP_DEFAULT_CLUSTER_USE_SOPS" ] || APP_DEFAULT_CLUSTER_USE_SOPS="true"
 export APP_DEFAULT_CLUSTER_USE_SOPS
 
 # Fixed defaults that can't be changed on the global config.
 # Values are only changed on K3D clusters.
 export APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS="false"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="false"
+
+# Fixed values (SOPS)
+export SOPS_AGE_DIR="$HOME/.config/sops/age"
+export SOPS_AGE_KEYS="$SOPS_AGE_DIR/keys.txt"
+export SOPS_YAML="$HOME/.sops.yaml"
 
 # --------
 # Includes
