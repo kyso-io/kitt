@@ -41,7 +41,7 @@ backup_export_variables() {
 }
 
 backup_app_list() {
-  echo "elasticsearch mongodb kyso-scs mongo-gui kyso-api kyso-ui"
+  echo "elasticsearch mongodb kyso-scs mongo-gui kyso-api kyso-front"
 }
 
 backup_app_namespace() {
@@ -51,8 +51,8 @@ backup_app_namespace() {
   mongodb) echo "$MONGODB_NAMESPACE" ;;
   mongo-gui) echo "$MONGO_GUI_NAMESPACE" ;;
   kyso-api) echo "$KYSO_API_NAMESPACE" ;;
+  kyso-front) echo "$KYSO_FRONT_NAMESPACE" ;;
   kyso-scs) echo "$KYSO_SCS_NAMESPACE" ;;
-  kyso-ui) echo "$KYSO_UI_NAMESPACE" ;;
   *) echo "" ;;
   esac
 }

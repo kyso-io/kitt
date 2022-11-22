@@ -65,7 +65,7 @@ j2f_systemd_export_variables() {
   # Generate J2F_DIRLIST if not defined
   if [ -z "$J2F_DIRLIST" ]; then
     J2F_DIRLIST="kyso-api:$(uuid);kyso-front:$(uuid)"
-    J2F_DIRLIST="$J2F_DIRLIST;kyso-indexer:$(uuid);kyso-ui:$(uuid)"
+    J2F_DIRLIST="$J2F_DIRLIST;kyso-indexer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;activity-feed-consumer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;notification-consumer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;slack-notifications-consumer:$(uuid)"

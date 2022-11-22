@@ -37,8 +37,6 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_FRONT_SH" = "1" ] || . "$INCL_DIR/apps/kyso-front.sh"
   # shellcheck source=./apps/kyso-scs.sh
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
-  # shellcheck source=./apps/kyso-ui.sh
-  [ "$INCL_APPS_KYSO_UI_SH" = "1" ] || . "$INCL_DIR/apps/kyso-ui.sh"
   # shellcheck source=./apps/activity-feed-consumer.sh
   [ "$INCL_APPS_ACTIVITY_FEED_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/activity-feed-consumer.sh"
@@ -76,16 +74,9 @@ apps_command() {
       for _c in $(apps_command_list "$_a"); do
         if [ "$_c" = "$_command" ]; then
           if [ "$_command" != "summary" ]; then
-            case "$_a" in
-            kyso-ui) _cmnd_default="No" ;;
-            *) _cmnd_default="Yes" ;;
-            esac
-            read_bool "Execute command '$_c' for app '$_a'?" "$_cmnd_default"
+            read_bool "Execute command '$_c' for app '$_a'?" "Yes"
           else
-            case "$_a" in
-            kyso-ui) READ_VALUE="false" ;;
-            *) READ_VALUE="true" ;;
-            esac
+            READ_VALUE="true"
           fi
           if is_selected "${READ_VALUE}"; then
             apps_command "$_a" "$_command" "$_deployment" "$_cluster"
@@ -111,9 +102,6 @@ apps_command() {
     ;;
   kyso-scs)
     apps_kyso_scs_command "$_command" "$_deployment" "$_cluster"
-    ;;
-  kyso-ui)
-    apps_kyso_ui_command "$_command" "$_deployment" "$_cluster"
     ;;
   mongodb)
     apps_mongodb_command "$_command" "$_deployment" "$_cluster"
@@ -149,7 +137,7 @@ apps_command() {
 
 apps_list() {
   _apps="common config elasticsearch mongodb nats mongo-gui"
-  _apps="$_apps kyso-api kyso-front kyso-scs kyso-ui"
+  _apps="$_apps kyso-api kyso-front kyso-scs"
   _apps="$_apps activity-feed-consumer notification-consumer"
   _apps="$_apps slack-notifications-consumer"
   _apps="$_apps onlyoffice-ds portmaps"
@@ -168,7 +156,6 @@ apps_command_list() {
   kyso-api) apps_kyso_api_command_list ;;
   kyso-front) apps_kyso_front_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
-  kyso-ui) apps_kyso_ui_command_list ;;
   activity-feed-consumer) apps_activity_feed_consumer_command_list ;;
   notification-consumer) apps_notification_consumer_command_list ;;
   slack-notifications-consumer)

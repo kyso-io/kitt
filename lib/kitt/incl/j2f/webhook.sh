@@ -274,10 +274,6 @@ j2f_webhook_command() {
     app="kyso-scs"
     img_var="KYSO_INDEXER_IMAGE"
     ;;
-  "kyso-io/kyso-ui")
-    app="kyso-ui"
-    img_var="KYSO_UI_IMAGE"
-    ;;
   "kyso-io/consumers/activity-feed-consumer")
     app="activity-feed-consumer"
     img_var="ACTIVITY_FEED_CONSUMER_IMAGE"
