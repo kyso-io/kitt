@@ -29,7 +29,6 @@ export DEPLOYMENT_DEFAULT_KYSO_API_POPULATE_MAIL_PREFIX="lo"
 
 # Fixed values
 export KYSO_API_SERVER_PORT="4000"
-export KYSO_API_RELEASE="kyso-api"
 export KYSO_API_BASIC_AUTH_NAME="basic-auth"
 export KYSO_API_BASIC_AUTH_USER="apidoc"
 
@@ -252,9 +251,15 @@ apps_kyso_api_install() {
     echo "Export KYSO_API_IMAGE or KYSO_API_ENDPOINT or reconfigure."
     exit 1
   fi
-  # Initial test
+  # Initial tests
   if ! find_namespace "$MONGODB_NAMESPACE"; then
     read_bool "mongodb namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
+  if ! find_namespace "$NATS_NAMESPACE"; then
+    read_bool "nats namespace not found, abort install?" "Yes"
     if is_selected "${READ_VALUE}"; then
       return 1
     fi

@@ -25,7 +25,6 @@ export DEPLOYMENT_DEFAULT_ONLYOFFICE_DS_IMAGE="$_image"
 
 # Fixed values
 export ONLYOFFICE_DS_SERVER_PORT="80"
-export ONLYOFFICE_DS_RELEASE="onlyoffice-ds"
 
 # --------
 # Includes

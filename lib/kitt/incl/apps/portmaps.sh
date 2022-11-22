@@ -72,8 +72,10 @@ apps_portmaps_install() {
   _deployment="$1"
   _cluster="$2"
   apps_portmaps_export_variables "$_deployment" "$_cluster"
+  # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_portmaps_check_directories
+  # Adjust variables
   _app="portmaps"
   _ns="$INGRESS_PORTMAPS_NAMESPACE"
   _svc_map_tmpl="$PORTMAPS_SVC_MAP_TMPL"

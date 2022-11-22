@@ -195,12 +195,12 @@ apps_common_export_service_hostnames() {
   KYSO_SCS_SVC_HOSTNAME="kyso-scs.$KYSO_SCS_NAMESPACE.svc.cluster.local"
   export KYSO_SCS_SVC_HOSTNAME
   _mongodb_svc_domain="$MONGODB_NAMESPACE.svc.cluster.local"
-  MONGODB_SVC_HOSTNAME="$MONGODB_RELEASE-headless.$_mongodb_svc_domain"
+  MONGODB_SVC_HOSTNAME="$MONGODB_HELM_RELEASE-headless.$_mongodb_svc_domain"
   if [ "$MONGODB_ARCHITECTURE" = "replicaset" ]; then
-    MONGODB_SVC_HOSTNAME="$MONGODB_RELEASE-0.$MONGODB_SVC_HOSTNAME"
+    MONGODB_SVC_HOSTNAME="$MONGODB_HELM_RELEASE-0.$MONGODB_SVC_HOSTNAME"
   fi
   export MONGODB_SVC_HOSTNAME
-  NATS_SVC_HOSTNAME="$NATS_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
+  NATS_SVC_HOSTNAME="$NATS_HELM_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
   export NATS_SVC_HOSTNAME
 }
 

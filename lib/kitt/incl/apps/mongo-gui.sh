@@ -24,7 +24,6 @@ export DEPLOYMENT_DEFAULT_MONGO_GUI_IMAGE="$_image"
 
 # Fixed values
 export MONGO_GUI_SERVER_PORT="4321"
-export MONGO_GUI_RELEASE="mongo-gui"
 export MONGO_GUI_BASIC_AUTH_NAME="basic-auth"
 export MONGO_GUI_BASIC_AUTH_USER="mongo-admin"
 
@@ -149,6 +148,14 @@ apps_mongo_gui_install() {
   _deployment="$1"
   _cluster="$2"
   apps_mongo_gui_export_variables "$_deployment" "$_cluster"
+  # Initial test
+  if ! find_namespace "$MONGODB_NAMESPACE"; then
+    read_bool "mongodb namespace not found, abort install?" "Yes"
+    if is_selected "${READ_VALUE}"; then
+      return 1
+    fi
+  fi
+  # check directories
   apps_mongo_gui_check_directories
   _app="mongo-gui"
   _ns="$MONGO_GUI_NAMESPACE"

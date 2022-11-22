@@ -20,8 +20,8 @@ INCL_APPS_ELASTICSEARCH_SH="1"
 # CMND_DSC="elasticsearch: manage elasticsearch deployment for kyso"
 
 # Defaults
-_image="docker.elastic.co/elasticsearch/elasticsearch"
-export DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE="$_image"
+_image_name="docker.elastic.co/elasticsearch/elasticsearch"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_NAME="$_image_name"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_SIZE="30Gi"
@@ -31,11 +31,11 @@ export DEPLOYMENT_DEFAULT_ELASTICSEARCH_CPU_REQUESTS="1000m"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_MEM_REQUESTS="2Gi"
 
 # Fixed values
-export ELASTICSEARCH_REPO_NAME="elastic"
-export ELASTICSEARCH_REPO_URL="https://helm.elastic.co"
-export ELASTICSEARCH_RELEASE="kyso-elasticsearch"
-export ELASTICSEARCH_CHART="elastic/elasticsearch"
-export ELASTICSEARCH_VERSION="7.17.3"
+export ELASTICSEARCH_HELM_REPO_NAME="elastic"
+export ELASTICSEARCH_HELM_REPO_URL="https://helm.elastic.co"
+export ELASTICSEARCH_HELM_RELEASE="kyso-elasticsearch"
+export ELASTICSEARCH_HELM_CHART="elastic/elasticsearch"
+export ELASTICSEARCH_HELM_CHART_VERSION="7.17.3"
 export ELASTICSEARCH_PV_PREFIX="elasticsearch-master-elasticsearch-master"
 
 # --------
@@ -76,12 +76,12 @@ apps_elasticsearch_export_variables() {
   export ELASTICSEARCH_PF_OUT="$ELASTICSEARCH_PF_DIR/kubectl.out"
   export ELASTICSEARCH_PF_PID="$ELASTICSEARCH_PF_DIR/kubectl.pid"
   # Use defaults for variables missing from config files
-  if [ "$DEPLOYMENT_ELASTICSEARCH_IMAGE" ]; then
-    ELASTICSEARCH_IMAGE="$DEPLOYMENT_ELASTICSEARCH_IMAGE"
+  if [ "$DEPLOYMENT_ELASTICSEARCH_IMAGE_NAME" ]; then
+    ELASTICSEARCH_IMAGE_NAME="$DEPLOYMENT_ELASTICSEARCH_IMAGE_NAME"
   else
-    ELASTICSEARCH_IMAGE="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE"
+    ELASTICSEARCH_IMAGE_NAME="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_NAME"
   fi
-  export ELASTICSEARCH_IMAGE
+  export ELASTICSEARCH_IMAGE_NAME
   if [ "$DEPLOYMENT_ELASTICSEARCH_REPLICAS" ]; then
     ELASTICSEARCH_REPLICAS="$DEPLOYMENT_ELASTICSEARCH_REPLICAS"
   else
@@ -152,8 +152,8 @@ apps_elasticsearch_read_variables() {
   read_value "Elasticsearch replicas (chart defaults to 3)" \
     "${ELASTICSEARCH_REPLICAS}"
   ELASTICSEARCH_REPLICAS=${READ_VALUE}
-  read_value "Elasticsearch image (without tag)" "$ELASTICSEARCH_IMAGE"
-  ELASTICSEARCH_IMAGE=${READ_VALUE}
+  read_value "Elasticsearch image (without tag)" "$ELASTICSEARCH_IMAGE_NAME"
+  ELASTICSEARCH_IMAGE_NAME=${READ_VALUE}
   read_value "Elasticsearch java opts (i.e. -Xmx128m -Xms128m)" \
     "${ELASTICSEARCH_JAVAOPTS}"
   ELASTICSEARCH_JAVAOPTS=${READ_VALUE}
@@ -181,7 +181,7 @@ apps_elasticsearch_print_variables() {
 # Elasticsearch replicas (chart defaults to 3)
 ELASTICSEARCH_REPLICAS=$ELASTICSEARCH_REPLICAS
 # Elasticsearch image (without tag)
-ELASTICSEARCH_IMAGE=$ELASTICSEARCH_IMAGE
+ELASTICSEARCH_IMAGE_NAME=$ELASTICSEARCH_IMAGE_NAME
 # Elasticsearch java opts (chart defaults to empty)
 ELASTICSEARCH_JAVAOPTS=$ELASTICSEARCH_JAVAOPTS
 # Elasticsearch cpu request (chart defaults to 1000m)
@@ -237,9 +237,9 @@ apps_elasticsearch_install() {
   _pvc_yaml="$ELASTICSEARCH_PVC_YAML"
   _pv_tmpl="$ELASTICSEARCH_PV_TMPL"
   _pv_yaml="$ELASTICSEARCH_PV_YAML"
-  _release="$ELASTICSEARCH_RELEASE"
-  _chart="$ELASTICSEARCH_CHART"
-  _version="$ELASTICSEARCH_VERSION"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
+  _chart="$ELASTICSEARCH_HELM_CHART"
+  _version="$ELASTICSEARCH_HELM_CHART_VERSION"
   _storage_class="$ELASTICSEARCH_STORAGE_CLASS"
   _storage_size="$ELASTICSEARCH_STORAGE_SIZE"
   # Replace storage class or remove the line
@@ -251,7 +251,7 @@ apps_elasticsearch_install() {
   # Prepare values for helm
   sed \
     -e "s%__REPLICAS__%$ELASTICSEARCH_REPLICAS%" \
-    -e "s%__IMAGE__%$ELASTICSEARCH_IMAGE%" \
+    -e "s%__IMAGE__%$ELASTICSEARCH_IMAGE_NAME%" \
     -e "s%__JAVAOPTS__%$ELASTICSEARCH_JAVAOPTS%" \
     -e "s%__CPU_REQUESTS__%$ELASTICSEARCH_CPU_REQUESTS%" \
     -e "s%__MEM_REQUESTS__%$ELASTICSEARCH_MEM_REQUESTS%" \
@@ -259,7 +259,7 @@ apps_elasticsearch_install() {
     -e "$_storage_class_sed" \
     "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Check helm repo
-  check_helm_repo "$ELASTICSEARCH_REPO_NAME" "$ELASTICSEARCH_REPO_URL"
+  check_helm_repo "$ELASTICSEARCH_HELM_REPO_NAME" "$ELASTICSEARCH_HELM_REPO_URL"
   # Create namespace if needed
   if ! find_namespace "$_ns"; then
     create_namespace "$_ns"
@@ -343,7 +343,7 @@ apps_elasticsearch_helm_history() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   _app="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
-  _release="$ELASTICSEARCH_RELEASE"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
   if find_namespace "$_ns"; then
     helm_history "$_ns" "$_release"
   else
@@ -357,7 +357,7 @@ apps_elasticsearch_helm_rollback() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   _app="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
-  _release="$ELASTICSEARCH_RELEASE"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
   _rollback_release="$ROLLBACK_RELEASE"
   if find_namespace "$_ns"; then
     helm_rollback "$_ns" "$_release" "$_rollback_release"
@@ -373,7 +373,7 @@ apps_elasticsearch_remove() {
   _app="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
   _values_yaml="$ELASTICSEARCH_HELM_VALUES_YAML"
-  _release="$ELASTICSEARCH_RELEASE"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
     # Uninstall chart
@@ -444,7 +444,7 @@ apps_elasticsearch_summary() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   _addon="elasticsearch"
   _ns="$ELASTICSEARCH_NAMESPACE"
-  _release="$ELASTICSEARCH_RELEASE"
+  _release="$ELASTICSEARCH_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
   statefulset_helm_summary "$_ns" "elasticsearch-master"
 }

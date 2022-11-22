@@ -33,12 +33,12 @@ export DEPLOYMENT_DEFAULT_NATS_STORAGE_SIZE="10Gi"
 export DEPLOYMENT_DEFAULT_NATS_PF_PORT=""
 
 # Fixed values
-export NATS_REPO_NAME="nats"
-export NATS_REPO_URL="https://nats-io.github.io/k8s/helm/charts/"
-export NATS_RELEASE="kyso-nats"
-export NATS_CHART="nats/nats"
-export NATS_VERSION="0.17.0"
-export NATS_PV_PREFIX="$NATS_RELEASE-js-pvc-$NATS_RELEASE"
+export NATS_HELM_REPO_NAME="nats"
+export NATS_HELM_REPO_URL="https://nats-io.github.io/k8s/helm/charts/"
+export NATS_HELM_RELEASE="kyso-nats"
+export NATS_HELM_CHART="nats/nats"
+export NATS_HELM_VERSION="0.17.0"
+export NATS_PV_PREFIX="$NATS_HELM_RELEASE-js-pvc-$NATS_RELEASE"
 export NATS_PORT="4222"
 
 # --------
@@ -206,7 +206,7 @@ apps_nats_logs() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   _app="nats"
   _container="nats"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   _ns="$NATS_NAMESPACE"
   if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
     kubectl -n "$_ns" logs "statefulset/$_release" -c "$_container" -f
@@ -221,7 +221,7 @@ apps_nats_sh() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   _app="nats"
   _container="nats"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   _ns="$NATS_NAMESPACE"
   if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
     kubectl -n "$_ns" exec -ti "statefulset/$_release" -c "$_container" \
@@ -235,13 +235,6 @@ apps_nats_install() {
   _deployment="$1"
   _cluster="$2"
   apps_nats_export_variables "$_deployment" "$_cluster"
-  # Initial tests
-  if ! find_namespace "$KYSO_API_NAMESPACE"; then
-    read_bool "kyso-api namespace not found, abort install?" "Yes"
-    if is_selected "${READ_VALUE}"; then
-      return 1
-    fi
-  fi
   apps_nats_check_directories
   _app="nats"
   _ns="$NATS_NAMESPACE"
@@ -251,9 +244,9 @@ apps_nats_install() {
   _pvc_yaml="$NATS_PVC_YAML"
   _pv_tmpl="$NATS_PV_TMPL"
   _pv_yaml="$NATS_PV_YAML"
-  _release="$NATS_RELEASE"
-  _chart="$NATS_CHART"
-  _version="$NATS_VERSION"
+  _release="$NATS_HELM_RELEASE"
+  _chart="$NATS_HELM_CHART"
+  _version="$NATS_HELM_VERSION"
   _storage_class="$NATS_STORAGE_CLASS"
   _storage_size="$NATS_STORAGE_SIZE"
   # Replace storage class or remove the line
@@ -281,7 +274,7 @@ apps_nats_install() {
     -e "$_storage_class_sed" \
     "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Check helm repo
-  check_helm_repo "$NATS_REPO_NAME" "$NATS_REPO_URL"
+  check_helm_repo "$NATS_HELM_REPO_NAME" "$NATS_REPO_URL"
   # Create namespace if needed
   if ! find_namespace "$_ns"; then
     create_namespace "$_ns"
@@ -367,7 +360,7 @@ apps_nats_helm_history() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   _app="nats"
   _ns="$NATS_NAMESPACE"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   if find_namespace "$_ns"; then
     helm_history "$_ns" "$_release"
   else
@@ -381,7 +374,7 @@ apps_nats_helm_rollback() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   _app="nats"
   _ns="$NATS_NAMESPACE"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   _rollback_release="$ROLLBACK_RELEASE"
   if find_namespace "$_ns"; then
     helm_rollback "$_ns" "$_release" "$_rollback_release"
@@ -397,7 +390,7 @@ apps_nats_remove() {
   _app="nats"
   _ns="$NATS_NAMESPACE"
   _values_yaml="$NATS_HELM_VALUES_YAML"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
     # Uninstall chart
@@ -468,7 +461,7 @@ apps_nats_summary() {
   apps_nats_export_variables "$_deployment" "$_cluster"
   _addon="nats"
   _ns="$NATS_NAMESPACE"
-  _release="$NATS_RELEASE"
+  _release="$NATS_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
   statefulset_helm_summary "$_ns" "$_release"
 }

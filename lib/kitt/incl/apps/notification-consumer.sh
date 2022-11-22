@@ -22,9 +22,6 @@ INCL_APPS_NOTIFICATION_CONSUMER_SH="1"
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_IMAGE=""
 export DEPLOYMENT_DEFAULT_NOTIFICATION_CONSUMER_REPLICAS="1"
 
-# Fixed values
-export NOTIFICATION_CONSUMER_RELEASE="notification-consumer"
-
 # --------
 # Includes
 # --------
@@ -186,8 +183,6 @@ apps_notification_consumer_install() {
     echo "Export NOTIFICATION_CONSUMER_IMAGE or reconfigure."
     exit 1
   fi
-  apps_common_export_service_hostnames "$_deployment" "$_cluster"
-  apps_notification_consumer_check_directories
   # Initial test
   if ! find_namespace "$MONGODB_NAMESPACE"; then
     read_bool "mongodb namespace not found, abort install?" "Yes"
@@ -195,6 +190,9 @@ apps_notification_consumer_install() {
       return 1
     fi
   fi
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
+  apps_notification_consumer_check_directories
   # Auto save the configuration if requested
   if is_selected "$NOTIFICATION_CONSUMER_AUTO_SAVE_ENV"; then
     apps_notification_consumer_env_save "$_deployment" "$_cluster"

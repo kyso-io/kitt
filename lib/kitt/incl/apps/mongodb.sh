@@ -21,24 +21,24 @@ INCL_APPS_MONGODB_SH="1"
 # Defaults
 export DEPLOYMENT_DEFAULT_MONGODB_ARCHITECTURE="replicaset"
 export DEPLOYMENT_DEFAULT_MONGODB_REPLICAS="1"
-export DEPLOYMENT_DEFAULT_MONGODB_REGISTRY="docker.io"
-export DEPLOYMENT_DEFAULT_MONGODB_REPO="bitnami/mongodb"
+export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REGISTRY="docker.io"
+export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REPO="bitnami/mongodb"
 export DEPLOYMENT_DEFAULT_MONGODB_ENABLE_METRICS="false"
 export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_SIZE="8Gi"
 export DEPLOYMENT_DEFAULT_MONGODB_PF_PORT=""
 
 # Fixed values
-export MONGODB_REPO_NAME="bitnami"
-export MONGODB_REPO_URL="https://charts.bitnami.com/bitnami"
-export MONGODB_EXPORTER_REPO="bitnami/mongodb-exporter"
-export MONGODB_RELEASE="kyso-mongodb"
-export MONGODB_CHART="bitnami/mongodb"
-export MONGODB_VERSION="12.1.31"
+export MONGODB_HELM_REPO_NAME="bitnami"
+export MONGODB_HELM_REPO_URL="https://charts.bitnami.com/bitnami"
+export MONGODB_HELM_RELEASE="kyso-mongodb"
+export MONGODB_HELM_CHART="bitnami/mongodb"
+export MONGODB_HELM_VERSION="12.1.31"
 export MONGODB_CLI_TAG="5.0.10-debian-11-r3"
+export MONGODB_IMAGE_EXPORTER_REPO="bitnami/mongodb-exporter"
 export MONGODB_DB_NAME="kyso"
 export MONGODB_DB_USER="kysodb"
-export MONGODB_PV_PREFIX="datadir-$MONGODB_RELEASE"
+export MONGODB_PV_PREFIX="datadir-$MONGODB_HELM_RELEASE"
 
 # --------
 # Includes
@@ -90,15 +90,15 @@ apps_mongodb_export_variables() {
   else
     export MONGODB_REPLICAS="$DEPLOYMENT_DEFAULT_MONGODB_REPLICAS"
   fi
-  if [ "$DEPLOYMENT_MONGODB_REGISTRY" ]; then
-    export MONGODB_REGISTRY="$DEPLOYMENT_MONGODB_REGISTRY"
+  if [ "$DEPLOYMENT_MONGODB_IMAGE_REGISTRY" ]; then
+    export MONGODB_IMAGE_REGISTRY="$DEPLOYMENT_MONGODB_IMAGE_REGISTRY"
   else
-    export MONGODB_REGISTRY="$DEPLOYMENT_DEFAULT_MONGODB_REGISTRY"
+    export MONGODB_IMAGE_REGISTRY="$DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REGISTRY"
   fi
-  if [ "$DEPLOYMENT_MONGODB_REPO" ]; then
-    export MONGODB_REPO="$DEPLOYMENT_MONGODB_REPO"
+  if [ "$DEPLOYMENT_MONGODB_IMAGE_REPO" ]; then
+    export MONGODB_IMAGE_REPO="$DEPLOYMENT_MONGODB_IMAGE_REPO"
   else
-    export MONGODB_REPO="$DEPLOYMENT_DEFAULT_MONGODB_REPO"
+    export MONGODB_IMAGE_REPO="$DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REPO"
   fi
   if [ "$DEPLOYMENT_MONGODB_ENABLE_METRICS" ]; then
     if is_selected "$DEPLOYMENT_MONGODB_ENABLE_METRICS"; then
@@ -163,10 +163,10 @@ apps_mongodb_read_variables() {
     READ_VALUE="1"
   fi
   MONGODB_REPLICAS=${READ_VALUE}
-  read_value "MongoDB Registry" "${MONGODB_REGISTRY}"
-  MONGODB_REGISTRY=${READ_VALUE}
-  read_value "MongoDB Registry Repository" "${MONGODB_REPO}"
-  MONGODB_REPO=${READ_VALUE}
+  read_value "MongoDB Registry" "${MONGODB_IMAGE_REGISTRY}"
+  MONGODB_IMAGE_REGISTRY=${READ_VALUE}
+  read_value "MongoDB Registry Repository" "${MONGODB_IMAGE_REPO}"
+  MONGODB_IMAGE_REPO=${READ_VALUE}
   read_value "MongoDB Enable Metrics" "${MONGODB_ENABLE_METRICS}"
   MONGODB_ENABLE_METRICS=${READ_VALUE}
   read_value "MongoDB storageClass ('local-storage' @ k3d, 'gp3' @ eks)" \
@@ -189,9 +189,9 @@ MONGODB_ARCHITECTURE=$MONGODB_ARCHITECTURE
 # Number of replicas for the 'replicaset' model
 MONGODB_REPLICAS=$MONGODB_REPLICAS
 # MongoDB Registry (change if using a private registry only)
-MONGODB_REGISTRY=$MONGODB_REGISTRY
+MONGODB_IMAGE_REGISTRY=$MONGODB_IMAGE_REGISTRY
 # MongoDB Repo on the Registry (again, change if using a private registry only)
-MONGODB_REPO=$MONGODB_REPO
+MONGODB_IMAGE_REPO=$MONGODB_IMAGE_REPO
 # Set to true to add metrics to the deployment, useful with our own
 # prometheus deployment
 MONGODB_ENABLE_METRICS=$MONGODB_ENABLE_METRICS
@@ -215,12 +215,12 @@ apps_mongodb_print_root_database_uri() {
   if [ "$3" ]; then
     _db_hosts="$3"
   elif [ "$MONGODB_ARCHITECTURE" = "standalone" ]; then
-    _db_hosts="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+    _db_hosts="$MONGODB_HELM_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
   else
-    _suffix="$MONGODB_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
-    _db_hosts="$MONGODB_RELEASE-0.$_suffix"
+    _suffix="$MONGODB_HELM_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
+    _db_hosts="$MONGODB_HELM_RELEASE-0.$_suffix"
     for i in $(seq $((MONGODB_REPLICAS - 1))); do
-      _db_hosts="$_db_hosts,$MONGODB_RELEASE-$i.$_suffix"
+      _db_hosts="$_db_hosts,$MONGODB_HELM_RELEASE-$i.$_suffix"
     done
   fi
   echo "mongodb://$_db_user:$_db_pass@$_db_hosts/$_db_name"
@@ -236,12 +236,12 @@ apps_mongodb_print_user_database_uri() {
   if [ "$3" ]; then
     _db_hosts="$3"
   elif [ "$MONGODB_ARCHITECTURE" = "standalone" ]; then
-    _db_hosts="$MONGODB_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
+    _db_hosts="$MONGODB_HELM_RELEASE.$MONGODB_NAMESPACE.svc.cluster.local"
   else
-    _suffix="$MONGODB_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
-    _db_hosts="$MONGODB_RELEASE-0.$_suffix"
+    _suffix="$MONGODB_HELM_RELEASE-headless.$MONGODB_NAMESPACE.svc.cluster.local"
+    _db_hosts="$MONGODB_HELM_RELEASE-0.$_suffix"
     for i in $(seq $((MONGODB_REPLICAS - 1))); do
-      _db_hosts="$_db_hosts,$MONGODB_RELEASE-$i.$_suffix"
+      _db_hosts="$_db_hosts,$MONGODB_HELM_RELEASE-$i.$_suffix"
     done
   fi
   echo "mongodb://$_db_user:$_db_pass@$_db_hosts/$_db_name"
@@ -253,7 +253,7 @@ apps_mongodb_logs() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   _app="mongodb"
   _container="mongodb"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   _ns="$MONGODB_NAMESPACE"
   if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
     kubectl -n "$_ns" logs "statefulset/$_release" -c "$_container" -f
@@ -268,7 +268,7 @@ apps_mongodb_sh() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   _app="mongodb"
   _container="mongodb"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   _ns="$MONGODB_NAMESPACE"
   if kubectl get -n "$_ns" "statefulset/$_release" >/dev/null 2>&1; then
     kubectl -n "$_ns" exec -ti "statefulset/$_release" -c "$_container" \
@@ -293,9 +293,9 @@ apps_mongodb_install() {
   _pv_yaml="$MONGODB_PV_YAML"
   _storage_class="$MONGODB_STORAGE_CLASS"
   _storage_size="$MONGODB_STORAGE_SIZE"
-  _release="$MONGODB_RELEASE"
-  _chart="$MONGODB_CHART"
-  _version="$MONGODB_VERSION"
+  _release="$MONGODB_HELM_RELEASE"
+  _chart="$MONGODB_HELM_CHART"
+  _version="$MONGODB_HELM_VERSION"
   _replica_set_key_file="$MONGODB_REPLICA_SET_KEY_FILE"
   _root_pass_file="$MONGODB_ROOT_PASS_FILE"
   _user_pass_file="$MONGODB_USER_PASS_FILE"
@@ -333,10 +333,10 @@ apps_mongodb_install() {
     -e "s%__MONGODB_REPLICAS__%$MONGODB_REPLICAS%" \
     -e "s%__PULL_SECRETS_NAME__%$CLUSTER_PULL_SECRETS_NAME%" \
     -e "s%__ARBITER_ENABLED__%$_arbiter_enabled%" \
-    -e "s%__MONGODB_REGISTRY__%$MONGODB_REGISTRY%" \
-    -e "s%__MONGODB_REPO__%$MONGODB_REPO%" \
+    -e "s%__MONGODB_IMAGE_REGISTRY__%$MONGODB_IMAGE_REGISTRY%" \
+    -e "s%__MONGODB_IMAGE_REPO__%$MONGODB_IMAGE_REPO%" \
     -e "s%__ENABLE_METRICS__%$MONGODB_ENABLE_METRICS%" \
-    -e "s%__MONGODB_EXPORTER_REPO__%$MONGODB_EXPORTER_REPO%" \
+    -e "s%__MONGODB_IMAGE_EXPORTER_REPO__%$MONGODB_IMAGE_EXPORTER_REPO%" \
     -e "s%__KUBE_STACK_RELEASE__%$KUBE_STACK_RELEASE%" \
     -e "s%__MONGODB_REPLICA_SET_KEY__%$_mongodb_replica_set_key%" \
     -e "s%__MONGODB_ROOT_PASS__%$_mongodb_root_pass%" \
@@ -346,7 +346,7 @@ apps_mongodb_install() {
     -e "$_storage_class_sed" \
     "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Check helm repo
-  check_helm_repo "$MONGODB_REPO_NAME" "$MONGODB_REPO_URL"
+  check_helm_repo "$MONGODB_HELM_REPO_NAME" "$MONGODB_HELM_REPO_URL"
   # Create namespace if needed
   if ! find_namespace "$_ns"; then
     create_namespace "$_ns"
@@ -447,7 +447,7 @@ apps_mongodb_helm_history() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   _app="mongodb"
   _ns="$MONGODB_NAMESPACE"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   if find_namespace "$_ns"; then
     helm_history "$_ns" "$_release"
   else
@@ -461,7 +461,7 @@ apps_mongodb_helm_rollback() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   _app="mongodb"
   _ns="$MONGODB_NAMESPACE"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   _rollback_release="$ROLLBACK_RELEASE"
   if find_namespace "$_ns"; then
     helm_rollback "$_ns" "$_release" "$_rollback_release"
@@ -477,7 +477,7 @@ apps_mongodb_remove() {
   _app="mongodb"
   _ns="$MONGODB_NAMESPACE"
   _values_yaml="$MONGODB_HELM_VALUES_YAML"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   apps_mongodb_export_variables
   if find_namespace "$_ns"; then
     header "Removing '$_app' objects"
@@ -549,7 +549,7 @@ apps_mongodb_summary() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   _addon="mongodb"
   _ns="$MONGODB_NAMESPACE"
-  _release="$MONGODB_RELEASE"
+  _release="$MONGODB_HELM_RELEASE"
   print_helm_summary "$_ns" "$_addon" "$_release"
   statefulset_helm_summary "$_ns" "$_release"
 }

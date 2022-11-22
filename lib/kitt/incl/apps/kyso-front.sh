@@ -26,7 +26,6 @@ export DEPLOYMENT_DEFAULT_KYSO_FRONT_REPLICAS="1"
 
 # Fixed values
 export KYSO_FRONT_SERVER_PORT="3000"
-export KYSO_FRONT_RELEASE="kyso-api"
 
 # --------
 # Includes
