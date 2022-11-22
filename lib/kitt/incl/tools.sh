@@ -99,6 +99,28 @@ tools_install_pkg() {
   is_selected "${READ_VALUE}" && return 0 || return 1
 }
 
+tools_check_age_keygen() {
+  if tools_install_app "age-keygen"; then
+    repo_path="FiloSottile/age"
+    case "$(uname)" in
+    Linux) os_arch="linux-amd64" ;;
+    Darwin) os_arch="darwin-amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch.tar.gz\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    tmp_dir="$(mktemp -d)"
+    curl -sL "$download_url" -o "$tmp_dir/age.tar.gz"
+    tar xzf "$tmp_dir/age.tar.gz" -C "$tmp_dir" "age/age-keygen"
+    sudo install "$tmp_dir/age/age-keygen" /usr/local/bin/
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    age-keygen --version
+  fi
+}
+
 tools_check_aws() {
   if tools_install_app "aws"; then
     orig_pwd="$(pwd)"
@@ -181,7 +203,7 @@ tools_check_helm() {
       esac
       url="https://get.helm.sh/helm-v$HELM_VERSION-$os-$arch.tar.gz"
       curl -fsSL -o "$tmp_dir/helm.tar.gz" "$url"
-      tar xvf "$tmp_dir/helm.tar.gz" -C "$tmp_dir" "$os-$arch/helm"
+      tar xzf "$tmp_dir/helm.tar.gz" -C "$tmp_dir" "$os-$arch/helm"
       sudo install "$tmp_dir/$os-$arch/helm" /usr/local/bin
     fi
     rm -rf "$tmp_dir"
@@ -464,6 +486,7 @@ tools_check_yq() {
 tools_check() {
   for _app in "$@"; do
     case "$_app" in
+    age-keygen) tools_check_age_keygen ;;
     aws) tools_check_aws ;;
     aws-iam-authenticator) tools_check_aws_iam_authenticator ;;
     docker) tools_check_docker ;;
@@ -489,8 +512,10 @@ tools_check() {
 }
 
 tools_apps_list() {
-  tools="aws aws-iam-authenticator docker eksctl helm jq k3d krew kubectl"
-  tools="$tools kubectx kubelogin sops velero yq"
+  tools="age-keygen aws aws-iam-authenticator docker eksctl helm jq k3d krew"
+  tools="$tools kubectl kubectx kubelogin sops velero"
+  # Don't add yq yet, not used
+  # tools="$tools yq"
   echo "$tools"
 }
 
