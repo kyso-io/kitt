@@ -38,7 +38,7 @@ mongo_command() {
     _deployment="$3"
     _cluster="$4"
     ;;
-  shell | settings-count | version-get)
+  image | shell | settings-count | version-get)
     _deployment="$2"
     _cluster="$3"
     ;;
@@ -48,11 +48,16 @@ mongo_command() {
     ;;
   esac
   apps_mongodb_export_variables "$_deployment" "$_cluster"
+  export MONGODB_CLI_IMAGE="$MONGODB_REGISTRY/$MONGODB_REPO:$MONGODB_CLI_TAG"
+  # Process the image command now (it does not use the cluster, print & exit)
+  if [ "$_cmnd" = "image" ]; then
+    echo "$MONGODB_CLI_IMAGE"
+    return 0
+  fi
   if ! find_namespace "$MONGODB_NAMESPACE"; then
     echo "MongoDB Namespace '$MONGODB_NAMESPACE' not found, can't run command"
     return 1
   fi
-  export MONGODB_CLI_IMAGE="$MONGODB_REGISTRY/$MONGODB_REPO:$MONGODB_CLI_TAG"
   _root_database_uri="$(
     apps_mongodb_print_root_database_uri "$_deployment" "$_cluster"
   )"
@@ -197,6 +202,7 @@ mongo_command_list() {
   cat <<EOF
 cli USER: Run mongosh or the mongo client using 'root' or 'kyso' as USER
 dump FILE: Dump the kyso database to the passed FILE
+image: Print the mongo cli image URI
 restore FILE: Restore the kyso database from the passed FILE
 settings-count: Get count of docs on the 'KysoSettings' collection [no ARG]
 settings-export FILE: Export the 'KysoSettings' collection to a CSV FILE
