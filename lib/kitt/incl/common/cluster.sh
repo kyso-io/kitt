@@ -210,7 +210,7 @@ cluster_read_variables() {
           _age_pub_key="$(
             sed -ne 's/^# public key: //p' "$SOPS_AGE_KEYS" | head -1
           )"
-          cat >"$SOPS_AGE_KEYS" <<EOF
+          cat >"$SOPS_YAML" <<EOF
 creation_rules:
 - age: ${_age_pub_key}
 EOF
