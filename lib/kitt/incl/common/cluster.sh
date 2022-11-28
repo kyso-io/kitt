@@ -148,9 +148,13 @@ cluster_check_directories() {
     [ -d "$_d" ] || mkdir "$_d"
   done
   if is_selected "$CLUSTER_DATA_IN_GIT" && [ ! -d "$CLUSTER_DIR/.git" ]; then
+    _git_user_email="kitt@apps.kyso.io"
+    _git_user_name="Kyso Internal Tool of Tools"
     (
       cd "$CLUSTER_DIR"
       git init --quiet .
+      [ "$(git config user.email)" ] || git config user.email "$_git_user_email"
+      [ "$(git config user.name)" ] || git config user.name "$_git_user_name"
       touch .gitignore
       git add .
       git commit -m 'Initial commit' --quiet
