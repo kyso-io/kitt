@@ -110,7 +110,7 @@ stdout_to_file() {
 # Cat file using sops to decrypt the file if CLUSTER_USE_SOPS is set
 file_to_stdout() {
   file="$1"
-  if is_selected "$CLUSTER_USE_SOPS"; then
+  if is_selected "$CLUSTER_USE_SOPS" && [ -s "$file" ]; then
     ext="${file##*.}"
     sops="${file%%."$ext"}"
     base="${sops%%"$SOPS_EXT"}"
