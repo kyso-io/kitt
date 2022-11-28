@@ -18,35 +18,35 @@ volumes:
   - all
 # END: USE_LOCAL_STORAGE
 ports:
-- port: __HOST_IP__:__HTTP_PORT__:80
+- port: __LB_HOST_IP__:__HTTP_PORT__:80
   nodeFilters:
   - loadbalancer
-- port: __HOST_IP__:__HTTPS_PORT__:443
+- port: __LB_HOST_IP__:__HTTPS_PORT__:443
   nodeFilters:
   - loadbalancer
 # BEG: MAP_KYSO_DEV_PORTS
 # SCS SFTP
-- port: __HOST_IP__:2020:22
+- port: __LB_HOST_IP__:2020:22
   nodeFilters:
   - loadbalancer
 # Nats
-- port: __HOST_IP__:4222:4222
+- port: __LB_HOST_IP__:4222:4222
   nodeFilters:
   - loadbalancer
 # SCS Indexer
-- port: __HOST_IP__:8080:8080
+- port: __LB_HOST_IP__:8080:8080
   nodeFilters:
   - loadbalancer
 # SCS Webhook
-- port: __HOST_IP__:9000:9000
+- port: __LB_HOST_IP__:9000:9000
   nodeFilters:
   - loadbalancer
 # Elasticsearch
-- port: __HOST_IP__:9200:9200
+- port: __LB_HOST_IP__:9200:9200
   nodeFilters:
   - loadbalancer
 # MongoDB
-- port: __HOST_IP__:27017:27017
+- port: __LB_HOST_IP__:27017:27017
   nodeFilters:
   - loadbalancer
 # END: MAP_KYSO_DEV_PORTS

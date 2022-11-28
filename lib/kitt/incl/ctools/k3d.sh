@@ -274,7 +274,7 @@ ctool_k3d_install() {
     -e "$registry_sed" \
     -e "$storage_sed" \
     -e "$dev_ports_sed" \
-    -e "s%__HOST_IP__%$CLUSTER_LB_HOST_IP%g" \
+    -e "s%__LB_HOST_IP__%$CLUSTER_LB_HOST_IP%g" \
     -e "s%__HTTP_PORT__%$CLUSTER_LB_HTTP_PORT%g" \
     -e "s%__HTTPS_PORT__%$CLUSTER_LB_HTTPS_PORT%g" \
     -e "/^#/{d;}" \
