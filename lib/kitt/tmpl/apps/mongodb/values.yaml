@@ -15,7 +15,7 @@ arbiter:
 metrics:
   enabled: __ENABLE_METRICS__
   image:
-    repository: "__MONGODB_IMAGE_EXPORTER_REPO__"
+    repository: "__MONGODB_EXPORTER_IMAGE_REPO__"
     # tag: not set, we expect the one from the chart to be available
   extraFlags: "--compatible-mode"
     # Added --compatible-mode for the metrics exporter (almost all grafana

@@ -35,7 +35,7 @@ export MONGODB_HELM_RELEASE="kyso-mongodb"
 export MONGODB_HELM_CHART="bitnami/mongodb"
 export MONGODB_HELM_VERSION="12.1.31"
 export MONGODB_CLI_TAG="5.0.10-debian-11-r3"
-export MONGODB_IMAGE_EXPORTER_REPO="bitnami/mongodb-exporter"
+export MONGODB_EXPORTER_IMAGE_REPO="bitnami/mongodb-exporter"
 export MONGODB_DB_NAME="kyso"
 export MONGODB_DB_USER="kysodb"
 export MONGODB_PV_PREFIX="datadir-$MONGODB_HELM_RELEASE"
@@ -336,7 +336,7 @@ apps_mongodb_install() {
     -e "s%__MONGODB_IMAGE_REGISTRY__%$MONGODB_IMAGE_REGISTRY%" \
     -e "s%__MONGODB_IMAGE_REPO__%$MONGODB_IMAGE_REPO%" \
     -e "s%__ENABLE_METRICS__%$MONGODB_ENABLE_METRICS%" \
-    -e "s%__MONGODB_IMAGE_EXPORTER_REPO__%$MONGODB_IMAGE_EXPORTER_REPO%" \
+    -e "s%__MONGODB_EXPORTER_IMAGE_REPO__%$MONGODB_EXPORTER_IMAGE_REPO%" \
     -e "s%__KUBE_STACK_RELEASE__%$KUBE_STACK_RELEASE%" \
     -e "s%__MONGODB_REPLICA_SET_KEY__%$_mongodb_replica_set_key%" \
     -e "s%__MONGODB_ROOT_PASS__%$_mongodb_root_pass%" \
