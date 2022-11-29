@@ -81,7 +81,9 @@ apps_kyso_api_export_variables() {
   _auth_file="$KYSO_API_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
   export KYSO_API_AUTH_FILE="$_auth_file"
   _helm_values_yaml="$KYSO_API_HELM_DIR/values${SOPS_EXT}.yaml"
+  _helm_values_yaml_plain="$KYSO_API_HELM_DIR/values.yaml"
   export KYSO_API_HELM_VALUES_YAML="$_helm_values_yaml"
+  export KYSO_API_HELM_VALUES_YAML_PLAIN="$_helm_values_yaml_plain"
   export KYSO_API_SVC_MAP_YAML="$KYSO_API_KUBECTL_DIR/svc_map.yaml"
   # By default don't auto save the environment
   KYSO_API_AUTO_SAVE_ENV="false"
@@ -193,7 +195,7 @@ apps_kyso_api_print_variables() {
 # Endpoint for Kyso API (replaces the real deployment on development systems),
 # set to:
 # - '$LINUX_HOST_IP:$KYSO_API_SERVER_PORT' on Linux
-# - '$MACOS_HOST_IP:$KYSO_API_SERVER_PORT' on systems using Docker Desktop (Mac/Win)
+# - '$MACOS_HOST_IP:$KYSO_API_SERVER_PORT' on systems using Docker Desktop
 KYSO_API_ENDPOINT=$KYSO_API_ENDPOINT
 # Kyso API Image URI, examples for local testing:
 # - 'registry.kyso.io/kyso-io/kyso-api/develop:latest'
@@ -287,6 +289,7 @@ apps_kyso_api_install() {
   # files
   _helm_values_tmpl="$KYSO_API_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_API_HELM_VALUES_YAML"
+  _helm_values_yaml_plain="$KYSO_API_HELM_VALUES_YAML_PLAIN"
   _svc_map_tmpl="$KYSO_API_SVC_MAP_TMPL"
   _svc_map_yaml="$KYSO_API_SVC_MAP_YAML"
   _auth_user="$KYSO_API_BASIC_AUTH_USER"
@@ -359,9 +362,14 @@ apps_kyso_api_install() {
     -e "s%__POPULATE_TEST_DATA__%$KYSO_API_POPULATE_TEST_DATA%" \
     -e "s%__MONGODB_DATABASE_URI__%$_mongodb_user_database_uri%" \
     -e "s%__POPULATE_MAIL_PREFIX__%$KYSO_API_POPULATE_MAIL_PREFIX%" \
-    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+    "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
   # Apply ingress values
-  replace_app_ingress_values "$_app" "$_helm_values_yaml"
+  replace_app_ingress_values "$_app" "$_helm_values_yaml_plain"
+  # Generate encoded version if needed and remove plain version
+  if [ "$_helm_values_yaml" != "$_helm_values_yaml_plain" ]; then
+    stdout_to_file "$_helm_values_yaml" <"$_helm_values_yaml_plain"
+    rm -f "$_helm_values_yaml_plain"
+  fi
   # Prepare svc_map file
   sed \
     -e "s%__NAMESPACE__%$_ns%" \

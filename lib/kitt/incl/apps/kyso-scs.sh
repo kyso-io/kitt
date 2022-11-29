@@ -110,6 +110,7 @@ apps_kyso_scs_export_variables() {
   # END: deprecated files
   # Files
   export KYSO_SCS_HELM_VALUES_YAML="$KYSO_SCS_HELM_DIR/values${SOPS_EXT}.yaml"
+  export KYSO_SCS_HELM_VALUES_YAML_PLAIN="$KYSO_SCS_HELM_DIR/values.yaml"
   export KYSO_SCS_PVC_YAML="$KYSO_SCS_KUBECTL_DIR/pvc.yaml"
   export KYSO_SCS_PV_YAML="$KYSO_SCS_KUBECTL_DIR/pv.yaml"
   export KYSO_SCS_SVC_MAP_YAML="$KYSO_SCS_KUBECTL_DIR/svc_map.yaml"
@@ -583,6 +584,7 @@ apps_kyso_scs_install() {
   # files
   _helm_values_tmpl="$KYSO_SCS_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_SCS_HELM_VALUES_YAML"
+  _helm_values_yaml_plain="$KYSO_SCS_HELM_VALUES_YAML_PLAIN"
   _pv_tmpl="$KYSO_SCS_PV_TMPL"
   _pv_yaml="$KYSO_SCS_PV_YAML"
   _pvc_tmpl="$KYSO_SCS_PVC_TMPL"
@@ -749,9 +751,14 @@ apps_kyso_scs_install() {
     -e "s%__SCS_WEBHOOK_CONTAINER_PORT__%$KYSO_SCS_WEBHOOK_PORT%" \
     -e "s%__KYSO_URL__%http://$_kyso_api_host%" \
     -e "s%__BACKUP_ACTION__%$_backup_action%" \
-    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+    "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
   # Apply ingress values
-  replace_app_ingress_values "$_app" "$_helm_values_yaml"
+  replace_app_ingress_values "$_app" "$_helm_values_yaml_plain"
+  # Generate encoded version if needed and remove plain version
+  if [ "$_helm_values_yaml" != "$_helm_values_yaml_plain" ]; then
+    stdout_to_file "$_helm_values_yaml" <"$_helm_values_yaml_plain"
+    rm -f "$_helm_values_yaml_plain"
+  fi
   # Prepare svc_map file
   sed \
     -e "s%__NAMESPACE__%$_ns%" \

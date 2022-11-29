@@ -33,12 +33,17 @@ fi
 mongo_command() {
   _cmnd="$1"
   case "$_cmnd" in
-  cli | dump | restore | settings-export | settings-merge | version-set)
+  cli | dump | restore | settings-count | settings-export | settings-merge)
     _arg="$2"
     _deployment="$3"
     _cluster="$4"
     ;;
-  image | shell | settings-count | version-get)
+  version-set)
+    _arg="$2"
+    _deployment="$3"
+    _cluster="$4"
+    ;;
+  image | shell | version-get)
     _deployment="$2"
     _cluster="$3"
     ;;
@@ -125,10 +130,15 @@ mongo_command() {
     fi
     ;;
   settings-count)
-    _mongo_script="db.KysoSettings.countDocuments();"
-    _script="mongosh $_user_database_uri --quiet --eval '$_mongo_script'"
-    _fdir=""
-    _file="-"
+    if [ "$_arg" ]; then
+      _mongo_script="db.KysoSettings.countDocuments();"
+      _script="mongosh $_user_database_uri --quiet --eval '$_mongo_script'"
+      _fdir="stdout"
+      _file="$_arg"
+    else
+      echo "Pass the FILE to write the number of documents in KysoSettings"
+      exit 1
+    fi
     ;;
   shell)
     _script="exec /bin/bash"
@@ -205,7 +215,7 @@ cli USER: Run mongosh or the mongo client using 'root' or 'kyso' as USER
 dump FILE: Dump the kyso database to the passed FILE
 image: Print the mongo cli image URI
 restore FILE: Restore the kyso database from the passed FILE
-settings-count: Get count of docs on the 'KysoSettings' collection [no ARG]
+settings-count FILE: Write the number of docs on 'KysoSettings' to FILE
 settings-export FILE: Export the 'KysoSettings' collection to a CSV FILE
 settings-merge FILE: Merge the CSV FILE data into the 'KysoSettings' collection
 shell: Execute an interactive shell on the mongo client container [no ARG]

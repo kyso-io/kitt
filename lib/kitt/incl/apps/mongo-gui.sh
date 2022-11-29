@@ -72,7 +72,9 @@ apps_mongo_gui_export_variables() {
   _auth_file="$MONGO_GUI_SECRETS_DIR/basic_auth${SOPS_EXT}.txt"
   export MONGO_GUI_AUTH_FILE="$_auth_file"
   _helm_values_yaml="$MONGO_GUI_HELM_DIR/values${SOPS_EXT}.yaml"
+  _helm_values_yaml_plain="$MONGO_GUI_HELM_DIR/values.yaml"
   export MONGO_GUI_HELM_VALUES_YAML="$_helm_values_yaml"
+  export MONGO_GUI_HELM_VALUES_YAML_PLAIN="$_helm_values_yaml_plain"
   # Use defaults for variables missing from config files
   if [ "$DEPLOYMENT_MONGO_GUI_IMAGE" ]; then
     MONGO_GUI_IMAGE="$DEPLOYMENT_MONGO_GUI_IMAGE"
@@ -170,6 +172,7 @@ apps_mongo_gui_install() {
   # files
   _helm_values_tmpl="$MONGO_GUI_HELM_VALUES_TMPL"
   _helm_values_yaml="$MONGO_GUI_HELM_VALUES_YAML"
+  _helm_values_yaml_plain="$MONGO_GUI_HELM_VALUES_YAML_PLAIN"
   # auth data
   _auth_user="$MONGO_GUI_BASIC_AUTH_USER"
   if is_selected "$CLUSTER_USE_BASIC_AUTH"; then
@@ -222,9 +225,14 @@ apps_mongo_gui_install() {
     -e "s%__BASIC_AUTH_USER__%$_auth_user%" \
     -e "s%__BASIC_AUTH_PASS__%$_auth_pass%" \
     -e "s%__MONGODB_DATABASE_URI__%$_mongodb_root_database_uri%" \
-    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+    "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
   # Apply ingress values
-  replace_app_ingress_values "$_app" "$_helm_values_yaml"
+  replace_app_ingress_values "$_app" "$_helm_values_yaml_plain"
+  # Generate encoded version if needed and remove plain version
+  if [ "$_helm_values_yaml" != "$_helm_values_yaml_plain" ]; then
+    stdout_to_file "$_helm_values_yaml" <"$_helm_values_yaml_plain"
+    rm -f "$_helm_values_yaml_plain"
+  fi
   # Create certificate secrets if needed or remove them if not
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     create_app_cert_yamls "$_ns" "$MONGO_GUI_KUBECTL_DIR"

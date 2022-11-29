@@ -66,7 +66,10 @@ apps_kyso_front_export_variables() {
   export KYSO_FRONT_INGRESS_YAML="$KYSO_FRONT_KUBECTL_DIR/ingress.yaml"
   # END: deprecated files
   # Files
-  export KYSO_FRONT_HELM_VALUES_YAML="$KYSO_FRONT_HELM_DIR/values.yaml"
+  _helm_values_yaml="$KYSO_FRONT_HELM_DIR/values${SOPS_EXT}.yaml"
+  _helm_values_yaml_plain="$KYSO_FRONT_HELM_DIR/values.yaml"
+  export KYSO_FRONT_HELM_VALUES_YAML="${_helm_values_yaml}"
+  export KYSO_FRONT_HELM_VALUES_YAML_PLAIN="${_helm_values_yaml_plain}"
   export KYSO_FRONT_SVC_MAP_YAML="$KYSO_FRONT_KUBECTL_DIR/svc_map.yaml"
   # By default don't auto save the environment
   KYSO_FRONT_AUTO_SAVE_ENV="false"
@@ -155,12 +158,12 @@ apps_kyso_front_print_variables() {
 # Endpoint for Kyso Front (replaces the real deployment on development systems),
 # set to:
 # - '$LINUX_HOST_IP:$KYSO_FRONT_SERVER_PORT' on Linux
-# - '$MACOS_HOST_IP:$KYSO_FRONT_SERVER_PORT' on systems using Docker Desktop (Mac/Win)
+# - '$MACOS_HOST_IP:$KYSO_FRONT_SERVER_PORT' on systems using Docker Desktop
 KYSO_FRONT_ENDPOINT=$KYSO_FRONT_ENDPOINT
 # Kyso Front Image URI, examples for local testing:
 # - 'registry.kyso.io/kyso-io/kyso-front/develop:latest'
 # - 'k3d-registry.lo.kyso.io:5000/kyso-front:latest'
-# If left empty the KYSO_FRONT_IMAGE environment variable has to be set each time
+# If empty the KYSO_FRONT_IMAGE environment variable has to be set each time
 # the kyso-front service is installed
 KYSO_FRONT_IMAGE=$KYSO_FRONT_IMAGE
 # Kyso Front PATH Prefix
@@ -234,6 +237,7 @@ apps_kyso_front_install() {
   # files
   _helm_values_tmpl="$KYSO_FRONT_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_FRONT_HELM_VALUES_YAML"
+  _helm_values_yaml_plain="$KYSO_FRONT_HELM_VALUES_YAML_PLAIN"
   _svc_map_tmpl="$KYSO_FRONT_SVC_MAP_TMPL"
   _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
   _auth_user="$KYSO_FRONT_BASIC_AUTH_USER"
@@ -299,9 +303,14 @@ apps_kyso_front_install() {
     -e "s%__FRONT_ENDPOINT_ADDR__%$_ep_addr%" \
     -e "s%__FRONT_ENDPOINT_PORT__%$_ep_port%" \
     -e "s%__FRONT_SERVER_PORT__%$_server_port%" \
-    "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
+    "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
   # Apply ingress values
-  replace_app_ingress_values "$_app" "$_helm_values_yaml"
+  replace_app_ingress_values "$_app" "$_helm_values_yaml_plain"
+  # Generate encoded version if needed and remove plain version
+  if [ "$_helm_values_yaml" != "$_helm_values_yaml_plain" ]; then
+    stdout_to_file "$_helm_values_yaml" <"$_helm_values_yaml_plain"
+    rm -f "$_helm_values_yaml_plain"
+  fi
   # Prepare svc_map file
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
