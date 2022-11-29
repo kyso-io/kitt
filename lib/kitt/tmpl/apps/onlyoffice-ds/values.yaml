@@ -17,9 +17,11 @@ ingress:
 # BEG: HOSTNAME_RULE
   - host: "__HOSTNAME__"
 # END: HOSTNAME_RULE
-  tls: # TLS_RULES
+# BEG: TLS_RULES
+  tls:
 # BEG: HOSTNAME_TLS
   - hosts:
     - "__HOSTNAME__"
     secretName: "__HOSTNAME__"
 # END: HOSTNAME_TLS
+# END: TLS_RULES

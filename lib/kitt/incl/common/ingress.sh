@@ -188,7 +188,7 @@ replace_app_ingress_values() {
     done >"$_yaml_hostname_tls"
     rm_tls_sed=""
   else
-    rm_tls_sed="/^  tls:$/d"
+    rm_tls_sed="/^ *# BEG: TLS_RULES/,/^ *# END: TLS_RULES/d"
   fi
   # Generate ingress YAML file
   sed \
