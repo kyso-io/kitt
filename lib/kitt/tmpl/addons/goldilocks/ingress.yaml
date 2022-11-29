@@ -11,7 +11,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: 'goldilocks.__CLUSTER_DOMAIN__'
+  - host: "goldilocks.__CLUSTER_DOMAIN__"
     http:
       paths:
       - path: /

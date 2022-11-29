@@ -15,11 +15,11 @@ spec:
 # BEG: USE_TLS
   tls:
   - hosts:
-    - '__EXTERNAL_HOST__'
-    secretName: '__CERT_NAME__'
+    - "__EXTERNAL_HOST__"
+    secretName: "__CERT_NAME__"
 # END: USE_TLS
   rules:
-  - host: '__EXTERNAL_HOST__'
+  - host: "__EXTERNAL_HOST__"
     http:
       paths:
       - path: __SERVICE_PREFIX__
