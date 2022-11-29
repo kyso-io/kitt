@@ -145,8 +145,16 @@ replace_app_ingress_values() {
   # and the final replacements.
   file_to_stdout "$_yaml" >"$_yaml_orig_plain"
   # Generate ingress hostname rules
-  _cmnd="/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/"
-  _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_RULE/d;p;}"
+  # ----
+  # NOTE
+  # ----
+  #
+  #   We've added a ' *' pattern to the comments because sops can add whitespace
+  #   on the lines when decoding ... probably it is not marked as a bug because
+  #   the YAML is still valid, but for my tricks it is kind of painful ... ;)
+  # ----
+  _cmnd="/^ *# BEG: HOSTNAME_RULE/,/^ *# END: HOSTNAME_RULE/"
+  _cmnd="$_cmnd{/^ *# \(BEG\|END\): HOSTNAME_RULE/d;p;}"
   hostname_rule="$(sed -n -e "$_cmnd" "$_yaml_orig_plain")"
   for hostname in $DEPLOYMENT_HOSTNAMES; do
     echo "$hostname_rule" | sed -e "s%__HOSTNAME__%$hostname%g"
@@ -172,8 +180,8 @@ replace_app_ingress_values() {
   fi
   # Generate ingress TLS rules & certs
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
-    _cmnd="/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/"
-    _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_TLS/d;p;}"
+    _cmnd="/^ *# BEG: HOSTNAME_TLS/,/^ *# END: HOSTNAME_TLS/"
+    _cmnd="$_cmnd{/^ *# \(BEG\|END\): HOSTNAME_TLS/d;p;}"
     hostname_tls="$(sed -n -e "$_cmnd" "$_yaml_orig_plain")"
     for hostname in $DEPLOYMENT_HOSTNAMES; do
       echo "$hostname_tls" | sed -e "s%__HOSTNAME__%$hostname%g"
@@ -185,10 +193,10 @@ replace_app_ingress_values() {
   # Generate ingress YAML file
   sed \
     -e "/annotations:/r $_yaml_annotations" \
-    -e "/^# END: HOSTNAME_RULE/r $_yaml_hostname_rule" \
-    -e "/^# END: HOSTNAME_TLS/r $_yaml_hostname_tls" \
-    -e "/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/d" \
-    -e "/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/d" \
+    -e "/^ *# END: HOSTNAME_RULE/r $_yaml_hostname_rule" \
+    -e "/^ *# END: HOSTNAME_TLS/r $_yaml_hostname_tls" \
+    -e "/^ *# BEG: HOSTNAME_RULE/,/^ *# END: HOSTNAME_RULE/d" \
+    -e "/^ *# BEG: HOSTNAME_TLS/,/^ *# END: HOSTNAME_TLS/d" \
     -e "s%__FORCE_SSL_REDIRECT__%$CLUSTER_FORCE_SSL_REDIRECT%g" \
     -e "$rm_tls_sed" \
     "$_yaml_orig_plain" | stdout_to_file "$_yaml"
