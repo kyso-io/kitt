@@ -37,8 +37,8 @@ export NATS_HELM_REPO_NAME="nats"
 export NATS_HELM_REPO_URL="https://nats-io.github.io/k8s/helm/charts/"
 export NATS_HELM_RELEASE="kyso-nats"
 export NATS_HELM_CHART="nats/nats"
-export NATS_HELM_VERSION="0.17.0"
-export NATS_PV_PREFIX="$NATS_HELM_RELEASE-js-pvc-$NATS_RELEASE"
+export NATS_HELM_CHART_VERSION="0.17.0"
+export NATS_PV_PREFIX="$NATS_HELM_RELEASE-js-pvc-$NATS_HELM_RELEASE"
 export NATS_PORT="4222"
 
 # --------
@@ -246,7 +246,7 @@ apps_nats_install() {
   _pv_yaml="$NATS_PV_YAML"
   _release="$NATS_HELM_RELEASE"
   _chart="$NATS_HELM_CHART"
-  _version="$NATS_HELM_VERSION"
+  _version="$NATS_HELM_CHART_VERSION"
   _storage_class="$NATS_STORAGE_CLASS"
   _storage_size="$NATS_STORAGE_SIZE"
   # Replace storage class or remove the line
@@ -274,7 +274,7 @@ apps_nats_install() {
     -e "$_storage_class_sed" \
     "$_helm_values_tmpl" | stdout_to_file "$_helm_values_yaml"
   # Check helm repo
-  check_helm_repo "$NATS_HELM_REPO_NAME" "$NATS_REPO_URL"
+  check_helm_repo "$NATS_HELM_REPO_NAME" "$NATS_HELM_REPO_URL"
   # Create namespace if needed
   if ! find_namespace "$_ns"; then
     create_namespace "$_ns"
