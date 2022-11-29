@@ -102,7 +102,7 @@ create_addon_ingress_yaml() {
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__CLUSTER_DOMAIN__%$CLUSTER_DOMAIN%" \
     -e "s%__RELEASE__%$_release%" \
-    "$_tmpl" >"$_yaml"
+    "$_tmpl" | stdout_to_file "$_yaml"
 }
 
 create_app_cert_yamls() {
@@ -137,14 +137,17 @@ replace_app_ingress_values() {
     echo "- 'app', 'yaml'"
     exit 1
   fi
-  _yaml_orig="$_yaml.orig"
+  _yaml_orig_plain="$_yaml.orig.plain"
   _yaml_annotations="$_yaml.annotations"
   _yaml_hostname_rule="$_yaml.hostname_rule"
   _yaml_hostname_tls="$_yaml.hostname_tls"
+  # Copy a plain version the original _yaml file to use it for the sed commands
+  # and the final replacements.
+  file_to_stdout "$_yaml" >"$_yaml_orig_plain"
   # Generate ingress hostname rules
   _cmnd="/^# BEG: HOSTNAME_RULE/,/^# END: HOSTNAME_RULE/"
   _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_RULE/d;p;}"
-  hostname_rule="$(sed -n -e "$_cmnd" "$_yaml")"
+  hostname_rule="$(sed -n -e "$_cmnd" "$_yaml_orig_plain")"
   for hostname in $DEPLOYMENT_HOSTNAMES; do
     echo "$hostname_rule" | sed -e "s%__HOSTNAME__%$hostname%g"
   done >"$_yaml_hostname_rule"
@@ -171,7 +174,7 @@ replace_app_ingress_values() {
   if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
     _cmnd="/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/"
     _cmnd="$_cmnd{/^# \(BEG\|END\): HOSTNAME_TLS/d;p;}"
-    hostname_tls="$(sed -n -e "$_cmnd" "$_yaml")"
+    hostname_tls="$(sed -n -e "$_cmnd" "$_yaml_orig_plain")"
     for hostname in $DEPLOYMENT_HOSTNAMES; do
       echo "$hostname_tls" | sed -e "s%__HOSTNAME__%$hostname%g"
     done >"$_yaml_hostname_tls"
@@ -179,8 +182,6 @@ replace_app_ingress_values() {
   else
     rm_tls_sed="/^  tls:$/d"
   fi
-  # Copy a plain version the original _yaml file to use for the replacements
-  file_to_stdout "$_yaml" >"$_yaml_orig"
   # Generate ingress YAML file
   sed \
     -e "/annotations:/r $_yaml_annotations" \
@@ -190,9 +191,10 @@ replace_app_ingress_values() {
     -e "/^# BEG: HOSTNAME_TLS/,/^# END: HOSTNAME_TLS/d" \
     -e "s%__FORCE_SSL_REDIRECT__%$CLUSTER_FORCE_SSL_REDIRECT%g" \
     -e "$rm_tls_sed" \
-    "$_yaml_orig" | stdout_to_file "$_yaml"
+    "$_yaml_orig_plain" | stdout_to_file "$_yaml"
+  # Remove temporary files
   rm -f "$_yaml_annotations" "$_yaml_hostname_rule" "$_yaml_hostname_tls" \
-    "$_yaml_orig"
+    "$_yaml_orig_plain"
 }
 
 create_app_ingress_yaml() {
@@ -218,7 +220,7 @@ create_app_ingress_yaml() {
     -e "s%__APP__%$_app%" \
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__MAX_BODY_SIZE__%$_max_body_size%g" \
-    "$_tmpl" >"$_yaml"
+    "$_tmpl" | stdout_to_file "$_yaml"
   # And replace app ingress values
   replace_app_ingress_values "$_app" "$_yaml"
 }
