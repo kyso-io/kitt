@@ -20,8 +20,10 @@ INCL_APPS_ELASTICSEARCH_SH="1"
 # CMND_DSC="elasticsearch: manage elasticsearch deployment for kyso"
 
 # Defaults
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_CHART_VERSION="7.17.3"
 _image_name="docker.elastic.co/elasticsearch/elasticsearch"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_NAME="$_image_name"
+export DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_TAG="7.17.3"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_ELASTICSEARCH_STORAGE_SIZE="30Gi"
@@ -35,7 +37,6 @@ export ELASTICSEARCH_HELM_REPO_NAME="elastic"
 export ELASTICSEARCH_HELM_REPO_URL="https://helm.elastic.co"
 export ELASTICSEARCH_HELM_RELEASE="kyso-elasticsearch"
 export ELASTICSEARCH_HELM_CHART="elastic/elasticsearch"
-export ELASTICSEARCH_HELM_CHART_VERSION="7.17.3"
 export ELASTICSEARCH_PV_PREFIX="elasticsearch-master-elasticsearch-master"
 
 # --------
@@ -76,12 +77,24 @@ apps_elasticsearch_export_variables() {
   export ELASTICSEARCH_PF_OUT="$ELASTICSEARCH_PF_DIR/kubectl.out"
   export ELASTICSEARCH_PF_PID="$ELASTICSEARCH_PF_DIR/kubectl.pid"
   # Use defaults for variables missing from config files
+  if [ "$DEPLOYMENT_ELASTICSEARCH_CHART_VERSION" ]; then
+    ELASTICSEARCH_CHART_VERSION="$DEPLOYMENT_ELASTICSEARCH_CHART_VERSION"
+  else
+    ELASTICSEARCH_CHART_VERSION="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_CHART_VERSION"
+  fi
+  export ELASTICSEARCH_CHART_VERSION
   if [ "$DEPLOYMENT_ELASTICSEARCH_IMAGE_NAME" ]; then
     ELASTICSEARCH_IMAGE_NAME="$DEPLOYMENT_ELASTICSEARCH_IMAGE_NAME"
   else
     ELASTICSEARCH_IMAGE_NAME="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_NAME"
   fi
   export ELASTICSEARCH_IMAGE_NAME
+  if [ "$DEPLOYMENT_ELASTICSEARCH_IMAGE_TAG" ]; then
+    ELASTICSEARCH_IMAGE_TAG="$DEPLOYMENT_ELASTICSEARCH_IMAGE_TAG"
+  else
+    ELASTICSEARCH_IMAGE_TAG="$DEPLOYMENT_DEFAULT_ELASTICSEARCH_IMAGE_TAG"
+  fi
+  export ELASTICSEARCH_IMAGE_TAG
   if [ "$DEPLOYMENT_ELASTICSEARCH_REPLICAS" ]; then
     ELASTICSEARCH_REPLICAS="$DEPLOYMENT_ELASTICSEARCH_REPLICAS"
   else
@@ -149,11 +162,15 @@ apps_elasticsearch_clean_directories() {
 apps_elasticsearch_read_variables() {
   _app="elasticsearch"
   header "Reading $_app settings"
+  read_value "Elasticsearch chart version" "$ELASTICSEARCH_CHART_VERSION"
+  ELASTICSEARCH_CHART_VERSION=${READ_VALUE}
   read_value "Elasticsearch replicas (chart defaults to 3)" \
     "${ELASTICSEARCH_REPLICAS}"
   ELASTICSEARCH_REPLICAS=${READ_VALUE}
-  read_value "Elasticsearch image (without tag)" "$ELASTICSEARCH_IMAGE_NAME"
+  read_value "Elasticsearch image name" "$ELASTICSEARCH_IMAGE_NAME"
   ELASTICSEARCH_IMAGE_NAME=${READ_VALUE}
+  read_value "Elasticsearch image tag" "$ELASTICSEARCH_IMAGE_TAG"
+  ELASTICSEARCH_IMAGE_TAG=${READ_VALUE}
   read_value "Elasticsearch java opts (i.e. -Xmx128m -Xms128m)" \
     "${ELASTICSEARCH_JAVAOPTS}"
   ELASTICSEARCH_JAVAOPTS=${READ_VALUE}
@@ -178,10 +195,14 @@ apps_elasticsearch_print_variables() {
   cat <<EOF
 # Deployment $_app settings
 # ---
+# Elasticsearch helm chart version
+ELASTICSEARCH_CHART_VERSION=$ELASTICSEARCH_CHART_VERSION
 # Elasticsearch replicas (chart defaults to 3)
 ELASTICSEARCH_REPLICAS=$ELASTICSEARCH_REPLICAS
-# Elasticsearch image (without tag)
+# Elasticsearch image name
 ELASTICSEARCH_IMAGE_NAME=$ELASTICSEARCH_IMAGE_NAME
+# Elasticsarch image tag
+ELASTICSEARCH_IMAGE_TAG=$ELASTICSEARCH_IMAGE_TAG
 # Elasticsearch java opts (chart defaults to empty)
 ELASTICSEARCH_JAVAOPTS=$ELASTICSEARCH_JAVAOPTS
 # Elasticsearch cpu request (chart defaults to 1000m)
@@ -239,7 +260,7 @@ apps_elasticsearch_install() {
   _pv_yaml="$ELASTICSEARCH_PV_YAML"
   _release="$ELASTICSEARCH_HELM_RELEASE"
   _chart="$ELASTICSEARCH_HELM_CHART"
-  _version="$ELASTICSEARCH_HELM_CHART_VERSION"
+  _version="$ELASTICSEARCH_CHART_VERSION"
   _storage_class="$ELASTICSEARCH_STORAGE_CLASS"
   _storage_size="$ELASTICSEARCH_STORAGE_SIZE"
   # Replace storage class or remove the line

@@ -108,6 +108,7 @@ addons_export_variables() {
   [ -z "$__addons_export_variables" ] || return 0
   _cluster="$1"
   cluster_export_variables "$_cluster"  
+  addons_ingress_export_variables "$_cluster"
   addons_zabbix_export_variables "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"

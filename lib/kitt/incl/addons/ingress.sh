@@ -18,6 +18,16 @@ INCL_ADDONS_INGRESS_SH="1"
 
 # CMND_DSC="ingress: manage the cluster nginx ingress deployment"
 
+# Defaults
+export CLUSTER_DEFAULT_INGRESS_CHART_VERSION="9.3.22"
+export CLUSTER_DEFAULT_INGRESS_BACKEND_REGISTRY="docker.io"
+export CLUSTER_DEFAULT_INGRESS_BACKEND_REPO="bitnami/nginx"
+export CLUSTER_DEFAULT_INGRESS_BACKEND_TAG="1.22.1-debian-11-r7"
+export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REGISTRY="docker.io"
+_controller_repo="bitnami/nginx-ingress-controller"
+export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REPO="$_controller_repo"
+export CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG="1.5.1-debian-11-r5"
+
 # Fixed values
 export INGRESS_NAMESPACE="ingress"
 export INGRESS_HELM_REPO_NAME="bitnami"
@@ -44,6 +54,7 @@ addons_ingress_export_variables() {
   [ -z "$_addons_ingress_export_variables" ] || return 0
   # Directories
   export INGRESS_TMPL_DIR="$TMPL_DIR/addons/ingress"
+  export INGRESS_ENV_DIR="$CLUST_ENVS_DIR/ingress"
   export INGRESS_HELM_DIR="$CLUST_HELM_DIR/ingress"
   export INGRESS_KUBECTL_DIR="$CLUST_KUBECTL_DIR/ingress"
   # Templates
@@ -54,23 +65,107 @@ addons_ingress_export_variables() {
   export INGRESS_CERT_KEY="$CERTIFICATES_DIR/$CLUSTER_DOMAIN${SOPS_EXT}.key"
   _cert_yaml="$INGRESS_KUBECTL_DIR/$INGRESS_CERT_NAME$SOPS_EXT.yaml"
   export INGRESS_CERT_YAML="$_cert_yaml"
+  # Use defaults for variables missing from config files
+  if [ "$CLUSTER_INGRESS_CHART_VERSION" ]; then
+    export INGRESS_CHART_VERSION="$CLUSTER_INGRESS_CHART_VERSION"
+  else
+    export INGRESS_CHART_VERSION="$CLUSTER_DEFAULT_INGRESS_CHART_VERSION"
+  fi
+  if [ "$CLUSTER_INGRESS_BACKEND_REGISTRY" ]; then
+    _backend_registry="$CLUSTER_INGRESS_BACKEND_REGISTRY"
+  else
+    _backend_registry="$CLUSTER_DEFAULT_INGRESS_BACKEND_REGISTRY"
+  fi
+  export INGRESS_BACKEND_REGISTRY="$_backend_registry"
+  if [ "$CLUSTER_INGRESS_BACKEND_REPO" ]; then
+    export INGRESS_BACKEND_REPO="$CLUSTER_INGRESS_BACKEND_REPO"
+  else
+    export INGRESS_BACKEND_REPO="$CLUSTER_DEFAULT_INGRESS_BACKEND_REPO"
+  fi
+  if [ "$CLUSTER_INGRESS_BACKEND_TAG" ]; then
+    export INGRESS_BACKEND_TAG="$CLUSTER_INGRESS_BACKEND_TAG"
+  else
+    export INGRESS_BACKEND_TAG="$CLUSTER_DEFAULT_INGRESS_BACKEND_TAG"
+  fi
+  if [ "$CLUSTER_INGRESS_CONTROLLER_REGISTRY" ]; then
+    _controller_registry="$CLUSTER_INGRESS_CONTROLLER_REGISTRY"
+  else
+    _controller_registry="$CLUSTER_DEFAULT_INGRESS_CONTROLLER_REGISTRY"
+  fi
+  export INGRESS_CONTROLLER_REGISTRY="$_controller_registry"
+  if [ "$CLUSTER_INGRESS_CONTROLLER_REPO" ]; then
+    _controller_repo="$CLUSTER_INGRESS_CONTROLLER_REPO"
+  else
+    _controller_repo="$CLUSTER_DEFAULT_INGRESS_CONTROLLER_REPO"
+  fi
+  export INGRESS_CONTROLLER_REPO="$_controller_repo"
+  if [ "$CLUSTER_INGRESS_CONTROLLER_TAG" ]; then
+    export INGRESS_CONTROLLER_TAG="$CLUSTER_INGRESS_CONTROLLER_TAG"
+  else
+    export INGRESS_CONTROLLER_TAG="$CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG"
+  fi
   # Set variable to avoid loading variables twice
   _addons_ingress_export_variables="1"
 }
 
 addons_ingress_check_directories() {
-  for _d in "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
+  for _d in "$INGRESS_ENV_DIR" "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
 
 addons_ingress_clean_directories() {
   # Try to remove empty dirs, except if they contain secrets
-  for _d in "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
+  for _d in "$INGRESS_ENV_DIR" "$INGRESS_HELM_DIR" "$INGRESS_KUBECTL_DIR"; do
     if [ -d "$_d" ]; then
       rmdir "$_d" 2>/dev/null || true
     fi
   done
+}
+
+addons_ingress_read_variables() {
+  _addon="ingress"
+  header "Reading $_addon settings"
+  read_value "Ingress Helm Chart Version" "${INGRESS_CHART_VERSION}"
+  INGRESS_CHART_VERSION=${READ_VALUE}
+  read_value "Ingress Backend Image Registry" "${INGRESS_BACKEND_REGISTRY}"
+  INGRESS_BACKEND_REGISTRY=${READ_VALUE}
+  read_value "Ingress Backend Image Repository in Registry" \
+    "${INGRESS_BACKEND_REPO}"
+  INGRESS_BACKEND_REPO=${READ_VALUE}
+  read_value "Ingress Backend Image Tag" "${INGRESS_BACKEND_TAG}"
+  INGRESS_BACKEND_TAG=${READ_VALUE}
+  read_value "Ingress Controller Image Registry" \
+    "${INGRESS_CONTROLLER_REGISTRY}"
+  INGRESS_CONTROLLER_REGISTRY=${READ_VALUE}
+  read_value "Ingress Controller Image Repository in Registry" \
+    "${INGRESS_CONTROLLER_REPO}"
+  INGRESS_CONTROLLER_REPO=${READ_VALUE}
+  read_value "Ingress Controller Image Tag" "${INGRESS_CONTROLLER_TAG}"
+  INGRESS_CONTROLLER_TAG=${READ_VALUE}
+}
+
+addons_ingress_print_variables() {
+  _addon="ingress"
+  cat <<EOF
+# Deployment $_addon settings
+# ---
+# Ingress Helm Chart Version
+INGRESS_CHART_VERSION=$INGRESS_CHART_VERSION
+# Ingress Backend Registry (change if using a private registry only)
+INGRESS_BACKEND_REGISTRY=$INGRESS_BACKEND_REGISTRY
+# Ingress Backend Repo on the Registry (change if using a private registry)
+INGRESS_BACKEND_REPO=$INGRESS_BACKEND_REPO
+# Ingress Backend Image Tag (again, change if using a private registry only)
+INGRESS_BACKEND_TAG=$INGRESS_BACKEND_TAG
+# Ingress Controller Registry (change if using a private registry only)
+INGRESS_CONTROLLER_REGISTRY=$INGRESS_CONTROLLER_REGISTRY
+# Ingress Controller Repo on the Registry (change if using a private registry)
+INGRESS_CONTROLLER_REPO=$INGRESS_CONTROLLER_REPO
+# Ingress Controller Image Tag (again, change if using a private registry only)
+INGRESS_CONTROLLER_TAG=$INGRESS_CONTROLLER_TAG
+# ---
+EOF
 }
 
 addons_ingress_create_cert_yaml() {
@@ -103,6 +198,7 @@ addons_ingress_install() {
   _values_yaml="$INGRESS_HELM_VALUES_YAML"
   _release="$INGRESS_HELM_RELEASE"
   _chart="$INGRESS_HELM_CHART"
+  _version="$INGRESS_CHART_VERSION"
   header "Installing '$_addon'"
   # Create _cert_yaml
   addons_ingress_create_cert_yaml "$_cert_yaml"
@@ -124,10 +220,16 @@ addons_ingress_install() {
   sed \
     -e "s%__INGRESS_CERT_NAME__%$_cert_name%" \
     -e "s%__REPLICAS__%$_replicas%" \
+    -e "s%__INGRESS_BACKEND_REGISTRY__%$INGRESS_BACKEND_REGISTRY%" \
+    -e "s%__INGRESS_BACKEND_REPO__%$INGRESS_BACKEND_REPO%" \
+    -e "s%__INGRESS_BACKEND_TAG__%$INGRESS_BACKEND_TAG%" \
+    -e "s%__INGRESS_CONTROLLER_REGISTRY__%$INGRESS_CONTROLLER_REGISTRY%" \
+    -e "s%__INGRESS_CONTROLLER_REPO__%$INGRESS_CONTROLLER_REPO%" \
+    -e "s%__INGRESS_CONTROLLER_TAG__%$INGRESS_CONTROLLER_TAG%" \
     -e "$dev_ports_sed" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
-  helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
+  helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart" "$_version"
   # Wait for installation to complete
   kubectl rollout status deployment --timeout="$ROLLOUT_STATUS_TIMEOUT" \
     -n "$_ns" "ingress-nginx-ingress-controller"
@@ -135,6 +237,33 @@ addons_ingress_install() {
   header "LoadBalancer info:"
   kubectl -n ingress get svc | grep -E -e NAME -e LoadBalancer
   footer
+}
+
+addons_ingress_helm_history() {
+  _cluster="$1"
+  addons_ingress_export_variables "$_cluster"
+  _addon="ingress"
+  _ns="$INGRESS_NAMESPACE"
+  _release="$INGRESS_HELM_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_history "$_ns" "$_release"
+  else
+    echo "Namespace '$_ns' for '$_addon' not found!"
+  fi
+}
+
+addons_ingress_helm_rollback() {
+  _cluster="$1"
+  addons_ingress_export_variables "$_cluster"
+  _addon="ingress"
+  _ns="$INGRESS_NAMESPACE"
+  _release="$INGRESS_HELM_RELEASE"
+  _rollback_release="$ROLLBACK_RELEASE"
+  if find_namespace "$_ns"; then
+    helm_rollback "$_ns" "$_release" "$_rollback_release"
+  else
+    echo "Namespace '$_ns' for '$_addon' not found!"
+  fi
 }
 
 addons_ingress_remove() {
@@ -183,8 +312,81 @@ addons_ingress_summary() {
   print_helm_summary "$_ns" "$_addon" "$_release"
 }
 
+addons_ingress_env_edit() {
+  if [ "$EDITOR" ]; then
+    _addon="ingress"
+    _cluster="$1"
+    addons_export_variables "$_cluster"
+    _env_file="$INGRESS_ENV_DIR/$_addon.env"
+    if [ -f "$_env_file" ]; then
+      "$EDITOR" "$_env_file"
+    else
+      echo "The '$_env_file' does not exist, use 'env-update' to create it"
+      exit 1
+    fi
+  else
+    echo "Export the EDITOR environment variable to use this subcommand"
+    exit 1
+  fi
+}
+
+addons_ingress_env_path() {
+  _addon="ingress"
+  _cluster="$1"
+  addons_export_variables "$_cluster"
+  _env_file="$INGRESS_ENV_DIR/$_addon.env"
+  echo "$_env_file"
+}
+
+addons_ingress_env_save() {
+  _addon="ingress"
+  _cluster="$1"
+  _env_file="$2"
+  addons_ingress_check_directories
+  addons_ingress_print_variables "$_cluster" | stdout_to_file "$_env_file"
+}
+
+addons_ingress_env_update() {
+  _addon="ingress"
+  _cluster="$1"
+  addons_export_variables "$_cluster"
+  _env_file="$INGRESS_ENV_DIR/$_addon.env"
+  header "$_addon configuration variables"
+  addons_ingress_print_variables "$_cluster" | grep -v "^#"
+  if [ -f "$_env_file" ]; then
+    footer
+    read_bool "Update $_addon env vars?" "No"
+  else
+    READ_VALUE="Yes"
+  fi
+  if is_selected "${READ_VALUE}"; then
+    footer
+    addons_ingress_read_variables
+    if [ -f "$_env_file" ]; then
+      footer
+      read_bool "Save updated $_addon env vars?" "Yes"
+    else
+      READ_VALUE="Yes"
+    fi
+    if is_selected "${READ_VALUE}"; then
+      addons_ingress_env_save "$_cluster" "$_env_file"
+      footer
+      echo "$_addon configuration saved to '$_env_file'"
+      footer
+    fi
+  fi
+}
+
 addons_ingress_command() {
   case "$1" in
+  env-edit | env_edit) addons_ingress_env_edit "$_cluster" ;;
+  env-path | env_path) addons_ingress_env_path "$_cluster" ;;
+  env-show | env_show)
+    addons_ingress_print_variables "$_cluster" | grep -v '^#'
+    ;;
+  env-update | env_update) addons_ingress_env_update "$_cluster" ;;
+  helm-history) addons_ingress_helm_history "$_cluster" ;;
+  helm-rollback) addons_ingress_helm_rollback "$_cluster" ;;
   install) addons_ingress_install ;;
   remove) addons_ingress_remove ;;
   renew) addons_ingress_newcert ;;
@@ -198,7 +400,9 @@ addons_ingress_command() {
 }
 
 addons_ingress_command_list() {
-  echo "install remove renew status summary"
+  commands="env-edit env-path env-show env-update helm-history helm-rollback"
+  commands="$commands install remove renew status summary"
+  echo "$commands"
 }
 
 # ----

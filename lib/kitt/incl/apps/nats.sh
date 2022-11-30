@@ -20,6 +20,7 @@ INCL_APPS_NATS_SH="1"
 # CMND_DSC="nats: manage nats deployment for kyso"
 
 # Defaults
+export DEPLOYMENT_DEFAULT_NATS_CHART_VERSION="0.17.0"
 export DEPLOYMENT_DEFAULT_NATS_IMAGE="nats:2.8.2-alpine"
 export DEPLOYMENT_DEFAULT_NATSBOX_IMAGE="natsio/nats-box:0.11.0"
 _image="natsio/nats-server-config-reloader:0.7.0"
@@ -37,7 +38,6 @@ export NATS_HELM_REPO_NAME="nats"
 export NATS_HELM_REPO_URL="https://nats-io.github.io/k8s/helm/charts/"
 export NATS_HELM_RELEASE="kyso-nats"
 export NATS_HELM_CHART="nats/nats"
-export NATS_HELM_CHART_VERSION="0.17.0"
 export NATS_PV_PREFIX="$NATS_HELM_RELEASE-js-pvc-$NATS_HELM_RELEASE"
 export NATS_PORT="4222"
 
@@ -81,6 +81,12 @@ apps_nats_export_variables() {
   export NATS_PF_OUT="$NATS_PF_DIR/kubectl.out"
   export NATS_PF_PID="$NATS_PF_DIR/kubectl.pid"
   # Use defaults for variables missing from config files
+  if [ "$DEPLOYMENT_NATS_CHART_VERSION" ]; then
+    NATS_CHART_VERSION="$DEPLOYMENT_NATS_CHART_VERSION"
+  else
+    NATS_CHART_VERSION="$DEPLOYMENT_DEFAULT_NATS_CHART_VERSION"
+  fi
+  export NATS_CHART_VERSION
   if [ "$DEPLOYMENT_NATS_IMAGE" ]; then
     NATS_IMAGE="$DEPLOYMENT_NATS_IMAGE"
   else
@@ -157,6 +163,8 @@ apps_nats_read_variables() {
   read_value "Nats replicas (default is 1, use 3 for cluster)" \
     "${NATS_REPLICAS}"
   NATS_REPLICAS=${READ_VALUE}
+  read_value "Nats helm chart version" "$NATS_CHART_VERSION"
+  NATS_CHART_VERSION=${READ_VALUE}
   read_value "Nats image" "$NATS_IMAGE"
   NATS_IMAGE=${READ_VALUE}
   read_value "Nats Box image" "$NATSBOX_IMAGE"
@@ -182,6 +190,8 @@ apps_nats_print_variables() {
 # ---
 # Nats replicas
 NATS_REPLICAS=$NATS_REPLICAS
+# Nats helm chart version
+NATS_CHART_VERSION=$NATS_CHART_VERSION
 # Nats image
 NATS_IMAGE=$NATS_IMAGE
 # Nats box image
@@ -246,7 +256,7 @@ apps_nats_install() {
   _pv_yaml="$NATS_PV_YAML"
   _release="$NATS_HELM_RELEASE"
   _chart="$NATS_HELM_CHART"
-  _version="$NATS_HELM_CHART_VERSION"
+  _version="$NATS_CHART_VERSION"
   _storage_class="$NATS_STORAGE_CLASS"
   _storage_size="$NATS_STORAGE_SIZE"
   # Replace storage class or remove the line

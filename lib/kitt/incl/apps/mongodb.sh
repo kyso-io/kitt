@@ -19,6 +19,8 @@ INCL_APPS_MONGODB_SH="1"
 # CMND_DSC="mongodb: manage mongodb deployment for kyso"
 
 # Defaults
+export MONGODB_CHART_VERSION="12.1.31"
+export MONGODB_CLI_TAG="5.0.10-debian-11-r3"
 export DEPLOYMENT_DEFAULT_MONGODB_ARCHITECTURE="replicaset"
 export DEPLOYMENT_DEFAULT_MONGODB_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REGISTRY="docker.io"
@@ -33,8 +35,6 @@ export MONGODB_HELM_REPO_NAME="bitnami"
 export MONGODB_HELM_REPO_URL="https://charts.bitnami.com/bitnami"
 export MONGODB_HELM_RELEASE="kyso-mongodb"
 export MONGODB_HELM_CHART="bitnami/mongodb"
-export MONGODB_HELM_VERSION="12.1.31"
-export MONGODB_CLI_TAG="5.0.10-debian-11-r3"
 export MONGODB_EXPORTER_IMAGE_REPO="bitnami/mongodb-exporter"
 export MONGODB_DB_NAME="kyso"
 export MONGODB_DB_USER="kysodb"
@@ -80,6 +80,11 @@ apps_mongodb_export_variables() {
   export MONGODB_PF_OUT="$MONGODB_PF_DIR/kubectl.out"
   export MONGODB_PF_PID="$MONGODB_PF_DIR/kubectl.pid"
   # Use defaults for variables missing from config files
+  if [ "$DEPLOYMENT_MONGODB_CHART_VERSION" ]; then
+    export MONGODB_CHART_VERSION="$DEPLOYMENT_MONGODB_CHART_VERSION"
+  else
+    export MONGODB_CHART_VERSION="$DEPLOYMENT_DEFAULT_MONGODB_CHART_VERSION"
+  fi
   if [ "$DEPLOYMENT_MONGODB_ARCHITECTURE" ]; then
     export MONGODB_ARCHITECTURE="$DEPLOYMENT_MONGODB_ARCHITECTURE"
   else
@@ -154,6 +159,8 @@ apps_mongodb_clean_directories() {
 apps_mongodb_read_variables() {
   _app="mongodb"
   header "Reading $_app settings"
+  read_value "MongoDB Helm Chart Version" "${MONGODB_CHART_VERSION}"
+  MONGODB_CHART_VERSION=${READ_VALUE}
   read_value "MongoDB Architecture ('standalone'/'replicaset')" \
     "${MONGODB_ARCHITECTURE}"
   MONGODB_ARCHITECTURE=${READ_VALUE}
@@ -184,6 +191,8 @@ apps_mongodb_print_variables() {
   cat <<EOF
 # Deployment $_app settings
 # ---
+# MongoDB Helm Chart Version
+MONGODB_CHART_VERSION=$MONGODB_CHART_VERSION
 # MongoDB Deployment Architecture ('standalone' or 'replicaset')
 MONGODB_ARCHITECTURE=$MONGODB_ARCHITECTURE
 # Number of replicas for the 'replicaset' model
@@ -295,7 +304,7 @@ apps_mongodb_install() {
   _storage_size="$MONGODB_STORAGE_SIZE"
   _release="$MONGODB_HELM_RELEASE"
   _chart="$MONGODB_HELM_CHART"
-  _version="$MONGODB_HELM_VERSION"
+  _version="$MONGODB_CHART_VERSION"
   _replica_set_key_file="$MONGODB_REPLICA_SET_KEY_FILE"
   _root_pass_file="$MONGODB_ROOT_PASS_FILE"
   _user_pass_file="$MONGODB_USER_PASS_FILE"

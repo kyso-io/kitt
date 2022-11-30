@@ -1,6 +1,15 @@
 config:
   enable-brotli: "true"
   use-gzip: "true"
+image:
+  registry: "__INGRESS_CONTROLLER_REGISTRY__"
+  repository: "__INGRESS_CONTROLLER_REPO__"
+  tag: "__INGRESS_CONTROLLER_TAG__"
+defaultBackend:
+  image:
+    registry: "__INGRESS_BACKEND_REGISTRY__"
+    repository: "__INGRESS_BACKEND_REPO__"
+    tag: "__INGRESS_BACKEND_TAG__"
 ingressClassResource:
   default: true
 extraArgs:
