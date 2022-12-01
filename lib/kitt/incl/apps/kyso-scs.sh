@@ -1052,7 +1052,8 @@ apps_kyso_scs_env_update() {
     grep -v "^#"
   if [ -f "$_env_file" ]; then
     footer
-    read_bool "Update $_app env vars?" "No"
+    [ "$KITT_AUTOUPDATE" = "true" ] && _update="Yes" || _update="No"
+    read_bool "Update $_app env vars?" "$_update"
   else
     READ_VALUE="Yes"
   fi

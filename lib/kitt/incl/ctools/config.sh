@@ -107,7 +107,8 @@ EOF
   fi
   if [ -f "$CLUSTER_CONFIG" ]; then
     footer
-    read_bool "Update configuration?" "false"
+    [ "$KITT_AUTOUPDATE" = "true" ] && _update="Yes" || _update="No"
+    read_bool "Update configuration?" "$_update"
   else
     READ_VALUE="true"
   fi

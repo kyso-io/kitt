@@ -160,7 +160,8 @@ addons_zabbix_env_update() {
   addons_zabbix_print_variables "$_cluster" | grep -v "^#"
   if [ -f "$_env_file" ]; then
     footer
-    read_bool "Update $_addon env vars?" "No"
+    [ "$KITT_AUTOUPDATE" = "true" ] && _update="Yes" || _update="No"
+    read_bool "Update $_addon env vars?" "$_update"
   else
     READ_VALUE="Yes"
   fi

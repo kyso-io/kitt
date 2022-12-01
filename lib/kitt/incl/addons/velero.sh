@@ -152,7 +152,8 @@ addons_velero_config() {
   addons_velero_print_vars
   if [ -f "$VELERO_S3_ENV" ]; then
     footer
-    read_bool "Update configuration?" "false"
+    [ "$KITT_AUTOUPDATE" = "true" ] && _update="Yes" || _update="No"
+    read_bool "Update configuration?" "$_update"
   else
     READ_VALUE="true"
   fi
