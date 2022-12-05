@@ -705,7 +705,11 @@ apps_kyso_scs_install() {
     apps_mongodb_print_user_database_uri "$_deployment" "$_cluster"
   )"
   # nginx settings
-  _kyso_api_host="kyso-api"
+  if [ "$KYSO_API_ENDPOINT" ]; then
+    _kyso_api_host="$KYSO_API_ENDPOINT"
+  else
+    _kyso_api_host="$KYSO_API_SVC_HOSTNAME"
+  fi
   if [ "$KYSO_SCS_API_AUTH_EP" ]; then
     _auth_request_uri="http://$_kyso_api_host/api/v1/$KYSO_SCS_API_AUTH_EP"
   else
@@ -763,7 +767,6 @@ apps_kyso_scs_install() {
   sed \
     -e "s%__NAMESPACE__%$_ns%" \
     -e "s%__ELASTICSEARCH_SVC_HOSTNAME__%$ELASTICSEARCH_SVC_HOSTNAME%" \
-    -e "s%__KYSO_API_SVC_HOSTNAME__%$KYSO_API_SVC_HOSTNAME%" \
     -e "s%__MONGODB_SVC_HOSTNAME__%$MONGODB_SVC_HOSTNAME%" \
     -e "s%__NATS_SVC_HOSTNAME__%$NATS_SVC_HOSTNAME%" \
     "$_svc_map_tmpl" >"$_svc_map_yaml"
