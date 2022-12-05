@@ -1,0 +1,27 @@
+replicaCount: __IMAGEBOX_REPLICAS__
+image:
+  repository: "__IMAGEBOX_IMAGE_REPO__"
+  tag: "__IMAGEBOX_IMAGE_TAG__"
+  pullPolicy: "__IMAGE_PULL_POLICY__"
+imagePullSecrets:
+  - name: "__PULL_SECRETS_NAME__"
+# Service settings
+service:
+  targetPort: "__IMAGEBOX_SERVER_PORT__"
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
+  hosts:
+# BEG: HOSTNAME_RULE
+  - host: "__HOSTNAME__"
+# END: HOSTNAME_RULE
+# BEG: TLS_RULES
+  tls:
+# BEG: HOSTNAME_TLS
+  - hosts:
+    - "__HOSTNAME__"
+    secretName: "__HOSTNAME__"
+# END: HOSTNAME_TLS
+# END: TLS_RULES
