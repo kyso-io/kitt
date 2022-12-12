@@ -77,6 +77,7 @@ apps_export_variables() {
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   apps_slack_notifications_consumer_export_variables "$_deployment" "$_cluster"
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
+  apps_imagebox_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"
 }
@@ -94,6 +95,7 @@ apps_check_directories() {
   apps_notification_consumer_check_directories
   apps_slack_notifications_consumer_check_directories
   apps_onlyoffice_ds_check_directories
+  apps_imagebox_check_directories
   apps_portmaps_check_directories
 }
 
@@ -128,6 +130,8 @@ apps_migrate_variables() {
       "$_env_file"
     _env_file="$(apps_onlyoffice_ds_env_path)"
     apps_onlyoffice_ds_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_imagebox_env_path)"
+    apps_imagebox_env_save "$_deployment" "$_cluster" "$_env_file"
     rm -f "$DEPLOYMENT_CONFIG"
   else
     echo "No '$DEPLOYMENT_CONFIG' found, nothing to migrate!"
@@ -148,6 +152,7 @@ apps_print_variables() {
   apps_notification_consumer_print_variables
   apps_slack_notifications_consumer_print_variables
   apps_onlyoffice_ds_print_variables
+  apps_imagebox_print_variables
 }
 
 apps_print_conf_path() {
@@ -185,6 +190,8 @@ apps_update_variables() {
   apps_slack_notifications_consumer_env_update
   footer
   apps_onlyoffice_ds_env_update
+  footer
+  apps_imagebox_env_update
 }
 
 apps_config_command() {

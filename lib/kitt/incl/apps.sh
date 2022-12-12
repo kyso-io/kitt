@@ -50,6 +50,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/portmaps.sh
   [ "$INCL_APPS_PORTMAPS_SH" = "1" ] || . "$INCL_DIR/apps/portmaps.sh"
+  # shellcheck source=./apps/imagebox.sh
+  [ "$INCL_APPS_IMAGEBOX_SH" = "1" ] || . "$INCL_DIR/apps/imagebox.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -125,6 +127,9 @@ apps_command() {
   onlyoffice-ds | onlyoffice_ds)
     apps_onlyoffice_ds_command "$_command" "$_deployment" "$_cluster"
     ;;
+  imagebox)
+    apps_imagebox_command "$_command" "$_deployment" "$_cluster"
+    ;;
   portmaps)
     apps_portmaps_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -140,7 +145,7 @@ apps_list() {
   _apps="$_apps kyso-api kyso-front kyso-scs"
   _apps="$_apps activity-feed-consumer notification-consumer"
   _apps="$_apps slack-notifications-consumer"
-  _apps="$_apps onlyoffice-ds portmaps"
+  _apps="$_apps onlyoffice-ds imagebox portmaps"
   echo "$_apps"
 }
 
@@ -162,6 +167,7 @@ apps_command_list() {
     apps_slack_notifications_consumer_command_list
     ;;
   onlyoffice-ds | onlyoffice_ds) apps_onlyoffice_ds_command_list ;;
+  imagebox) apps_imagebox_command_list ;;
   portmaps) apps_portmaps_command_list ;;
   esac
 }
