@@ -478,10 +478,12 @@ apps_kyso_scs_secret_apply() {
       --from-file="host_keys.txt=host_keys.txt" \
       --from-file="user_keys.txt=user_keys.txt" \
       --from-file="user_pass.txt=user_pass.txt" \
-      --from-file="user_sids.tgz=user_sids.tgz" |
-      stdout_to_file "$KYSO_SCS_MYSSH_SECRET_JSON" || _ret="$?"
+      --from-file="user_sids.tgz=user_sids.tgz" \
+      >"secret.json"
     # Go back to our original directory & remove the temporary one
     cd "$opwd"
+    stdout_to_file "$KYSO_SCS_MYSSH_SECRET_JSON" <"$tmpdir/secret.json" ||
+      _ret="$?"
     rm -rf "$tmpdir"
     # If all went well, apply the new file and remove the old secrets (we
     # will no longer need them)
