@@ -156,7 +156,7 @@ spec:
           env:
             {{- toYaml .env | nindent 12 }}
             - name: NO_AUTH_PREFIX
-              value: '{{ $sftpPubUser }}'
+              value: '/{{ $sftpPubUser }}'
             - name: HTML_ROOT
               value: '/sftp/data'
           volumeMounts:
