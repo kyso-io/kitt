@@ -53,7 +53,7 @@ mongo_command() {
     ;;
   esac
   apps_mongodb_export_variables "$_deployment" "$_cluster"
-  _cli_image="$MONGODB_IMAGE_REGISTRY/$MONGODB_IMAGE_REPO:$MONGODB_CLI_TAG"
+  _cli_image="$MONGODB_IMAGE_REGISTRY/$MONGODB_IMAGE_REPO:$MONGODB_IMAGE_TAG"
   export MONGODB_CLI_IMAGE="$_cli_image"
   # Process the image command now (it does not use the cluster, print & exit)
   if [ "$_cmnd" = "image" ]; then

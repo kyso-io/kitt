@@ -19,13 +19,18 @@ INCL_APPS_MONGODB_SH="1"
 # CMND_DSC="mongodb: manage mongodb deployment for kyso"
 
 # Defaults
-export MONGODB_CHART_VERSION="12.1.31"
-export MONGODB_CLI_TAG="5.0.10-debian-11-r3"
 export DEPLOYMENT_DEFAULT_MONGODB_ARCHITECTURE="replicaset"
+export DEPLOYMENT_DEFAULT_MONGODB_CHART_VERSION="12.1.31"
+#export DEPLOYMENT_DEFAULT_MONGODB_CHART_VERSION="11.2.0"
 export DEPLOYMENT_DEFAULT_MONGODB_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REGISTRY="docker.io"
 export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REPO="bitnami/mongodb"
+export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_TAG="5.0.10-debian-11-r3"
+#export DEPLOYMENT_DEFAULT_MONGODB_IMAGE_TAG="4.4.13-debian-10-r52"
 export DEPLOYMENT_DEFAULT_MONGODB_ENABLE_METRICS="false"
+export DEPLOYMENT_DEFAULT_MONGODB_EXPORTER_IMAGE_REPO="bitnami/mongodb-exporter"
+export DEPLOYMENT_DEFAULT_MONGODB_EXPORTER_IMAGE_TAG="0.33.0-debian-11-r9"
+#export DEPLOYMENT_DEFAULT_MONGODB_EXPORTER_IMAGE_TAG="0.31.2-debian-10-r14"
 export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_CLASS=""
 export DEPLOYMENT_DEFAULT_MONGODB_STORAGE_SIZE="8Gi"
 export DEPLOYMENT_DEFAULT_MONGODB_PF_PORT=""
@@ -35,7 +40,6 @@ export MONGODB_HELM_REPO_NAME="bitnami"
 export MONGODB_HELM_REPO_URL="https://charts.bitnami.com/bitnami"
 export MONGODB_HELM_RELEASE="kyso-mongodb"
 export MONGODB_HELM_CHART="bitnami/mongodb"
-export MONGODB_EXPORTER_IMAGE_REPO="bitnami/mongodb-exporter"
 export MONGODB_DB_NAME="kyso"
 export MONGODB_DB_USER="kysodb"
 export MONGODB_PV_PREFIX="datadir-$MONGODB_HELM_RELEASE"
@@ -105,6 +109,11 @@ apps_mongodb_export_variables() {
   else
     export MONGODB_IMAGE_REPO="$DEPLOYMENT_DEFAULT_MONGODB_IMAGE_REPO"
   fi
+  if [ "$DEPLOYMENT_MONGODB_IMAGE_TAG" ]; then
+    export MONGODB_IMAGE_TAG="$DEPLOYMENT_MONGODB_IMAGE_TAG"
+  else
+    export MONGODB_IMAGE_TAG="$DEPLOYMENT_DEFAULT_MONGODB_IMAGE_TAG"
+  fi
   if [ "$DEPLOYMENT_MONGODB_ENABLE_METRICS" ]; then
     if is_selected "$DEPLOYMENT_MONGODB_ENABLE_METRICS"; then
       export MONGODB_ENABLE_METRICS="true"
@@ -120,6 +129,18 @@ apps_mongodb_export_variables() {
   else
     export MONGODB_ENABLE_METRICS="false"
   fi
+  if [ "$DEPLOYMENT_MONGODB_EXPORTER_IMAGE_REPO" ]; then
+    _exporter_image_repo="$DEPLOYMENT_MONGODB_EXPORTER_IMAGE_REPO"
+  else
+    _exporter_image_repo="$DEPLOYMENT_DEFAULT_MONGODB_EXPORTER_IMAGE_REPO"
+  fi
+  export MONGODB_EXPORTER_IMAGE_REPO="$_exporter_image_repo"
+  if [ "$DEPLOYMENT_MONGODB_EXPORTER_IMAGE_TAG" ]; then
+    _exporter_image_tag="$DEPLOYMENT_MONGODB_EXPORTER_IMAGE_TAG"
+  else
+    _exporter_image_tag="$DEPLOYMENT_DEFAULT_MONGODB_EXPORTER_IMAGE_TAG"
+  fi
+  export MONGODB_EXPORTER_IMAGE_TAG="$_exporter_image_tag"
   if [ "$DEPLOYMENT_MONGODB_STORAGE_CLASS" ]; then
     export MONGODB_STORAGE_CLASS="$DEPLOYMENT_MONGODB_STORAGE_CLASS"
   else
@@ -174,8 +195,15 @@ apps_mongodb_read_variables() {
   MONGODB_IMAGE_REGISTRY=${READ_VALUE}
   read_value "MongoDB Registry Repository" "${MONGODB_IMAGE_REPO}"
   MONGODB_IMAGE_REPO=${READ_VALUE}
+  read_value "MongoDB Image Tag" "${MONGODB_IMAGE_TAG}"
+  MONGODB_IMAGE_TAG=${READ_VALUE}
   read_value "MongoDB Enable Metrics" "${MONGODB_ENABLE_METRICS}"
   MONGODB_ENABLE_METRICS=${READ_VALUE}
+  read_value "MongoDB Exporter Registry Repository" \
+    "${MONGODB_EXPORTER_IMAGE_REPO}"
+  MONGODB_EXPORTER_IMAGE_REPO=${READ_VALUE}
+  read_value "MongoDB Exporter Image Tag" "${MONGODB_EXPORTER_IMAGE_TAG}"
+  MONGODB_EXPORTER_IMAGE_TAG=${READ_VALUE}
   read_value "MongoDB storageClass ('local-storage' @ k3d, 'gp3' @ eks)" \
     "${MONGODB_STORAGE_CLASS}"
   MONGODB_STORAGE_CLASS=${READ_VALUE}
@@ -201,9 +229,15 @@ MONGODB_REPLICAS=$MONGODB_REPLICAS
 MONGODB_IMAGE_REGISTRY=$MONGODB_IMAGE_REGISTRY
 # MongoDB Repo on the Registry (again, change if using a private registry only)
 MONGODB_IMAGE_REPO=$MONGODB_IMAGE_REPO
+# MongoDB Image TAG
+MONGODB_IMAGE_TAG=$MONGODB_IMAGE_TAG
 # Set to true to add metrics to the deployment, useful with our own
 # prometheus deployment
 MONGODB_ENABLE_METRICS=$MONGODB_ENABLE_METRICS
+# MongoDB Exporter Repo on the Registry
+MONGODB_EXPORTER_IMAGE_REPO=$MONGODB_EXPORTER_IMAGE_REPO
+# MongoDB Exporter Image TAG
+MONGODB_EXPORTER_IMAGE_TAG=$MONGODB_EXPORTER_IMAGE_TAG
 # MongoDB Storage Class ('local-storage' @ k3d, 'gp3' @ eks)
 MONGODB_STORAGE_CLASS=$MONGODB_STORAGE_CLASS
 # MongoDB Volume Size (if storage is local or NFS the value is ignored)
@@ -344,9 +378,10 @@ apps_mongodb_install() {
     -e "s%__ARBITER_ENABLED__%$_arbiter_enabled%" \
     -e "s%__MONGODB_IMAGE_REGISTRY__%$MONGODB_IMAGE_REGISTRY%" \
     -e "s%__MONGODB_IMAGE_REPO__%$MONGODB_IMAGE_REPO%" \
+    -e "s%__MONGODB_IMAGE_TAG__%$MONGODB_IMAGE_TAG%" \
     -e "s%__ENABLE_METRICS__%$MONGODB_ENABLE_METRICS%" \
     -e "s%__MONGODB_EXPORTER_IMAGE_REPO__%$MONGODB_EXPORTER_IMAGE_REPO%" \
-    -e "s%__KUBE_STACK_RELEASE__%$KUBE_STACK_RELEASE%" \
+    -e "s%__MONGODB_EXPORTER_IMAGE_TAG__%$MONGODB_EXPORTER_IMAGE_TAG%" \
     -e "s%__MONGODB_REPLICA_SET_KEY__%$_mongodb_replica_set_key%" \
     -e "s%__MONGODB_ROOT_PASS__%$_mongodb_root_pass%" \
     -e "s%__MONGODB_DB_NAME__%$MONGODB_DB_NAME%" \

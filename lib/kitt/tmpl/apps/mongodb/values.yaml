@@ -4,7 +4,7 @@ global:
   - "__PULL_SECRETS_NAME__"
 image:
   repository: "__MONGODB_IMAGE_REPO__"
-  # tag: not set, we expect the one from the chart to be available
+  tag: "__MONGODB_IMAGE_TAG__"
 architecture: __MONGODB_ARCHITECTURE__
 # Number of replicas for replicaset mode
 replicaCount: __MONGODB_REPLICAS__
@@ -16,7 +16,7 @@ metrics:
   enabled: __ENABLE_METRICS__
   image:
     repository: "__MONGODB_EXPORTER_IMAGE_REPO__"
-    # tag: not set, we expect the one from the chart to be available
+    tag: "__MONGODB_EXPORTER_IMAGE_TAG__"
   extraFlags: "--compatible-mode"
     # Added --compatible-mode for the metrics exporter (almost all grafana
     # dashboards available use the old variable names) and use the chart to
