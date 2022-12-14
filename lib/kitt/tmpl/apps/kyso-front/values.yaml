@@ -18,7 +18,6 @@ ingress:
   enabled: true
   annotations:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
-    nginx.ingress.kubernetes.io/proxy-body-size: "__MAX_BODY_SIZE__"
   hosts:
 # BEG: HOSTNAME_RULE
   - host: "__HOSTNAME__"
