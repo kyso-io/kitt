@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  __CLUSTER_DOMAIN__.server: |
+    lo.kyso.io {
+        rewrite name __CLUSTER_DOMAIN__ __HELM_RELEASE__-nginx-ingress-controller.ingress.svc.cluster.local
+        rewrite name regex .*\.__CLUSTER_DOMAIN__ __HELM_RELEASE__-nginx-ingress-controller.__INGRESS_NAMESPACE__.svc.cluster.local answer auto
+        forward . 127.0.0.1
+    }

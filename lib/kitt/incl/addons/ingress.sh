@@ -27,6 +27,7 @@ export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REGISTRY="docker.io"
 _controller_repo="bitnami/nginx-ingress-controller"
 export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REPO="$_controller_repo"
 export CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG="1.5.1-debian-11-r5"
+export CLUSTER_DEFAULT_INGRESS_ADD_COREDNS_CUSTOM="false"
 
 # Fixed values
 export INGRESS_NAMESPACE="ingress"
@@ -58,8 +59,10 @@ addons_ingress_export_variables() {
   export INGRESS_HELM_DIR="$CLUST_HELM_DIR/ingress"
   export INGRESS_KUBECTL_DIR="$CLUST_KUBECTL_DIR/ingress"
   # Templates
+  export INGRESS_COREDNS_CUSTOM_TMPL="$INGRESS_TMPL_DIR/coredns-custom.yaml"
   export INGRESS_HELM_VALUES_TMPL="$INGRESS_TMPL_DIR/values.yaml"
   # Files
+  export INGRESS_COREDNS_CUSTOM_YAML="$INGRESS_KUBECTL_DIR/coredns-custom.yaml"
   export INGRESS_HELM_VALUES_YAML="$INGRESS_HELM_DIR/values.yaml"
   export INGRESS_CERT_CRT="$CERTIFICATES_DIR/$CLUSTER_DOMAIN.crt"
   export INGRESS_CERT_KEY="$CERTIFICATES_DIR/$CLUSTER_DOMAIN${SOPS_EXT}.key"
@@ -104,6 +107,12 @@ addons_ingress_export_variables() {
   else
     export INGRESS_CONTROLLER_TAG="$CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG"
   fi
+  if [ "$CLUSTER_INGRESS_ADD_COREDNS_CUSTOM" ]; then
+    _add_coredns_custom="$CLUSTER_INGRESS_ADD_COREDNS_CUSTOM"
+  else
+    _add_coredns_custom="$CLUSTER_DEFAULT_INGRESS_ADD_COREDNS_CUSTOM"
+  fi
+  export INGRESS_ADD_COREDNS_CUSTOM="$_add_coredns_custom"
   # Set variable to avoid loading variables twice
   _addons_ingress_export_variables="1"
 }
@@ -143,6 +152,8 @@ addons_ingress_read_variables() {
   INGRESS_CONTROLLER_REPO=${READ_VALUE}
   read_value "Ingress Controller Image Tag" "${INGRESS_CONTROLLER_TAG}"
   INGRESS_CONTROLLER_TAG=${READ_VALUE}
+  read_bool "Add Ingress CoreDNS Custom Config" "${INGRESS_ADD_COREDNS_CUSTOM}"
+  INGRESS_ADD_COREDNS_CUSTOM=${READ_VALUE}
 }
 
 addons_ingress_print_variables() {
@@ -164,6 +175,8 @@ INGRESS_CONTROLLER_REGISTRY=$INGRESS_CONTROLLER_REGISTRY
 INGRESS_CONTROLLER_REPO=$INGRESS_CONTROLLER_REPO
 # Ingress Controller Image Tag (again, change if using a private registry only)
 INGRESS_CONTROLLER_TAG=$INGRESS_CONTROLLER_TAG
+# Add CoreDNS Custom Config (*.CLUSTER_DOMAIN returns the internal INGRESS IP)
+INGRESS_ADD_COREDNS_CUSTOM=$INGRESS_ADD_COREDNS_CUSTOM
 # ---
 EOF
 }
@@ -194,6 +207,8 @@ addons_ingress_install() {
   _replicas="$CLUSTER_INGRESS_REPLICAS"
   _repo_name="$INGRESS_HELM_REPO_NAME"
   _repo_url="$INGRESS_HELM_REPO_URL"
+  _coredns_custom_tmpl="$INGRESS_COREDNS_CUSTOM_TMPL"
+  _coredns_custom_yaml="$INGRESS_COREDNS_CUSTOM_YAML"
   _values_tmpl="$INGRESS_HELM_VALUES_TMPL"
   _values_yaml="$INGRESS_HELM_VALUES_YAML"
   _release="$INGRESS_HELM_RELEASE"
@@ -237,6 +252,17 @@ addons_ingress_install() {
   header "LoadBalancer info:"
   kubectl -n ingress get svc | grep -E -e NAME -e LoadBalancer
   footer
+  # Add the coredns custom config, if selected
+  if is_selected "${INGRESS_ADD_COREDNS_CUSTOM}"; then
+    sed \
+      -e "s%__CLUSTER_DOMAIN__%$CLUSTER_DOMAIN%" \
+      -e "s%__HELM_RELEASE__%$INGRESS_HELM_RELEASE%" \
+      -e "s%__INGRESS_NAMESPACE__%$_ns%" \
+      "$_coredns_custom_tmpl" >"$_coredns_custom_yaml"
+    kubectl_apply "$_coredns_custom_yaml"
+  else
+    kubectl_delete "$_coredns_custom_yaml"
+  fi
 }
 
 addons_ingress_helm_history() {
@@ -273,10 +299,13 @@ addons_ingress_remove() {
   _secrets="$INGRESS_CERT_YAML"
   _values="$INGRESS_HELM_VALUES_YAML"
   _release="$INGRESS_HELM_RELEASE"
+  _coredns_custom_yaml="$INGRESS_COREDNS_CUSTOM_YAML"
   if find_namespace "$_ns"; then
     header "Removing '$_addon' objects"
     # Delete secrets
     kubectl_delete "$_secrets" || true
+    # Remove coredns custom config
+    kubectl_delete "$_coredns_custom_yaml" || true
     # Uninstall chart
     if [ -f "$_values" ]; then
       helm uninstall -n "$_ns" "$_release" || true
