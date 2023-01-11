@@ -42,6 +42,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_MONGODB_SH" = "1" ] || . "$INCL_DIR/apps/mongodb.sh"
   # shellcheck source=./nats.sh
   [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
+  # shellcheck source=./kyso-nbdime.sh
+  [ "$INCL_APPS_KYSO_NBDIME_SH" = "1" ] || . "$INCL_DIR/apps/kyso-nbdime.sh"
 fi
 
 # ---------
@@ -203,6 +205,9 @@ apps_common_export_service_hostnames() {
   export MONGODB_SVC_HOSTNAME
   NATS_SVC_HOSTNAME="$NATS_HELM_RELEASE.$NATS_NAMESPACE.svc.cluster.local"
   export NATS_SVC_HOSTNAME
+  _kyso_nbdime_svc_domain="$KYSO_NBDIME_NAMESPACE.svc.cluster.local"
+  KYSO_NBDIME_SVC_HOSTNAME="kyso-nbdime.$_kyso_nbdime_svc_domain"
+  export KYSO_NBDIME_SVC_HOSTNAME
 }
 
 apps_kyso_print_api_settings() {
@@ -215,6 +220,7 @@ apps_kyso_print_api_settings() {
     KYSO_SCS_SVC_HOSTNAME="kyso-scs"
     MONGODB_SVC_HOSTNAME="mongodb"
     NATS_SVC_HOSTNAME="nats"
+    KYSO_NBDIME_SVC_HOSTNAME="kyso-nbdime"
     _sftp_port="2020"
   else
     apps_common_export_service_hostnames "$_deployment" "$_cluster"
@@ -256,6 +262,8 @@ apps_kyso_print_api_settings() {
   _nats_url="nats://$NATS_SVC_HOSTNAME:$NATS_PORT"
   # WEBHOOK Vars
   _webhook_url="http://$KYSO_SCS_SVC_HOSTNAME:9000"
+  # KYSO_NBDIME Vars
+  _kyso_nbdime_url="http://$KYSO_NBDIME_SVC_HOSTNAME:$KYSO_NBDIME_PORT"
   # Print values
   cat <<EOF
 BASE_URL,$_base_url
@@ -273,6 +281,7 @@ STATIC_CONTENT_PUBLIC_PREFIX,$_content_pub_prefix
 KYSO_INDEXER_API_BASE_URL,$_kyso_indexer_api_base_url
 KYSO_NATS_URL,$_nats_url
 KYSO_WEBHOOK_URL,$_webhook_url
+KYSO_NBDIME_URL,$_kyso_nbdime_url
 EOF
 }
 

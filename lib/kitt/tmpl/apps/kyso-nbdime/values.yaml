@@ -1,0 +1,10 @@
+replicaCount: __KYSO_NBDIME_REPLICAS__
+image:
+  repository: "__KYSO_NBDIME_IMAGE_REPO__"
+  tag: "__KYSO_NBDIME_IMAGE_TAG__"
+  pullPolicy: "__IMAGE_PULL_POLICY__"
+imagePullSecrets:
+  - name: "__PULL_SECRETS_NAME__"
+service:
+  port: "__KYSO_NBDIME_PORT__"
+  targetPort: "__KYSO_NBDIME_PORT__"

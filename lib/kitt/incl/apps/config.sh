@@ -78,6 +78,7 @@ apps_export_variables() {
   apps_slack_notifications_consumer_export_variables "$_deployment" "$_cluster"
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
   apps_imagebox_export_variables "$_deployment" "$_cluster"
+  apps_kyso_nbdime_export_variables "$_deployment" "$_cluster"
   # set variable to avoid running the function twice
   __apps_export_variables="1"
 }
