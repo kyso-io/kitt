@@ -3,7 +3,7 @@
 # File:        j2f/systemd.sh
 # Description: Functions to manage the j2f subcommand as a systemd service.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e
@@ -69,6 +69,7 @@ j2f_systemd_export_variables() {
     J2F_DIRLIST="$J2F_DIRLIST;activity-feed-consumer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;notification-consumer:$(uuid)"
     J2F_DIRLIST="$J2F_DIRLIST;slack-notifications-consumer:$(uuid)"
+    J2F_DIRLIST="$J2F_DIRLIST;teams-notifications-consumer:$(uuid)"
     export J2F_DIRLIST
   fi
   # set variable to avoid running the function twice

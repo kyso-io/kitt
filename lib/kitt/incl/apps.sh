@@ -3,7 +3,7 @@
 # File:        apps.sh
 # Description: Functions to configure, deploy & remove kyso applications on k8s
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e
@@ -46,6 +46,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/slack-notifications-consumer.sh
   [ "$INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/slack-notifications-consumer.sh"
+  # shellcheck source=./apps/teams-notifications-consumer.sh
+  [ "$INCL_APPS_TEAMS_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/teams-notifications-consumer.sh"
   # shellcheck source=./apps/onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/imagebox.sh

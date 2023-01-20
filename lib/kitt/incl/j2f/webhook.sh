@@ -3,7 +3,7 @@
 # File:        j2f/webhook.sh
 # Description: Functions to process json files with data from gitlab web hooks
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e
@@ -285,6 +285,10 @@ j2f_webhook_command() {
   "kyso-io/consumers/slack-notifications-consumer")
     app="slack-notifications-consumer"
     img_var="SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
+    ;;
+  "kyso-io/consumers/teams-notifications-consumer")
+    app="teams-notifications-consumer"
+    img_var="TEAMS_NOTIFICATIONS_CONSUMER_IMAGE"
     ;;
   *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac
