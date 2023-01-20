@@ -1,6 +1,6 @@
 apiVersion: v2
-name: teams-notifications-consumer
-description: A Helm chart to deploy teams-notifications-consumer
+name: teams-notification-consumer
+description: A Helm chart to deploy teams-notification-consumer
 # Chart type
 type: application
 # Chart version.

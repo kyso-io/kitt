@@ -286,9 +286,9 @@ j2f_webhook_command() {
     app="slack-notifications-consumer"
     img_var="SLACK_NOTIFICATIONS_CONSUMER_IMAGE"
     ;;
-  "kyso-io/consumers/teams-notifications-consumer")
-    app="teams-notifications-consumer"
-    img_var="TEAMS_NOTIFICATIONS_CONSUMER_IMAGE"
+  "kyso-io/consumers/teams-notification-consumer")
+    app="teams-notification-consumer"
+    img_var="TEAMS_NOTIFICATION_CONSUMER_IMAGE"
     ;;
   *) j2f_webhook_reject "web_url = '$gl_web_url', ignored" ;;
   esac

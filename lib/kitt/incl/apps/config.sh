@@ -50,9 +50,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./slack-notifications-consumer.sh
   [ "$INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/slack-notifications-consumer.sh"
-  # shellcheck source=./teams-notifications-consumer.sh
-  [ "$INCL_APPS_TEAMS_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
-    . "$INCL_DIR/apps/teams-notifications-consumer.sh"
+  # shellcheck source=./teams-notification-consumer.sh
+  [ "$INCL_APPS_TEAMS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/teams-notification-consumer.sh"
   # shellcheck source=./onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./portmaps.sh
@@ -79,7 +79,7 @@ apps_export_variables() {
   apps_activity_feed_consumer_export_variables "$_deployment" "$_cluster"
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   apps_slack_notifications_consumer_export_variables "$_deployment" "$_cluster"
-  apps_teams_notifications_consumer_export_variables "$_deployment" "$_cluster"
+  apps_teams_notification_consumer_export_variables "$_deployment" "$_cluster"
   apps_onlyoffice_ds_export_variables "$_deployment" "$_cluster"
   apps_imagebox_export_variables "$_deployment" "$_cluster"
   apps_kyso_nbdime_export_variables "$_deployment" "$_cluster"
@@ -99,7 +99,7 @@ apps_check_directories() {
   apps_activity_feed_consumer_check_directories
   apps_notification_consumer_check_directories
   apps_slack_notifications_consumer_check_directories
-  apps_teams_notifications_consumer_check_directories
+  apps_teams_notification_consumer_check_directories
   apps_onlyoffice_ds_check_directories
   apps_imagebox_check_directories
   apps_portmaps_check_directories
@@ -134,8 +134,8 @@ apps_migrate_variables() {
     _env_file="$(apps_slack_notifications_consumer_env_path)"
     apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster" \
       "$_env_file"
-    _env_file="$(apps_teams_notifications_consumer_env_path)"
-    apps_teams_notifications_consumer_env_save "$_deployment" "$_cluster" \
+    _env_file="$(apps_teams_notification_consumer_env_path)"
+    apps_teams_notification_consumer_env_save "$_deployment" "$_cluster" \
       "$_env_file"
     _env_file="$(apps_onlyoffice_ds_env_path)"
     apps_onlyoffice_ds_env_save "$_deployment" "$_cluster" "$_env_file"
@@ -160,7 +160,7 @@ apps_print_variables() {
   apps_activity_feed_consumer_print_variables
   apps_notification_consumer_print_variables
   apps_slack_notifications_consumer_print_variables
-  apps_teams_notifications_consumer_print_variables
+  apps_teams_notification_consumer_print_variables
   apps_onlyoffice_ds_print_variables
   apps_imagebox_print_variables
 }
@@ -199,7 +199,7 @@ apps_update_variables() {
   footer
   apps_slack_notifications_consumer_env_update
   footer
-  apps_teams_notifications_consumer_env_update
+  apps_teams_notification_consumer_env_update
   footer
   apps_onlyoffice_ds_env_update
   footer

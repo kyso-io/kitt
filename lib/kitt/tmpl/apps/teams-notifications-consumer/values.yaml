@@ -1,9 +1,0 @@
-replicaCount: __TEAMS_NOTIFICATIONS_CONSUMER_REPLICAS__
-image:
-  repository: "__TEAMS_NOTIFICATIONS_CONSUMER_IMAGE_REPO__"
-  tag: "__TEAMS_NOTIFICATIONS_CONSUMER_IMAGE_TAG__"
-  pullPolicy: "__IMAGE_PULL_POLICY__"
-imagePullSecrets:
-  - name: "__PULL_SECRETS_NAME__"
-envSecret:
-  mongodbDatabaseUri: "__MONGODB_DATABASE_URI__"

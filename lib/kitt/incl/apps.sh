@@ -46,9 +46,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/slack-notifications-consumer.sh
   [ "$INCL_APPS_SLACK_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/slack-notifications-consumer.sh"
-  # shellcheck source=./apps/teams-notifications-consumer.sh
-  [ "$INCL_APPS_TEAMS_NOTIFICATIONS_CONSUMER_SH" = "1" ] ||
-    . "$INCL_DIR/apps/teams-notifications-consumer.sh"
+  # shellcheck source=./apps/teams-notification-consumer.sh
+  [ "$INCL_APPS_TEAMS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/teams-notification-consumer.sh"
   # shellcheck source=./apps/onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/imagebox.sh

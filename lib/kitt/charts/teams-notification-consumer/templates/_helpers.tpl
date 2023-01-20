@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "teams-notifications-consumer.name" -}}
+{{- define "teams-notification-consumer.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "teams-notifications-consumer.fullname" -}}
+{{- define "teams-notification-consumer.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "teams-notifications-consumer.chart" -}}
+{{- define "teams-notification-consumer.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "teams-notifications-consumer.labels" -}}
-helm.sh/chart: {{ include "teams-notifications-consumer.chart" . }}
-{{ include "teams-notifications-consumer.selectorLabels" . }}
+{{- define "teams-notification-consumer.labels" -}}
+helm.sh/chart: {{ include "teams-notification-consumer.chart" . }}
+{{ include "teams-notification-consumer.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "teams-notifications-consumer.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "teams-notifications-consumer.name" . }}
+{{- define "teams-notification-consumer.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "teams-notification-consumer.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "teams-notifications-consumer.serviceAccountName" -}}
+{{- define "teams-notification-consumer.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "teams-notifications-consumer.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "teams-notification-consumer.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

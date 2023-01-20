@@ -1,11 +1,11 @@
-# Default values for teams-notifications-consumer.
+# Default values for teams-notification-consumer.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: registry.kyso.io/kyso-io/teams-notifications-consumer
+  repository: registry.kyso.io/kyso-io/teams-notification-consumer
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -40,7 +40,7 @@ tolerations: []
 
 affinity: {}
 
-# Configuration values for the teams-notifications-consumer application,
+# Configuration values for the teams-notification-consumer application,
 # mongodbDatabaseUri has to be defined to deploy the chart, if it is not the
 # deployment fails
 envSecret:
