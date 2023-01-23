@@ -129,6 +129,10 @@ apps_command() {
     apps_slack_notifications_consumer_command "$_command" "$_deployment" \
       "$_cluster"
     ;;
+  teams-notification-consumer)
+    apps_teams_notification_consumer_command "$_command" "$_deployment" \
+      "$_cluster"
+    ;;
   onlyoffice-ds | onlyoffice_ds)
     apps_onlyoffice_ds_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -153,6 +157,7 @@ apps_list() {
   _apps="$_apps kyso-api kyso-front kyso-scs"
   _apps="$_apps activity-feed-consumer notification-consumer"
   _apps="$_apps slack-notifications-consumer"
+  _apps="$_apps teams-notification-consumer"
   _apps="$_apps onlyoffice-ds imagebox kyso-nbdime portmaps"
   echo "$_apps"
 }
@@ -173,6 +178,9 @@ apps_command_list() {
   notification-consumer) apps_notification_consumer_command_list ;;
   slack-notifications-consumer)
     apps_slack_notifications_consumer_command_list
+    ;;
+  teams-notification-consumer)
+    apps_teams_notification_consumer_command_list
     ;;
   onlyoffice-ds | onlyoffice_ds) apps_onlyoffice_ds_command_list ;;
   imagebox) apps_imagebox_command_list ;;
