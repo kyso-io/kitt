@@ -8,8 +8,8 @@ image: __K3S_IMAGE__
 kubeAPI:
   hostIP: __API_HOST__
   hostPort: "__API_PORT__"
-# BEG: USE_LOCAL_STORAGE
 volumes:
+# BEG: USE_LOCAL_STORAGE
 - volume: __CLUSTER_STORAGE__:/var/lib/rancher/k3s/storage
   nodeFilters:
   - all
@@ -17,6 +17,11 @@ volumes:
   nodeFilters:
   - all
 # END: USE_LOCAL_STORAGE
+# BEG: USE_CALICO
+- volume: __K3D_CALICO_YAML__:/var/lib/rancher/k3s/server/manifests/calico.yaml
+  nodeFilters:
+  - all
+# END: USE_CALICO
 ports:
 - port: __LB_HOST_IP__:__HTTP_PORT__:80
   nodeFilters:
@@ -81,10 +86,10 @@ options:
 # BEG: USE_CALICO
     - arg: --flannel-backend=none
       nodeFilters:
-      - server:*
+      - all
     - arg: --disable-network-policy
       nodeFilters:
-      - server:*
+      - all
 # END: USE_CALICO
   kubeconfig:
     updateDefaultKubeconfig: true

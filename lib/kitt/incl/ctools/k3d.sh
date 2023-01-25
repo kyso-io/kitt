@@ -33,8 +33,6 @@ export APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY="false"
 export APP_DEFAULT_CLUSTER_USE_REMOTE_REGISTRY="true"
 export APP_DEFAULT_CLUSTER_USE_CALICO="true"
 
-export K3D_CALICO_YAML_PATH="/var/lib/rancher/k3s/server/manifests/calico.yaml"
-
 
 # --------
 # Includes
@@ -276,8 +274,7 @@ ctool_k3d_install() {
   fi
   # Calico related options
   if is_selected "${CLUSTER_USE_CALICO}"; then
-    calico_sed=""
-    K3D_OPTS="$K3D_OPTS --volume $K3D_CALICO_YAML:$K3D_CALICO_YAML_PATH"
+    calico_sed="s%__K3D_CALICO_YAML__%$K3D_CALICO_YAML%g"
   else
     calico_sed="/BEG: USE_CALICO/,/END: USE_CALICO/d"
   fi 
