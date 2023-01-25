@@ -78,6 +78,14 @@ options:
     - arg: --no-deploy=traefik
       nodeFilters:
       - server:*
+# BEG: USE_CALICO
+    - arg: --flannel-backend=none
+      nodeFilters:
+      - server:*
+    - arg: --disable-network-policy
+      nodeFilters:
+      - server:*
+# END: USE_CALICO
   kubeconfig:
     updateDefaultKubeconfig: true
     switchCurrentContext: true

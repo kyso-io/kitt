@@ -31,6 +31,10 @@ export APP_DEFAULT_CLUSTER_MAP_KYSO_DEV_PORTS="false"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_STORAGE="true"
 export APP_DEFAULT_CLUSTER_USE_LOCAL_REGISTRY="false"
 export APP_DEFAULT_CLUSTER_USE_REMOTE_REGISTRY="true"
+export APP_DEFAULT_CLUSTER_USE_CALICO="true"
+
+export K3D_CALICO_YAML_PATH="/var/lib/rancher/k3s/server/manifests/calico.yaml"
+
 
 # --------
 # Includes
@@ -98,10 +102,14 @@ ctool_k3d_export_variables() {
   if is_selected "$CLUSTER_USE_REMOTE_REGISTRY"; then
     export CLUSTER_PULL_SECRETS_IN_NS="false"
   fi
+  [ "$CLUSTER_USE_CALICO" ] ||
+    CLUSTER_USE_CALICO="${APP_DEFAULT_CLUSTER_USE_CALICO}"
+  export CLUSTER_USE_CALICO
   # Directories
   export K3D_TMPL_DIR="$TMPL_DIR/k3d"
   # Templates
   export K3D_CONFIG_TMPL="$K3D_TMPL_DIR/config.yaml"
+  export K3D_CALICO_YAML="$K3D_TMPL_DIR/calico.yaml"
   # Generated files
   export K3D_CONFIG_YAML="$CLUST_K3D_DIR/config${SOPS_EXT}.yaml"
   # set variable to avoid running the function twice
@@ -150,6 +158,8 @@ ctool_k3d_read_variables() {
     read_bool "Add pull secrets to namespaces?" "${CLUSTER_PULL_SECRETS_IN_NS}"
     CLUSTER_PULL_SECRETS_IN_NS=${READ_VALUE}
   fi
+  read_bool "Use calico?" "${CLUSTER_USE_CALICO}"
+  CLUSTER_USE_CALICO=${READ_VALUE}
 }
 
 ctool_k3d_print_variables() {
@@ -188,6 +198,8 @@ USE_LOCAL_REGISTRY=$CLUSTER_USE_LOCAL_REGISTRY
 # need to add the credentials to namespaces (in fact the setting is disabled if
 # this one is enabled)
 USE_REMOTE_REGISTRY=$CLUSTER_USE_REMOTE_REGISTRY
+# Use calico instead of flannel
+USE_CALICO=$CLUSTER_USE_CALICO
 EOF
 }
 
@@ -262,6 +274,13 @@ ctool_k3d_install() {
     # Remove USE_LOCAL_STORAGE block
     storage_sed="/BEG: USE_LOCAL_STORAGE/,/END: USE_LOCAL_STORAGE/d"
   fi
+  # Calico related options
+  if is_selected "${CLUSTER_USE_CALICO}"; then
+    calico_sed=""
+    K3D_OPTS="$K3D_OPTS --volume $K3D_CALICO_YAML:$K3D_CALICO_YAML_PATH"
+  else
+    calico_sed="/BEG: USE_CALICO/,/END: USE_CALICO/d"
+  fi 
   # Create the cluster
   header "Creating K3D cluster"
   sed \
@@ -273,6 +292,7 @@ ctool_k3d_install() {
     -e "s%__API_PORT__%$CLUSTER_API_PORT%g" \
     -e "$registry_sed" \
     -e "$storage_sed" \
+    -e "$calico_sed" \
     -e "$dev_ports_sed" \
     -e "s%__LB_HOST_IP__%$CLUSTER_LB_HOST_IP%g" \
     -e "s%__HTTP_PORT__%$CLUSTER_LB_HTTP_PORT%g" \
