@@ -689,7 +689,7 @@ apps_kyso_scs_install() {
     _webhook_image_tag="latest"
   fi
   # cronjob settings
-  _hardlink_url="http://kyso-scs-svc.$_ns.svc.cluster.local:9000/hooks/hardlink"
+  _hardlink_url="http://kyso-scs.$_ns.svc.cluster.local:9000/hooks/hardlink"
   _hardlink_schedule="$KYSO_SCS_HARDLINK_CRONJOB_SCHEDULE"
   # indexer settings
   if [ "$KYSO_SCS_INDEXER_ENDPOINT" ]; then
