@@ -3,7 +3,7 @@
 # File:        apps/notification-consumer.sh
 # Description: Functions to manage notification-consumer deployments
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

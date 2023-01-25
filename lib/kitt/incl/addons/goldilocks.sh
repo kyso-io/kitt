@@ -3,7 +3,7 @@
 # File:        addons/goldilocks.sh
 # Description: Functions to install and remove goldilocks for goldilocks from a cluster
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

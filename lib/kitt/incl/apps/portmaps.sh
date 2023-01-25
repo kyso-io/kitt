@@ -3,7 +3,7 @@
 # File:        apps/portmaps.sh
 # Description: Functions to configure the kyso applications portmap services
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

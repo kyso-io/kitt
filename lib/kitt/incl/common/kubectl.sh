@@ -3,7 +3,7 @@
 # File:        common/kubectl.sh
 # Description: Auxiliary functions to work with kubectl.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

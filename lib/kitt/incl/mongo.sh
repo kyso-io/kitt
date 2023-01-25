@@ -3,7 +3,7 @@
 # File:        mongo.sh
 # Description: Functions to run a mongo-cli against a kyso database on k8s
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

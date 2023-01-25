@@ -3,7 +3,7 @@
 # File:        j2f
 # Description: Command to manage deployments with json2file & gitlab webhooks
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e

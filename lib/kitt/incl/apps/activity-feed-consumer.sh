@@ -3,7 +3,7 @@
 # File:        apps/activity-feed-consumer.sh
 # Description: Functions to manage activity-feed-consumer deployments
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e
