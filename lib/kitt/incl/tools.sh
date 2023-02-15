@@ -21,11 +21,11 @@ BASH_COMPLETION="/etc/bash_completion.d"
 ZSH_COMPLETIONS="/usr/share/zsh/vendor-completions"
 
 # Versions
-AWS_IAM_AUTHENTICATOR_VERSION="1.21.2"
+AWS_IAM_AUTHENTICATOR_VERSION="0.5.9"
 # GET_HELM_URL ... set it to get the latest helm version
 # - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-HELM_VERSION="3.10.0"
-KUBECTL_VERSION="1.22.15"
+HELM_VERSION="3.11.1"
+KUBECTL_VERSION="1.22.17"
 
 # --------
 # Includes
@@ -148,8 +148,9 @@ tools_check_aws_iam_authenticator() {
       case "$(uname -m)" in
       x86_64) arch="amd64" ;;
       esac
-      url="https://s3.us-west-2.amazonaws.com/amazon-eks"
-      url="$url/$AWS_IAM_AUTHENTICATOR_VERSION/2021-07-05/bin/$os/$arch/$app"
+      ver="$AWS_IAM_AUTHENTICATOR_VERSION"
+      url="https://github.com/kubernetes-sigs/aws-iam-authenticator/releases"
+      url="$url/download/v${ver}/aws-iam-authenticator_${ver}_linux_amd64"
       curl -fsSL -o "$tmp_dir/$app" "$url"
       sudo install "$tmp_dir/$app" /usr/local/bin
     rm -rf "$tmp_dir"
@@ -413,6 +414,33 @@ tools_check_sops() {
   fi
 }
 
+tools_check_stern() {
+  if tools_install_app "stern"; then
+    repo_path="stern/stern"
+    case "$(uname)" in
+    Linux) os_arch="linux_amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch.tar.gz\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    tmp_dir="$(mktemp -d)"
+    curl -sL "$download_url" -o "$tmp_dir/stern.tar.gz"
+    tar xzf "$tmp_dir/stern.tar.gz" -C "$tmp_dir" "stern"
+    sudo install "$tmp_dir/stern" /usr/local/bin/
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    stern --version
+    if [ -d "$BASH_COMPLETION" ]; then
+      sudo sh -c "stern --completion bash > $BASH_COMPLETION/stern"
+    fi
+    if [ -d "$ZSH_COMPLETIONS" ]; then
+      sudo sh -c "stern --completion zsh > $ZSH_COMPLETIONS/_stern"
+    fi
+  fi
+}
+
 tools_check_tsp() {
   if tools_install_pkg "tsp"; then
     sudo apt update && sudo apt install task-spooler && sudo apt clean
@@ -502,6 +530,7 @@ tools_check() {
     kubelogin) tools_check_kubelogin ;;
     mkcert) tools_check_mkcert ;;
     sops) tools_check_sops ;;
+    stern) tools_check_stern ;;
     tsp) tools_check_tsp ;;
     uuid) tools_check_uuid ;;
     velero) tools_check_velero ;;
@@ -514,8 +543,8 @@ tools_check() {
 tools_apps_list() {
   tools="age-keygen aws aws-iam-authenticator docker eksctl helm jq k3d krew"
   tools="$tools kubectl kubectx kubelogin sops velero"
-  # Don't add yq yet, not used
-  # tools="$tools yq"
+  # Don't add stern and yq yet, not used by the scripts
+  # tools="$tools stern yq"
   echo "$tools"
 }
 
