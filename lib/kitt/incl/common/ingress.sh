@@ -160,7 +160,13 @@ replace_app_ingress_values() {
     echo "$hostname_rule" | sed -e "s%__HOSTNAME__%$hostname%g"
   done >"$_yaml_hostname_rule"
   # Annotations
-  _yaml_fname="${_yaml#"$DEPLOY_KUBECTL_DIR/"}"
+  # The file path is under the helm dir or the kubectl dir, check helm first
+  _yaml_fname="${_yaml#"$DEPLOY_HELM_DIR/"}"
+  # If the filename is equal to the original _yaml it must be on the kubectl
+  # dir
+  if [ "$_yaml" = "$_yaml_fname" ]; then
+    _yaml_fname="${_yaml#"$DEPLOY_KUBECTL_DIR/"}"
+  fi
   _annotations_file="$DEPLOY_ANNOTATIONS_DIR/${_yaml_fname}"
   # Backwards compatibility for JnJ, try the filename without extension
   if [ ! -f "$_annotations_file" ]; then
@@ -173,7 +179,7 @@ replace_app_ingress_values() {
       "$_annotations_file" | while read -r _annotation; do
       sed -n \
         -e "/annotations/{n;s%^\([[:space:]]\+\).*$%\1$_annotation%p}" \
-        "$_tmpl" >>"$_yaml_annotations"
+        "$_yaml_orig_plain" >>"$_yaml_annotations"
     done
   else
     : >"$_yaml_annotations"
