@@ -67,6 +67,7 @@ imagePullSecrets:
   - name: "__PULL_SECRETS_NAME__"
 ingress:
   enabled: true
+  className: nginx
   annotations:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
   hosts:
