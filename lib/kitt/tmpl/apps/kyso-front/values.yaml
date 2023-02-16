@@ -28,7 +28,7 @@ ingress:
 # BEG: HOSTNAME_TLS
   - hosts:
     - "__HOSTNAME__"
-    secretName: "__HOSTNAME__"
+    secretName: "__HOSTNAME__-cert"
 # END: HOSTNAME_TLS
 # END: TLS_RULES
 # Kyso configuration file values

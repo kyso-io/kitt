@@ -21,6 +21,7 @@ INCL_APPS_COMMON_SH="1"
 # Deployment defaults
 export DEPLOYMENT_DEFAULT_IMAGE_PULL_POLICY="Always"
 export DEPLOYMENT_DEFAULT_INGRESS_TLS_CERTS="false"
+export DEPLOYMENT_DEFAULT_INGRESS_USE_TLS_CERTS="false"
 export DEPLOYMENT_DEFAULT_PF_ADDR="127.0.0.1"
 
 # --------
@@ -64,6 +65,14 @@ apps_common_export_variables() {
     export DEPLOYMENT_IMAGE_PULL_POLICY="$DEPLOYMENT_DEFAULT_IMAGE_PULL_POLICY"
   [ "$DEPLOYMENT_INGRESS_TLS_CERTS" ] ||
     export DEPLOYMENT_INGRESS_TLS_CERTS="$DEPLOYMENT_DEFAULT_INGRESS_TLS_CERTS"
+  if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
+    _use_tls_certs="true"
+  else
+    _use_tls_certs="$DEPLOYMENT_INGRESS_USE_TLS_CERTS"
+    [ "$_use_tls_certs" ] ||
+      _use_tls_certs="$DEPLOYMENT_DEFAULT_INGRESS_USE_TLS_CERTS"
+  fi
+  export DEPLOYMENT_INGRESS_USE_TLS_CERTS="$_use_tls_certs"
   [ "$DEPLOYMENT_PF_ADDR" ] ||
     export DEPLOYMENT_PF_ADDR="$DEPLOYMENT_DEFAULT_PF_ADDR"
   __apps_common_export_variables="1"
@@ -85,9 +94,13 @@ HOSTNAMES=$DEPLOYMENT_HOSTNAMES
 # Image pull policy for the deployment, for development use Always or use
 # always fixed tags to avoid surprises
 IMAGE_PULL_POLICY=$DEPLOYMENT_IMAGE_PULL_POLICY
-# Add certificates to each ingress definition, try to avoid it, is better to
-# have a wildcard certificate on the ingress server
+# Manage TLS certificates for each ingress definition (the system is in charge
+# of creating them)
 INGRESS_TLS_CERTS=$DEPLOYMENT_INGRESS_TLS_CERTS
+# Use certificates on each ingress definition (true by default if
+# INGRESS_TLS_CERTS is set, can be useful without local management if using
+# cert-manager)
+INGRESS_USE_TLS_CERTS=$DEPLOYMENT_INGRESS_USE_TLS_CERTS
 # IP Address for port-forward, 127.0.0.1 for local dev and 0.0.0.0 if you need
 # to access the services from a machine different than the docker host
 PF_ADDR=$DEPLOYMENT_PF_ADDR
@@ -103,9 +116,16 @@ apps_common_read_variables() {
   read_value "imagePullPolicy ('Always'/'IfNotPresent')" \
     "${DEPLOYMENT_IMAGE_PULL_POLICY}"
   DEPLOYMENT_IMAGE_PULL_POLICY=${READ_VALUE}
-  read_bool "Add TLS certificates to the ingress definitions?" \
+  read_bool "Manage TLS certificates for the ingress definitions?" \
     "${DEPLOYMENT_INGRESS_TLS_CERTS}"
   DEPLOYMENT_INGRESS_TLS_CERTS=${READ_VALUE}
+  if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
+    DEPLOYMENT_INGRESS_USE_TLS_CERTS="true"
+  else
+    read_bool "Use TLS certificates on ingress definitions (cert-manager)?" \
+      "${DEPLOYMENT_INGRESS_USE_TLS_CERTS}"
+    DEPLOYMENT_INGRESS_USE_TLS_CERTS=${READ_VALUE}
+  fi
   read_value "Port forward IP address" \
     "${DEPLOYMENT_PF_ADDR}"
   DEPLOYMENT_PF_ADDR=${READ_VALUE}

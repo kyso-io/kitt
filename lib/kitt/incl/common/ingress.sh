@@ -119,7 +119,7 @@ create_app_cert_yamls() {
       exit 1
     fi
     for _hostname in $DEPLOYMENT_HOSTNAMES; do
-      _cert_name="$_hostname"
+      _cert_name="$_hostname-cert"
       _cert_crt="$CERTIFICATES_DIR/$_hostname.crt"
       _cert_key="$CERTIFICATES_DIR/$_hostname${SOPS_EXT}.key"
       _cert_yaml="$_kubectl_dir/tls-$_hostname${SOPS_EXT}.yaml"
@@ -184,8 +184,8 @@ replace_app_ingress_values() {
   else
     : >"$_yaml_annotations"
   fi
-  # Generate ingress TLS rules & certs
-  if is_selected "$DEPLOYMENT_INGRESS_TLS_CERTS"; then
+  # Generate ingress TLS rules
+  if is_selected "$DEPLOYMENT_INGRESS_USE_TLS_CERTS"; then
     _cmnd="/^ *# BEG: HOSTNAME_TLS/,/^ *# END: HOSTNAME_TLS/"
     _cmnd="$_cmnd{/^ *# \(BEG\|END\): HOSTNAME_TLS/d;p;}"
     hostname_tls="$(sed -n -e "$_cmnd" "$_yaml_orig_plain")"
