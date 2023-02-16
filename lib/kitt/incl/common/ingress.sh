@@ -178,7 +178,7 @@ replace_app_ingress_values() {
     sed -ne "/^#/!{s%=\([^'\"].*[^'\"]\)$%=\"\1\"%;s%=%: %;p;}" \
       "$_annotations_file" | while read -r _annotation; do
       sed -n \
-        -e "/annotations/{n;s%^\([[:space:]]\+\).*$%\1$_annotation%p}" \
+        -e "/annotations:/{n;s%^\([[:space:]]\+\).*$%\1$_annotation%p}" \
         "$_yaml_orig_plain" >>"$_yaml_annotations"
     done
   else
