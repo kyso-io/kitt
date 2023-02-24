@@ -49,6 +49,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/teams-notification-consumer.sh
   [ "$INCL_APPS_TEAMS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/teams-notification-consumer.sh"
+  # shellcheck source=./apps/file-metadata-postprocess-consumer.sh
+  [ "$INCL_APPS_FILE_METADATA_POSTPROCESS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/file-metadata-postprocess-consumer.sh"
   # shellcheck source=./apps/onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/imagebox.sh
