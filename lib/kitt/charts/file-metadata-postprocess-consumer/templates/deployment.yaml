@@ -36,11 +36,12 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
           - name: DOTENV_FILE
-            value: "/secrets/file-metadata-postprocess-consumer/env"
-          volumeMounts:
-          - name: {{ $secretsName }}
-            mountPath: "/secrets/file-metadata-postprocess-consumer"
-            readOnly: true
+            value: "/secrets/env"
+          - name: DATABASE_URI
+            valueFrom:
+              secretKeyRef:
+                name: {{ $secretsName }}
+                key: DATABASE_URI
           # FIXME: no tests for now
           #livenessProbe:
           #  httpGet:
