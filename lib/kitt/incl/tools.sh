@@ -3,7 +3,7 @@
 # File:        tools.sh
 # Description: Functions to check and install tools used by us
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
 
 set -e
@@ -25,7 +25,7 @@ AWS_IAM_AUTHENTICATOR_VERSION="0.5.9"
 # GET_HELM_URL ... set it to get the latest helm version
 # - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 HELM_VERSION="3.11.1"
-KUBECTL_VERSION="1.22.17"
+KUBECTL_VERSION="1.24.10"
 
 # --------
 # Includes
@@ -43,12 +43,31 @@ fi
 # Functions
 # ---------
 
+# Auxiliary function to check if an application is installed
+tools_app_installed() {
+  _app="$1"
+  type "$_app" >/dev/null 2>&1 || return 1
+}
+
+tools_check_apps_installed() {
+  _missing=""
+  for _app in "$@"; do
+    tools_app_installed "$_app" || _missing="$_missing $_app"
+  done
+  if [ "$_missing" ]; then
+    echo "The following apps could not be found:"
+    for _app in $_missing; do
+      echo "- $_app"
+    done
+    exit 1
+  fi
+}
+
 # Auxiliary function to check if we want to install an app
 tools_install_app() {
   _app="$1"
-  _type="$(type "$_app" 2>/dev/null)" && found="true" || found="false"
-  if [ "$found" = "true" ]; then
-    echo "$_app found ($_type)."
+  if tools_app_installed "$_app"; then
+    echo "$_app found ($(type "$_app"))."
     MSG="Re-install in /usr/local/bin?"
     OPT="false"
   else
