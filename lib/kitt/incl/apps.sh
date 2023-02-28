@@ -49,6 +49,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/teams-notification-consumer.sh
   [ "$INCL_APPS_TEAMS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/teams-notification-consumer.sh"
+  # shellcheck source=./apps/file-metadata-postprocess-consumer.sh
+  [ "$INCL_APPS_FILE_METADATA_POSTPROCESS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/file-metadata-postprocess-consumer.sh"
   # shellcheck source=./apps/onlyoffice-ds.sh
   [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/imagebox.sh
@@ -133,6 +136,10 @@ apps_command() {
     apps_teams_notification_consumer_command "$_command" "$_deployment" \
       "$_cluster"
     ;;
+  file-metadata-postprocess-consumer)
+    apps_file_metadata_postprocess_consumer_command "$_command" "$_deployment" \
+      "$_cluster"
+    ;;
   onlyoffice-ds | onlyoffice_ds)
     apps_onlyoffice_ds_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -158,6 +165,7 @@ apps_list() {
   _apps="$_apps activity-feed-consumer notification-consumer"
   _apps="$_apps slack-notifications-consumer"
   _apps="$_apps teams-notification-consumer"
+  _apps="$_apps file-metadata-postprocess-consumer"
   _apps="$_apps onlyoffice-ds imagebox kyso-nbdime portmaps"
   echo "$_apps"
 }
@@ -181,6 +189,9 @@ apps_command_list() {
     ;;
   teams-notification-consumer)
     apps_teams_notification_consumer_command_list
+    ;;
+  file-metadata-postprocess-consumer)
+    apps_file_metadata_postprocess_consumer_command_list
     ;;
   onlyoffice-ds | onlyoffice_ds) apps_onlyoffice_ds_command_list ;;
   imagebox) apps_imagebox_command_list ;;
