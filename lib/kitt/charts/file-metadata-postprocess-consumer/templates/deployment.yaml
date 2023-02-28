@@ -35,8 +35,6 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-          - name: DOTENV_FILE
-            value: "/secrets/env"
           - name: DATABASE_URI
             valueFrom:
               secretKeyRef:
@@ -53,10 +51,6 @@ spec:
           #    port: file-metadata-postprocess-consumer-http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      volumes:
-        - name: {{ $secretsName }}
-          secret:
-            secretName: {{ $secretsName }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
