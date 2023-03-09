@@ -26,6 +26,7 @@ AWS_IAM_AUTHENTICATOR_VERSION="0.5.9"
 # - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 HELM_VERSION="3.11.1"
 KUBECTL_VERSION="1.24.10"
+K3D_VERSION="v5.4.6"
 
 # --------
 # Includes
@@ -218,6 +219,28 @@ tools_check_helm() {
   fi
 }
 
+tools_check_helmfile() {
+  if tools_install_app "helmfile"; then
+    repo_path="helmfile/helmfile"
+    case "$(uname)" in
+    Linux) os_arch="linux_amd64" ;;
+    Darwin) os_arch="darwin_amd64" ;;
+    esac
+    download_url="$(
+      curl -sL "https://api.github.com/repos/$repo_path/releases/latest" |
+        sed -n "s/^.*\"browser_download_url\": \"\(.*.$os_arch.tar.gz\)\"/\1/p"
+    )"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    tmp_dir="$(mktemp -d)"
+    curl -sL "$download_url" -o "$tmp_dir/helmfile.tar.gz"
+    tar xzf "$tmp_dir/helmfile.tar.gz" -C "$tmp_dir" "helmfile"
+    sudo install "$tmp_dir/helmfile" /usr/local/bin/
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    helmfile --version
+  fi
+}
+
 tools_check_inotifywait() {
   if tools_install_pkg "inotifywait"; then
     sudo apt update && sudo apt install inotify-tools && sudo apt clean
@@ -274,7 +297,7 @@ tools_check_k3d() {
   if tools_install_app "k3d"; then
     [ -d /usr/local/bin ] || sudo mkdir /usr/local/bin
     curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh |
-      bash
+      TAG="$K3D_VERSION" bash
     k3d version
     if [ -d "$BASH_COMPLETION" ]; then
       sudo sh -c "k3d completion bash > $BASH_COMPLETION/k3d"
@@ -520,6 +543,7 @@ tools_check() {
     docker) tools_check_docker ;;
     eksctl) tools_check_eksctl ;;
     helm) tools_check_helm ;;
+    helmfile) tools_check_helmfile ;;
     inotifywait) tools_check_inotifywait ;;
     jq) tools_check_jq ;;
     json2file | json2file-go) tools_check_json2file ;;
@@ -543,8 +567,8 @@ tools_check() {
 tools_apps_list() {
   tools="age-keygen aws aws-iam-authenticator docker eksctl helm jq k3d krew"
   tools="$tools kubectl kubectx kubelogin sops velero"
-  # Don't add stern and yq yet, not used by the scripts
-  # tools="$tools stern yq"
+  # Don't add helmfile, stern and yq yet, not used by the scripts
+  # tools="$tools helmfile stern yq"
   echo "$tools"
 }
 
