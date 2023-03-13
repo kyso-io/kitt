@@ -9,6 +9,9 @@ antiAffinityTopologyKey: "kubernetes.io/hostname"
 antiAffinity: "hard"
 esJavaOpts: "__JAVAOPTS__"
 resources:
+  limits:
+    cpu: "__CPU_REQUESTS__"
+    memory: "__MEM_REQUESTS__"
   requests:
     cpu: "__CPU_REQUESTS__"
     memory: "__MEM_REQUESTS__"
