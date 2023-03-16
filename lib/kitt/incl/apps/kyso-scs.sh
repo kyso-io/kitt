@@ -261,7 +261,7 @@ apps_kyso_scs_check_directories() {
 }
 
 apps_kyso_scs_clean_directories() {
-  # Try to remove empty dirs, except if they contain secrets
+  # Try to remove dirs, fails if they are not empty
   for _d in "$KYSO_SCS_HELM_DIR" "$KYSO_SCS_KUBECTL_DIR" \
     "$KYSO_SCS_SECRETS_DIR" "$KYSO_SCS_PF_DIR"; do
     if [ -d "$_d" ]; then
@@ -541,6 +541,119 @@ apps_kyso_scs_secret_get() {
   fi
 }
 
+apps_kyso_scs_pvc_create() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  # Load additional variables & check directories
+  apps_common_export_service_hostnames "$_deployment" "$_cluster"
+  apps_kyso_scs_check_directories
+  # Adjust variables
+  _app="kyso-scs"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _pv_tmpl="$KYSO_SCS_PV_TMPL"
+  _pv_yaml="$KYSO_SCS_PV_YAML"
+  _pvc_tmpl="$KYSO_SCS_PVC_TMPL"
+  _pvc_yaml="$KYSO_SCS_PVC_YAML"
+  _vol_name="$_ns"
+  _pvc_name="$_ns"
+  # other settings
+  _access_modes="$KYSO_SCS_STORAGE_ACCESS_MODES"
+  _storage_class="$KYSO_SCS_STORAGE_CLASS"
+  _storage_size="$KYSO_SCS_STORAGE_SIZE"
+  if ! find_namespace "$_ns"; then
+    # Remove old files, just in case ...
+    # shellcheck disable=SC2086
+    rm -f "$_pvc_yaml" "$_pv_yaml"
+    # Create namespace
+    create_namespace "$_ns"
+  fi
+  # Adjust _storage_class_sed
+  if [ "$_storage_class" ]; then
+    _storage_class_sed="s%__STORAGE_CLASS__%$_storage_class%"
+  else
+    _storage_class_sed="/__STORAGE_CLASS__/d;"
+  fi
+  # Create the PV if using local storage and ignore it in other cases (we assume
+  # that the storage class has automatic PV provisioning)
+  if [ "$_storage_class" = "local-storage" ] &&
+    is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
+    test -d "$CLUST_VOLUMES_DIR/$_vol_name" ||
+      mkdir "$CLUST_VOLUMES_DIR/$_vol_name"
+    : >"$_pv_yaml"
+    sed \
+      -e "s%__APP__%$_app%" \
+      -e "s%__NAMESPACE__%$_ns%" \
+      -e "s%__PV_NAME__%$_vol_name%" \
+      -e "s%__PVC_NAME__%$_pvc_name%" \
+      -e "s%__ACCESS_MODES__%$_access_modes%" \
+      -e "s%__STORAGE_SIZE__%$_storage_size%" \
+      -e "$_storage_class_sed" \
+      "$_pv_tmpl" >>"$_pv_yaml"
+  fi
+  # Create _pcv_yaml
+  : >"$_pvc_yaml"
+  sed \
+    -e "s%__APP__%$_app%" \
+    -e "s%__NAMESPACE__%$_ns%" \
+    -e "s%__PVC_NAME__%$_pvc_name%" \
+    -e "s%__ACCESS_MODES__%$_access_modes%" \
+    -e "s%__STORAGE_SIZE__%$_storage_size%" \
+    -e "$_storage_class_sed" \
+    "$_pvc_tmpl" >>"$_pvc_yaml"
+  # Install pv and pvc
+  for _yaml in "$_pv_yaml" "$_pvc_yaml"; do
+    kubectl_apply "$_yaml"
+  done
+}
+
+apps_kyso_scs_pvc_delete() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster" "rm_all"
+  _app="kyso-scs"
+  _ns="$KYSO_SCS_NAMESPACE"
+  # files
+  _pvc_yaml="$KYSO_SCS_PVC_YAML"
+  _pv_yaml="$KYSO_SCS_PV_YAML"
+  if find_namespace "$_ns"; then
+    echo "Removing kyso-scs PVC & PV"
+    # Remove objects
+    for _yaml in "$_pvc_yaml" $_pv_yaml; do
+      kubectl_delete "$_yaml" || true
+    done
+    # Delete namespace
+    delete_namespace "$_ns"
+    footer
+  else
+    echo "Namespace '$_ns' for '$_app' not found!"
+  fi
+  apps_kyso_scs_clean_directories
+}
+
+apps_kyso_scs_pvc_rm_dirs() {
+  _deployment="$1"
+  _cluster="$2"
+  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
+  _app="kyso-scs"
+  _ns="$KYSO_SCS_NAMESPACE"
+  _vol_name="$_ns"
+  if find_namespace "$_ns"; then
+    echo "Namespace '$_ns' found, not removing volumes!"
+  else
+    _dirs="$(
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$_vol_name" -printf "- %f\n"
+    )"
+    if [ "$_dirs" ]; then
+      echo "Removing directories:"
+      echo "$_dirs"
+      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
+        -name "$_vol_name" -exec sudo rm -rf {} \;
+    fi
+  fi
+}
+
 apps_kyso_scs_install() {
   _deployment="$1"
   _cluster="$2"
@@ -587,10 +700,6 @@ apps_kyso_scs_install() {
   _helm_values_tmpl="$KYSO_SCS_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_SCS_HELM_VALUES_YAML"
   _helm_values_yaml_plain="$KYSO_SCS_HELM_VALUES_YAML_PLAIN"
-  _pv_tmpl="$KYSO_SCS_PV_TMPL"
-  _pv_yaml="$KYSO_SCS_PV_YAML"
-  _pvc_tmpl="$KYSO_SCS_PVC_TMPL"
-  _pvc_yaml="$KYSO_SCS_PVC_YAML"
   _vol_name="$_ns"
   _pvc_name="$_ns"
   _svc_map_tmpl="$KYSO_SCS_SVC_MAP_TMPL"
@@ -601,23 +710,19 @@ apps_kyso_scs_install() {
     _cert_yamls="$_cert_yamls $_cert_yaml"
   done
   # other settings
-  _access_modes="$KYSO_SCS_STORAGE_ACCESS_MODES"
   if is_selected "$KYSO_SCS_RESTIC_BACKUP"; then
     _backup_action="backup-volumes"
   else
     _backup_action="backup-volumes-exclude"
   fi
-  _storage_class="$KYSO_SCS_STORAGE_CLASS"
-  _storage_size="$KYSO_SCS_STORAGE_SIZE"
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_helm_values_yaml" "$_svc_map_yaml" "$_pvc_yaml" "$_pv_yaml" \
-      "$_cronjobs_yaml" "$_secret_yaml" "$_service_yaml" "$_deploy_yaml" \
-      "$_ingress_yaml" "$_statefulset_yaml" "$_indexer_configmap_yaml" \
-      $_cert_yamls
-    # Create namespace
-    create_namespace "$_ns"
+    rm -f "$_helm_values_yaml" "$_svc_map_yaml" "$_cronjobs_yaml" \
+      "$_secret_yaml" "$_service_yaml" "$_deploy_yaml" "$_ingress_yaml" \
+      "$_statefulset_yaml" "$_indexer_configmap_yaml" $_cert_yamls
+    # And create the namespace and the volumes
+    apps_kyso_scs_pvc_create "$_deployment" "$_cluster"
   fi
   # If we have a legacy deployment, remove the old objects
   _legacy="false"
@@ -629,39 +734,6 @@ apps_kyso_scs_install() {
   done
   # Remove the _svc_map_yaml for legacy deployments too
   [ "$_legacy" = "false" ] || kubectl_delete "$_svc_map_yaml"
-  # Adjust _storage_class_sed
-  if [ "$_storage_class" ]; then
-    _storage_class_sed="s%__STORAGE_CLASS__%$_storage_class%"
-  else
-    _storage_class_sed="/__STORAGE_CLASS__/d;"
-  fi
-  # Create the PV if using local storage and ignore it in other cases (we assume
-  # that the storage class has automatic PV provisioning)
-  if [ "$_storage_class" = "local-storage" ] &&
-    is_selected "$CLUSTER_USE_LOCAL_STORAGE"; then
-    test -d "$CLUST_VOLUMES_DIR/$_vol_name" ||
-      mkdir "$CLUST_VOLUMES_DIR/$_vol_name"
-    : >"$_pv_yaml"
-    sed \
-      -e "s%__APP__%$_app%" \
-      -e "s%__NAMESPACE__%$_ns%" \
-      -e "s%__PV_NAME__%$_vol_name%" \
-      -e "s%__PVC_NAME__%$_pvc_name%" \
-      -e "s%__ACCESS_MODES__%$_access_modes%" \
-      -e "s%__STORAGE_SIZE__%$_storage_size%" \
-      -e "$_storage_class_sed" \
-      "$_pv_tmpl" >>"$_pv_yaml"
-  fi
-  # Create _pcv_yaml
-  : >"$_pvc_yaml"
-  sed \
-    -e "s%__APP__%$_app%" \
-    -e "s%__NAMESPACE__%$_ns%" \
-    -e "s%__PVC_NAME__%$_pvc_name%" \
-    -e "s%__ACCESS_MODES__%$_access_modes%" \
-    -e "s%__STORAGE_SIZE__%$_storage_size%" \
-    -e "$_storage_class_sed" \
-    "$_pvc_tmpl" >>"$_pvc_yaml"
   # Images
   _hardlink_image_repo="${KYSO_SCS_HARDLINK_CRONJOB_IMAGE%:*}"
   _hardlink_image_tag="${KYSO_SCS_HARDLINK_CRONJOB_IMAGE#*:}"
@@ -757,7 +829,7 @@ apps_kyso_scs_install() {
     -e "s%__SCS_WEBHOOK_CONTAINER_PORT__%$KYSO_SCS_WEBHOOK_PORT%" \
     -e "s%__KYSO_URL__%http://$_kyso_api_host%" \
     -e "s%__BACKUP_ACTION__%$_backup_action%" \
-    "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
+    "$_helm_values_tmpl" >"$_helm_values_yaml_plain"
   # Apply ingress values
   replace_app_ingress_values "$_app" "$_helm_values_yaml_plain"
   # Generate encoded version if needed and remove plain version
@@ -780,8 +852,8 @@ apps_kyso_scs_install() {
       kubectl_delete "$_cert_yaml" || true
     done
   fi
-  # Install pv, map, certs and pvc
-  for _yaml in "$_pv_yaml" "$_svc_map_yaml" $_cert_yamls "$_pvc_yaml"; do
+  # Install map and certs
+  for _yaml in "$_svc_map_yaml" $_cert_yamls; do
     kubectl_apply "$_yaml"
   done
   # Install secrets if present
@@ -815,7 +887,9 @@ apps_kyso_scs_reinstall() {
   if find_namespace "$_ns"; then
     _cimages="$(statefulset_container_images "$_ns" "$_app")"
     _indexer_cname="kyso-indexer"
-    KYSO_SCS_INDEXER_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_indexer_cname //p")"
+    KYSO_SCS_INDEXER_IMAGE="$(
+      echo "$_cimages" | sed -ne "s/^$_indexer_cname //p"
+    )"
     _myssh_cname="mysecureshell"
     KYSO_SCS_MYSSH_IMAGE="$(echo "$_cimages" | sed -ne "s/^$_myssh_cname //p")"
     _nginx_cname="nginx"
@@ -885,6 +959,7 @@ apps_kyso_scs_helm_uninstall() {
 apps_kyso_scs_remove() {
   _deployment="$1"
   _cluster="$2"
+  _rm_all="$3"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   ####
   _app="kyso-scs"
@@ -901,8 +976,6 @@ apps_kyso_scs_remove() {
   _statefulset_yaml="$KYSO_SCS_STATEFULSET_YAML"
   # files
   _helm_values_yaml="$KYSO_SCS_HELM_VALUES_YAML"
-  _pvc_yaml="$KYSO_SCS_PVC_YAML"
-  _pv_yaml="$KYSO_SCS_PV_YAML"
   _svc_map_yaml="$KYSO_SCS_SVC_MAP_YAML"
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
@@ -922,14 +995,16 @@ apps_kyso_scs_remove() {
       helm uninstall -n "$_ns" "$_app" || true
       rm -f "$_helm_values_yaml"
     fi
-    # Remove objects, including the volumes
-    for _yaml in "$_pvc_yaml" "$_svc_map_yaml" $_cert_yamls "$_pv_yaml"; do
+    # Remove objects
+    for _yaml in "$_svc_map_yaml" $_cert_yamls; do
       kubectl_delete "$_yaml" || true
     done
     # Remove secrets
     apps_kyso_scs_secret_delete "$_deployment" "$_cluster"
-    delete_namespace "$_ns"
     footer
+    # Message
+    [ "$_rm_all" = "rm_all" ] ||
+      echo "Use the 'remove-all' subcommand to remove the kyso-scs PVC"
   else
     echo "Namespace '$_ns' for '$_app' not found!"
   fi
@@ -946,29 +1021,6 @@ apps_kyso_scs_restart() {
     statefulset_restart "$_ns" "$_app"
   else
     echo "Namespace '$_ns' for '$_app' not found!"
-  fi
-}
-
-apps_kyso_scs_rmvols() {
-  _deployment="$1"
-  _cluster="$2"
-  apps_kyso_scs_export_variables "$_deployment" "$_cluster"
-  _app="kyso-scs"
-  _ns="$KYSO_SCS_NAMESPACE"
-  _vol_name="$_ns"
-  if find_namespace "$_ns"; then
-    echo "Namespace '$_ns' found, not removing volumes!"
-  else
-    _dirs="$(
-      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
-        -name "$_vol_name" -printf "- %f\n"
-    )"
-    if [ "$_dirs" ]; then
-      echo "Removing directories:"
-      echo "$_dirs"
-      find "$CLUST_VOLUMES_DIR" -maxdepth 1 -type d \
-        -name "$_vol_name" -exec sudo rm -rf {} \;
-    fi
   fi
 }
 
@@ -1086,7 +1138,7 @@ apps_kyso_scs_command() {
   _cluster="$3"
   case "$_command" in
   get-secret)
-    apps_kyso_scs_secret_get  "$_deployment" "$_cluster"
+    apps_kyso_scs_secret_get "$_deployment" "$_cluster"
     ;;
   cat-host-keys)
     apps_kyso_scs_secret_cat_file "host_keys.txt" "$_deployment" "$_cluster"
@@ -1132,9 +1184,15 @@ apps_kyso_scs_command() {
       ;;
     esac
     ;;
+  pvc-create) apps_kyso_scs_pvc_create "$_deployment" "$_cluster" ;;
+  pvc-delete) apps_kyso_scs_pvc_delete "$_deployment" "$_cluster" ;;
+  pvc-rm-dirs) apps_kyso_scs_pvc_rm_dirs "$_deployment" "$_cluster" ;;
   reinstall) apps_kyso_scs_reinstall "$_deployment" "$_cluster" ;;
   remove) apps_kyso_scs_remove "$_deployment" "$_cluster" ;;
-  rmvols) apps_kyso_scs_rmvols "$_deployment" "$_cluster" ;;
+  remove-all)
+    apps_kyso_scs_remove "$_deployment" "$_cluster" "rm_all"
+    apps_kyso_scs_pvc_delete "$_deployment" "$_cluster"
+  ;;
   restart) apps_kyso_scs_restart "$_deployment" "$_cluster" ;;
   sh)
     case "$SCS_CONTAINER" in
@@ -1158,8 +1216,9 @@ apps_kyso_scs_command() {
 apps_kyso_scs_command_list() {
   _cmnds="cat-host-keys cat-user-keys cat-user-pass cat-user-sids get-secret"
   _cmnds="$_cmnds cron-runjob cron-status env-edit env-path env-show env-update"
-  _cmnds="$_cmnds helm-history helm-rollback helm-uninstall install logs"
-  _cmnds="$_cmnds reinstall remove restart rmvols sh status summary"
+  _cmnds="$_cmnds helm-history helm-rollback helm-uninstall"
+  _cmnds="$_cmnds install logs pvc-create pvc-delete pvc-rm-dirs"
+  _cmnds="$_cmnds reinstall remove remove-all restart sh status summary"
   echo "$_cmnds"
 }
 
