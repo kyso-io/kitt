@@ -40,6 +40,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./apps/activity-feed-consumer.sh
   [ "$INCL_APPS_ACTIVITY_FEED_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/activity-feed-consumer.sh"
+  # shellcheck source=./apps/analytics-consumer.sh
+  [ "$INCL_APPS_ANALYTICS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/analytics-consumer.sh"
   # shellcheck source=./apps/notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
@@ -125,6 +128,9 @@ apps_command() {
   activity-feed-consumer)
     apps_activity_feed_consumer_command "$_command" "$_deployment" "$_cluster"
     ;;
+  analytics-consumer)
+    apps_analytics_consumer_command "$_command" "$_deployment" "$_cluster"
+    ;;
   notification-consumer)
     apps_notification_consumer_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -162,7 +168,8 @@ apps_command() {
 apps_list() {
   _apps="common config elasticsearch mongodb nats mongo-gui"
   _apps="$_apps kyso-api kyso-front kyso-scs"
-  _apps="$_apps activity-feed-consumer notification-consumer"
+  _apps="$_apps activity-feed-consumer analytics-consumer"
+  _apps="$_apps notification-consumer"
   _apps="$_apps slack-notifications-consumer"
   _apps="$_apps teams-notification-consumer"
   _apps="$_apps file-metadata-postprocess-consumer"
@@ -183,6 +190,7 @@ apps_command_list() {
   kyso-front) apps_kyso_front_command_list ;;
   kyso-scs) apps_kyso_scs_command_list ;;
   activity-feed-consumer) apps_activity_feed_consumer_command_list ;;
+  analytics-consumer) apps_analytics_consumer_command_list ;;
   notification-consumer) apps_notification_consumer_command_list ;;
   slack-notifications-consumer)
     apps_slack_notifications_consumer_command_list

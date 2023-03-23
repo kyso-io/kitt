@@ -44,6 +44,9 @@ if [ -d "$INCL_DIR" ]; then
   # shellcheck source=./activity-feed-consumer.sh
   [ "$INCL_APPS_ACTIVITY_FEED_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/activity-feed-consumer.sh"
+  # shellcheck source=./analytics-consumer.sh
+  [ "$INCL_APPS_ANALYTICS_CONSUMER_SH" = "1" ] ||
+    . "$INCL_DIR/apps/analytics-consumer.sh"
   # shellcheck source=./notification-consumer.sh
   [ "$INCL_APPS_NOTIFICATION_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/notification-consumer.sh"
@@ -80,6 +83,7 @@ apps_export_variables() {
   apps_kyso_front_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_activity_feed_consumer_export_variables "$_deployment" "$_cluster"
+  apps_analytics_consumer_export_variables "$_deployment" "$_cluster"
   apps_notification_consumer_export_variables "$_deployment" "$_cluster"
   apps_slack_notifications_consumer_export_variables "$_deployment" "$_cluster"
   apps_teams_notification_consumer_export_variables "$_deployment" "$_cluster"
@@ -101,6 +105,7 @@ apps_check_directories() {
   apps_kyso_front_check_directories
   apps_kyso_scs_check_directories
   apps_activity_feed_consumer_check_directories
+  apps_analytics_consumer_check_directories
   apps_notification_consumer_check_directories
   apps_slack_notifications_consumer_check_directories
   apps_teams_notification_consumer_check_directories
@@ -135,6 +140,8 @@ apps_migrate_variables() {
     _env_file="$(apps_activity_feed_consumer_env_path)"
     apps_activity_feed_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
     _env_file="$(apps_notification_consumer_env_path)"
+    apps_analytics_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
+    _env_file="$(apps_slack_analyticss_consumer_env_path)"
     apps_notification_consumer_env_save "$_deployment" "$_cluster" "$_env_file"
     _env_file="$(apps_slack_notifications_consumer_env_path)"
     apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster" \
@@ -166,6 +173,7 @@ apps_print_variables() {
   apps_kyso_front_print_variables
   apps_kyso_scs_print_variables
   apps_activity_feed_consumer_print_variables
+  apps_analytics_consumer_print_variables
   apps_notification_consumer_print_variables
   apps_slack_notifications_consumer_print_variables
   apps_teams_notification_consumer_print_variables
@@ -203,6 +211,8 @@ apps_update_variables() {
   apps_kyso_scs_env_update
   footer
   apps_activity_feed_consumer_env_update
+  footer
+  apps_analytics_consumer_env_update
   footer
   apps_notification_consumer_env_update
   footer
