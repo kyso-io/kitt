@@ -1,0 +1,145 @@
+#!/bin/sh
+# ----
+# File:        dam
+# Description: Command to manage kyso dam on k8s clusters
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2023 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="dam: manage kyso dam on k8s clusters"
+
+# --------
+# Includes
+# --------
+
+if [ "$INCL_DIR" ]; then
+  # shellcheck source=../incl/dam.sh
+  [ "$INCL_DAM_SH" = "1" ] || . "$INCL_DIR/dam.sh"
+else
+  echo "This command has to be executed using kitt.sh"
+  exit 1
+fi
+
+# ---------
+# Functions
+# ---------
+
+usage_app_dsc() {
+  _app="$1"
+  if [ -f "$INCL_DIR/dam/$_app.sh" ]; then
+    sed -ne "s/^\( *#.*\|\)CMND_DSC=\"\(.*\)\".*/\2/p" \
+      "$INCL_DIR/dam/$_app.sh"
+  else
+    echo "$_app"
+  fi
+}
+
+# Usage function
+usage() {
+  _kitt="$APP_BASE_NAME"
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $_kitt $(basename "$0") {all|APP} SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
+
+Where APP can be:
+
+$(for _a in $(dam_list); do echo "- $(usage_app_dsc "$_a")"; done)
+
+The valid SUBCOMMANDS for each app are listed passing only the APP name.
+
+If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
+
+- CLUSTER_NAME = '$CLUSTER_NAME'
+- DEPLOYMENT_NAME = '$DEPLOYMENT_NAME'
+EOF
+  exit "$1"
+}
+
+usage_app() {
+  _app="$1"
+  _dsc="$(usage_app_dsc "$_app")"
+  _kitt="$APP_BASE_NAME"
+  cat <<EOF
+Subcommand to ${_dsc#*: }.
+
+Usage:
+
+  $_kitt $(basename "$0") $_app SUBCOMMAND [DEPLOYMENT_NAME [CLUSTER_NAME]]
+
+Where SUBCOMMAND is one of:
+
+$(for _cmnd in $(dam_command_list "$_app"); do echo "- $_cmnd"; done)
+
+If CLUSTER_NAME or DEPLOYMENT_NAME are missing the following values are used:
+
+- CLUSTER_NAME = '$CLUSTER_NAME'
+- DEPLOYMENT_NAME = '$DEPLOYMENT_NAME'
+EOF
+  exit "$2"
+}
+
+# ----
+# MAIN
+# ----
+
+_app=""
+_all=""
+case "$1" in
+  all) _all=1 ;;
+  *)
+    for _a in $(dam_list); do
+    if [ "$1" = "$_a" ]; then
+      _app="$_a"
+      break
+    fi
+  done
+  ;;
+esac
+
+_command=""
+if [ "$_app" ]; then
+  for _c in $(dam_command_list "$_app"); do
+    if [ "$2" = "$_c" ]; then
+      _command="$2"
+      break
+    fi
+  done
+elif [ "$_all" ]; then
+  for _a in $(dam_list); do
+    for _c in $(dam_command_list "$_a"); do
+      _command="$2"
+      break
+    done
+    if [ "$_command" ]; then
+      break
+    fi
+  done
+fi
+
+_deployment="$3"
+_cluster="$4"
+
+dam_export_variables "$_deployment" "$_cluster"
+
+if [ "$_all" = "1" ]; then
+  dam_command "all" "$_command"
+elif [ "$_app" ]; then
+  case "$_command" in
+    '') usage_app "$_app" 0 ;;
+    *) dam_command "$_app" "$_command" "$_deployment" "$_cluster";;
+  esac
+else
+  usage 0
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

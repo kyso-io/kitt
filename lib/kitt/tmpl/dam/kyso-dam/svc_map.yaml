@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-api
+  namespace: __NAMESPACE__
+spec:
+  type: ExternalName
+  externalName: __KYSO_API_SVC_HOSTNAME__
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80

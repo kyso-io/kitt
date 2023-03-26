@@ -27,6 +27,8 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_KYSO_SCS_SH" = "1" ] || . "$INCL_DIR/apps/kyso-scs.sh"
   # shellcheck source=./apps/nats.sh
   [ "$INCL_APPS_NATS_SH" = "1" ] || . "$INCL_DIR/apps/nats.sh"
+  # shellcheck source=./dam/kyso-dam.sh
+  [ "$INCL_DAM_KYSO_DAM_SH" = "1" ] || . "$INCL_DIR/dam/kyso-dam.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -160,8 +162,8 @@ pf_stop_elastic() {
 
 pf_info_indexer() {
   _name="indexer"
-  _pidf="$KYSO_INDEXER_PF_PID"
-  _outf="$KYSO_INDEXER_PF_OUT"
+  _pidf="$KYSO_SCS_INDEXER_PF_PID"
+  _outf="$KYSO_SCS_INDEXER_PF_OUT"
   header "$_name port-forward info"
   if ! pf_running "$_pidf"; then
     cat <<EOF
@@ -190,12 +192,12 @@ EOF
 pf_start_indexer() {
   _name="indexer"
   _ns="$KYSO_SCS_NAMESPACE"
-  _svc="svc/kyso-scs-svc"
+  _svc="svc/kyso-scs"
   _addr="$DEPLOYMENT_PF_ADDR"
-  _pf_port="$KYSO_INDEXER_PF_PORT"
+  _pf_port="$KYSO_SCS_INDEXER_PF_PORT"
   _svc_port="8080"
-  _pidf="$KYSO_INDEXER_PF_PID"
-  _outf="$KYSO_INDEXER_PF_OUT"
+  _pidf="$KYSO_SCS_INDEXER_PF_PID"
+  _outf="$KYSO_SCS_INDEXER_PF_OUT"
   if ! pf_running "$_pidf"; then
     _pf_dir="$(dirname "$_pidf")"
     if [ -z "$_pidf" ] || [ ! -d "$_pf_dir" ]; then
@@ -214,15 +216,85 @@ pf_start_indexer() {
 
 pf_status_indexer() {
   _name="indexer"
-  _pidf="$KYSO_INDEXER_PF_PID"
-  _outf="$KYSO_INDEXER_PF_OUT"
+  _pidf="$KYSO_SCS_INDEXER_PF_PID"
+  _outf="$KYSO_SCS_INDEXER_PF_OUT"
   pf_status "$_name" "$_pidf" "$_outf"
 }
 
 pf_stop_indexer() {
   _name="indexer"
-  _pidf="$KYSO_INDEXER_PF_PID"
-  _outf="$KYSO_INDEXER_PF_OUT"
+  _pidf="$KYSO_SCS_INDEXER_PF_PID"
+  _outf="$KYSO_SCS_INDEXER_PF_OUT"
+  pf_stop "$_name" "$_pidf" "$_outf"
+}
+
+# kyso-dam
+
+pf_info_dam() {
+  _name="dam"
+  _pidf="$KYSO_DAM_PF_PID"
+  _outf="$KYSO_DAM_PF_OUT"
+  header "$_name port-forward info"
+  if ! pf_running "$_pidf"; then
+    cat <<EOF
+
+The '$_name' port-forward for the '$DEPLOYMENT_NAME' deployment is not running.
+
+EOF
+    return 0
+  fi
+  host_port="$(pf_host_port "$_pidf" "$_outf")"
+  cat <<EOF
+
+Use the URL 'http://$host_port' to connect to the dam locally.
+
+If you are working from a remote host redirect the ports using ssh:
+
+  LOCAL_IP_AND_PORT="127.0.0.1:8880"
+  ssh $(hostname) -L \$LOCAL_IP_AND_PORT:$host_port sleep infinity
+
+While the ssh session is running you can connect to the dam using the URL
+'http://\$LOCAL_IP_AND_PORT'
+
+EOF
+}
+
+pf_start_dam() {
+  _name="dam"
+  _ns="$KYSO_DAM_NAMESPACE"
+  _svc="svc/kyso-dam"
+  _addr="$DEPLOYMENT_PF_ADDR"
+  _pf_port="$KYSO_DAM_PF_PORT"
+  _svc_port="80"
+  _pidf="$KYSO_DAM_PF_PID"
+  _outf="$KYSO_DAM_PF_OUT"
+  if ! pf_running "$_pidf"; then
+    _pf_dir="$(dirname "$_pidf")"
+    if [ -z "$_pidf" ] || [ ! -d "$_pf_dir" ]; then
+      echo "Directory '$_pf_dir' not found!"
+      echo "Have you installed '$_name'?"
+      exit 1
+    fi
+    echo "Starting $_name port-forward"
+    nohup kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
+      "$_pf_port:$_svc_port" >"$_outf" 2>/dev/null &
+    echo "$!" >"$_pidf"
+    sleep 1
+  fi
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_status_dam() {
+  _name="dam"
+  _pidf="$KYSO_DAM_PF_PID"
+  _outf="$KYSO_DAM_PF_OUT"
+  pf_status "$_name" "$_pidf" "$_outf"
+}
+
+pf_stop_dam() {
+  _name="dam"
+  _pidf="$KYSO_DAM_PF_PID"
+  _outf="$KYSO_DAM_PF_OUT"
   pf_stop "$_name" "$_pidf" "$_outf"
 }
 
@@ -365,7 +437,7 @@ EOF
 pf_start_myssh() {
   _name="myssh"
   _ns="$KYSO_SCS_NAMESPACE"
-  _svc="svc/kyso-scs-svc"
+  _svc="svc/kyso-scs"
   _addr="$DEPLOYMENT_PF_ADDR"
   _pf_port="$KYSO_SCS_MYSSH_PF_PORT"
   _svc_port="22"
@@ -505,7 +577,7 @@ EOF
 pf_start_webhook() {
   _name="webhook"
   _ns="$KYSO_SCS_NAMESPACE"
-  _svc="svc/kyso-scs-svc"
+  _svc="svc/kyso-scs"
   _addr="$DEPLOYMENT_PF_ADDR"
   _pf_port="$KYSO_SCS_WEBHOOK_PF_PORT"
   _svc_port="9000"
@@ -552,10 +624,12 @@ pf_command() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   apps_nats_export_variables "$_deployment" "$_cluster"
+  dam_kyso_dam_export_variables "$_deployment" "$_cluster"
   case "$_arg" in
   all | "")
     case "$_cmnd" in
     info)
+      pf_info_dam "$_deployment" "$_cluster"
       pf_info_elastic "$_deployment" "$_cluster"
       pf_info_indexer "$_deployment" "$_cluster"
       pf_info_mongodb "$_deployment" "$_cluster"
@@ -571,6 +645,7 @@ pf_command() {
       done
       ;;
     start)
+      pf_start_dam "$_deployment" "$_cluster"
       pf_start_elastic "$_deployment" "$_cluster"
       pf_start_indexer "$_deployment" "$_cluster"
       pf_start_mongodb "$_deployment" "$_cluster"
@@ -579,6 +654,7 @@ pf_command() {
       pf_start_webhook "$_deployment" "$_cluster"
       ;;
     stop)
+      pf_stop_dam "$_deployment" "$_cluster"
       pf_stop_elastic "$_deployment" "$_cluster"
       pf_stop_indexer "$_deployment" "$_cluster"
       pf_stop_mongodb "$_deployment" "$_cluster"
@@ -587,6 +663,7 @@ pf_command() {
       pf_stop_webhook "$_deployment" "$_cluster"
       ;;
     status)
+      pf_status_dam "$_deployment" "$_cluster"
       pf_status_elastic "$_deployment" "$_cluster"
       pf_status_indexer "$_deployment" "$_cluster"
       pf_status_mongodb "$_deployment" "$_cluster"
@@ -594,6 +671,21 @@ pf_command() {
       pf_status_nats "$_deployment" "$_cluster"
       pf_status_webhook "$_deployment" "$_cluster"
       ;;
+    *)
+      echo "Unknown subcommand '$_cmnd'"
+      exit 1
+      ;;
+    esac
+    ;;
+  dam)
+    case "$_cmnd" in
+    info)
+      pf_info_dam "$_deployment" "$_cluster"
+      if pf_running "$DAM_PF_PID"; then pf_note; fi
+      ;;
+    start) pf_start_dam "$_deployment" "$_cluster" ;;
+    stop) pf_stop_dam "$_deployment" "$_cluster" ;;
+    status) pf_status_dam "$_deployment" "$_cluster" ;;
     *)
       echo "Unknown subcommand '$_cmnd'"
       exit 1
@@ -619,7 +711,7 @@ pf_command() {
     case "$_cmnd" in
     info)
       pf_info_indexer "$_deployment" "$_cluster"
-      if pf_running "$MONGODB_PF_PID"; then pf_note; fi
+      if pf_running "$INDEXER_PF_PID"; then pf_note; fi
       ;;
     start) pf_start_indexer "$_deployment" "$_cluster" ;;
     stop) pf_stop_indexer "$_deployment" "$_cluster" ;;
@@ -714,6 +806,7 @@ EOF
 pf_service_list() {
   cat <<EOF
 all: work on all the port-forwards
+dam: operate on the dam port
 elastic|elastisearch: operate on the elasticsearch web port
 indexer: operate on the kyso-indexer port
 mongodb: operate on the mongodb database port

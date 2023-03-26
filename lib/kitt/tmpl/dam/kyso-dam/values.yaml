@@ -1,0 +1,45 @@
+replicaCount: __DAM_REPLICAS__
+image:
+  repository: "__DAM_IMAGE_REPO__"
+  tag: "__DAM_IMAGE_TAG__"
+  pullPolicy: "__IMAGE_PULL_POLICY__"
+imagePullSecrets:
+  - name: "__PULL_SECRETS_NAME__"
+# Endpoint settings
+endpoint:
+  enabled: __DAM_ENDPOINT_ENABLED__
+  ip: "__DAM_ENDPOINT_ADDR__"
+  port: "__DAM_ENDPOINT_PORT__"
+# Service settings
+service:
+  targetPort: "__DAM_SERVER_PORT__"
+# Ingress configuration
+ingress:
+  enabled: true
+  authApiPath: '/v1/auth/check-app-permissions'
+  className: 'nginx'
+  rewriteTarget: '/app'
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "__FORCE_SSL_REDIRECT__"
+  hosts:
+# BEG: HOSTNAME_RULE
+  - host: "*.__APP_DOMAIN__"
+# END: HOSTNAME_RULE
+# BEG: TLS_RULES
+  tls:
+# BEG: HOSTNAME_TLS
+  - hosts:
+    - "*.__APP_DOMAIN__"
+    secretName: "__APP_DOMAIN__-cert"
+# END: HOSTNAME_TLS
+# END: TLS_RULES
+# Configuration values for the kyso-dam application
+env:
+  KYSO_DOMAIN: "__CLUSTER_DOMAIN__"
+  KYSO_API_URL: "__KYSO_API_URL__"
+  KYSO_APP_DOMAIN: "__APP_DOMAIN__"
+  REGISTRY_HOSTNAME: "__ZOT_HOSTNAME__"
+  REGISTRY_ADMIN_SECRET: "__ZOT_ADMIN_SECRET__"
+  REGISTRY_USER_SECRET: "__ZOT_READER_SECRET__"
+  BUILDER_IMAGE: "__BUILDER_IMAGE__"
+  KYSO_CLI_IMAGE: "__KYSO_CLI_IMAGE__"

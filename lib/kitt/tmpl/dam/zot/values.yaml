@@ -1,0 +1,64 @@
+# Use only one replica
+replicaCount: __ZOT_REPLICAS__
+# Image
+image:
+  repository: __ZOT_IMAGE_REPO__
+  pullPolicy: "__IMAGE_PULL_POLICY__"
+  tag: "__ZOT_IMAGE_TAG__"
+# Use a ClusterIP instead of a NodePort
+service:
+  type: ClusterIP
+  port: 5000
+# Enable ingress
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  enabled: true
+  ingressClassName: nginx
+  pathtype: Prefix
+  hosts:
+    - host: __ZOT_HOSTNAME__
+      paths:
+        - path: /
+# Mount the '$RELEASE_NAME-config' on '/etc/zot'
+mountConfig: true
+# Manage the configuration files on the chart
+configFiles:
+  config.json: |-
+    {
+      "storage": { "rootDirectory": "/var/lib/registry" },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "auth": { "htpasswd": { "path": "/secret/auth" } },
+        "accessControl": {
+          "**": {
+            "policies": [{
+              "users": ["__ZOT_READER_USER__"],
+              "actions": ["read"]
+            }],
+            "defaultPolicy": []
+          },
+          "adminPolicy": {
+            "users": ["__ZOT_ADMIN_USER__"],
+            "actions": ["read", "create", "update", "delete"]
+          }
+        }
+      },
+      "log": { "level": "debug" }
+    }
+# Mount the '$RELEASE_NAME-secret' on '/secret'
+mountSecret: true
+# Leave secretFiles empty
+secretFiles:
+# Authentication string for tests, it contains a `user:password` string encoded
+# in base64. It is needed when `htpasswd` authentication is enabled and the
+# default access does not provide read permission)
+authHeader: "__ZOT_B64_UAP__"
+# Use persistence for "/var/lib/registry".
+persistence: true
+# Manage the PVC automatically
+pvc:
+  create: true
