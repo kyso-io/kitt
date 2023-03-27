@@ -303,6 +303,8 @@ ctool_k3d_install() {
   k3d cluster create --config "$tmp_dir/k3d-config.yaml" $K3D_OPTS
   rm -rf "$tmp_dir"
   footer
+  # Try to switch to the right kubectl context
+  KUBECTL_CONTEXT="$(guess_kubeclt_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
   kubectx "$KUBECTL_CONTEXT"
   kubectl cluster-info
   footer
