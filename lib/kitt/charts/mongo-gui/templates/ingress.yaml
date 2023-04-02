@@ -3,6 +3,20 @@
 {{- $svcPort := .Values.service.port }}
 {{- $ingressPaths := list "/mongo-gui" }}
 {{- $pathType := "Prefix" }}
+{{- if and .Values.ingressAuth .Values.ingressAuth.pass }}
+  {{- $authType := "basic" -}}
+  {{- $authSecret := printf "%s-auth" (include "mongo-gui.fullname" . | trunc 59) -}}
+  {{- $authRealm := "Authentication Required" -}}
+  {{- if not (hasKey .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-type") }}
+    {{ $_ := set .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-type" $authType }}
+  {{- end }}
+  {{- if not (hasKey .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-secret") }}
+    {{ $_ := set .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-secret" $authSecret }}
+  {{- end }}
+  {{- if not (hasKey .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-realm") }}
+    {{ $_ := set .Values.ingress.annotations "nginx.ingress.kubernetes.io/auth-realm" $authRealm }}
+  {{- end }}
+{{- end }}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
     {{ $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
