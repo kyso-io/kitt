@@ -168,8 +168,8 @@ addons_minio_install() {
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
   # Create htpasswd for ingress if needed or remove the yaml if present
   if [ "$_auth_name" ]; then
-    create_htpasswd_secret_yaml "$_ns" "$_auth_name" "$_auth_user" \
-      "$_auth_file" "$_auth_yaml"
+    auth_file_update "$_auth_user" "$_auth_file"
+    create_htpasswd_secret_yaml "$_ns" "$_auth_name" "$_auth_file" "$_auth_yaml"
   else
     kubectl_delete "$_auth_yaml" || true
   fi

@@ -56,24 +56,26 @@ auth_file_update() {
 create_htpasswd_secret_yaml() {
   _ns="$1"
   _auth_name="$2"
-  _auth_user="$3"
-  _auth_file="$4"
-  _auth_yaml="$5"
-  if [ "$#" -ne "5" ]; then
-    echo "Wrong number of arguments, expected 5:"
-    echo "- 'ns', 'auth_name', 'auth_user', 'auth_file' & 'auth_yaml'"
+  _auth_file="$3"
+  _auth_yaml="$4"
+  if [ "$#" -ne "4" ]; then
+    echo "Wrong number of arguments, expected 4:"
+    echo "- 'ns', 'auth_name', 'auth_file' & 'auth_yaml'"
     exit 1
   fi
   _apr1="$_auth_file.apr1"
   # Do nothing if _auth_name is empty
   [ "$_auth_name" ] || return 0
-  # Create or update plain version if not present
-  auth_file_update "$_auth_name" "$_auth_file"
-  _auth_pass="$(file_to_stdout "$_auth_file" | sed -ne "s%^$_auth_user:%%p")"
+  # Do nothing if _auth_file does not exist
+  [ -f "$_auth_file" ] || return 0
   : >"$_apr1"
   chmod 0600 "$_apr1"
-  printf "%s:%s\n" "$_auth_user" "$(openssl passwd -apr1 "$_auth_pass")" \
-    >"$_apr1"
+  while read -r _auth_user _auth_pass; do
+    printf "%s:%s\n" "$_auth_user" "$(openssl passwd -apr1 "$_auth_pass")" \
+      >>"$_apr1"
+  done <<EOF
+$(file_to_stdout "$_auth_file" | sed -ne "s%:% %p")
+EOF
   : >"$_auth_yaml"
   chmod 0600 "$_auth_yaml"
   kubectl create secret generic "$_auth_name" -n "$_ns" --dry-run=client \

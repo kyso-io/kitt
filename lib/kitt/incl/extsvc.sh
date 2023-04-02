@@ -423,8 +423,8 @@ extsvc_install() {
   fi
   # Create htpasswd for ingress if needed
   if [ "$_auth_name" ]; then
-    create_htpasswd_secret_yaml "$_ns" "$_auth_name" "$_auth_user" \
-      "$_auth_file" "$_auth_yaml"
+    auth_file_update "$_auth_user" "$_auth_file"
+    create_htpasswd_secret_yaml "$_ns" "$_auth_name" "$_auth_file" "$_auth_yaml"
     # sed commands for the _ingress_yaml file
     basic_auth_sed="s%__AUTH_NAME__%$_auth_name%"
   else
