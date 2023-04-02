@@ -241,6 +241,12 @@ tools_check_helmfile() {
   fi
 }
 
+tools_check_htpasswd() {
+  if tools_install_pkg "htpasswd"; then
+    sudo apt update && sudo apt install apache2-utils && sudo apt clean
+  fi
+}
+
 tools_check_inotifywait() {
   if tools_install_pkg "inotifywait"; then
     sudo apt update && sudo apt install inotify-tools && sudo apt clean
@@ -544,6 +550,7 @@ tools_check() {
     eksctl) tools_check_eksctl ;;
     helm) tools_check_helm ;;
     helmfile) tools_check_helmfile ;;
+    htpasswd) tools_check_htpasswd ;;
     inotifywait) tools_check_inotifywait ;;
     jq) tools_check_jq ;;
     json2file | json2file-go) tools_check_json2file ;;
@@ -573,7 +580,7 @@ tools_apps_list() {
 }
 
 tools_pkgs_list() {
-  echo "inotifywait json2file mkcert tsp uuid"
+  echo "htpasswd inotifywait json2file mkcert tsp uuid"
 }
 
 # ----
