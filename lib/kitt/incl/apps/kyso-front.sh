@@ -229,9 +229,7 @@ apps_kyso_front_install() {
   # directory
   _chart="$KYSO_FRONT_CHART_DIR"
   # deprecated yaml files
-  _auth_yaml="$KYSO_FRONT_AUTH_YAML"
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
-  _ingress_docs_yaml="$KYSO_FRONT_INGRESS_DOCS_YAML"
   _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
   _service_yaml="$KYSO_FRONT_SERVICE_YAML"
   # files
@@ -240,16 +238,6 @@ apps_kyso_front_install() {
   _helm_values_yaml_plain="$KYSO_FRONT_HELM_VALUES_YAML_PLAIN"
   _svc_map_tmpl="$KYSO_FRONT_SVC_MAP_TMPL"
   _svc_map_yaml="$KYSO_FRONT_SVC_MAP_YAML"
-  _auth_user="$KYSO_FRONT_BASIC_AUTH_USER"
-  if is_selected "$CLUSTER_USE_BASIC_AUTH" &&
-    is_selected "$KYSO_FRONT_DOCS_INGRESS"; then
-    auth_file_update "$KYSO_FRONT_BASIC_AUTH_USER" "$KYSO_FRONT_AUTH_FILE"
-    _auth_pass="$(
-      file_to_stdout "$KYSO_FRONT_AUTH_FILE" | sed -ne "s/^${_auth_user}://p"
-    )"
-  else
-    _auth_pass=""
-  fi
   _cert_yamls=""
   for _hostname in $DEPLOYMENT_HOSTNAMES; do
     _cert_yaml="$KYSO_FRONT_KUBECTL_DIR/tls-$_hostname${SOPS_EXT}.yaml"
@@ -258,15 +246,14 @@ apps_kyso_front_install() {
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086
-    rm -f "$_helm_values_yaml" "$_svc_map_yaml" \
-      "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
-      "$_ingress_yaml" "$_ingress_docs_yaml" $_cert_yamls
+    rm -f "$_helm_values_yaml" "$_svc_map_yaml" "$_ep_yaml" "$_service_yaml" \
+      "$_deploy_yaml" "$_ingress_yaml" $_cert_yamls
     # Create namespace
     create_namespace "$_ns"
   fi
   # If we have a legacy deployment, remove the old objects
-  for _yaml in "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
-    "$_ingress_yaml" "$_ingress_docs_yaml"; do
+  for _yaml in "$_ep_yaml" "$_service_yaml" "$_deploy_yaml" \
+    "$_ingress_yaml"; do
     kubectl_delete "$_yaml" || true
   done
   # Image settings
@@ -413,7 +400,6 @@ apps_kyso_front_remove() {
   _app="kyso-front"
   _ns="$KYSO_FRONT_NAMESPACE"
   # deprecated yaml files
-  _auth_yaml="$KYSO_FRONT_AUTH_YAML"
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
   _ep_yaml="$KYSO_FRONT_ENDPOINT_YAML"
   _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"
@@ -438,7 +424,7 @@ apps_kyso_front_remove() {
       kubectl_delete "$_yaml" || true
     done
     # Remove legacy objects
-    for _yaml in "$_ep_yaml" "$_auth_yaml" "$_service_yaml" "$_deploy_yaml" \
+    for _yaml in "$_ep_yaml" "$_service_yaml" "$_deploy_yaml" \
       "$_ingress_yaml"; do
       kubectl_delete "$_yaml" || true
     done
