@@ -63,24 +63,23 @@ create_htpasswd_secret_yaml() {
     echo "- 'ns', 'auth_name', 'auth_file' & 'auth_yaml'"
     exit 1
   fi
-  _apr1="$_auth_file.apr1"
+  _bcrypt="$_auth_file.bcrypt"
   # Do nothing if _auth_name is empty
   [ "$_auth_name" ] || return 0
   # Do nothing if _auth_file does not exist
   [ -f "$_auth_file" ] || return 0
-  : >"$_apr1"
-  chmod 0600 "$_apr1"
+  : >"$_bcrypt"
+  chmod 0600 "$_bcrypt"
   while read -r _auth_user _auth_pass; do
-    printf "%s:%s\n" "$_auth_user" "$(openssl passwd -apr1 "$_auth_pass")" \
-      >>"$_apr1"
+    htpasswd -bBn "$_auth_user" "$_auth_pass" >>"$_bcrypt"
   done <<EOF
 $(file_to_stdout "$_auth_file" | sed -ne "s%:% %p")
 EOF
   : >"$_auth_yaml"
   chmod 0600 "$_auth_yaml"
   kubectl create secret generic "$_auth_name" -n "$_ns" --dry-run=client \
-    -o yaml --from-file=auth="$_apr1" | stdout_to_file "$_auth_yaml"
-  rm -f "$_apr1"
+    -o yaml --from-file=auth="$_bcrypt" | stdout_to_file "$_auth_yaml"
+  rm -f "$_bcrypt"
 }
 
 create_addon_ingress_yaml() {
