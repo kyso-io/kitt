@@ -25,8 +25,8 @@ AWS_IAM_AUTHENTICATOR_VERSION="0.5.9"
 # GET_HELM_URL ... set it to get the latest helm version
 # - https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 HELM_VERSION="3.11.1"
-KUBECTL_VERSION="1.24.10"
-K3D_VERSION="v5.4.6"
+KUBECTL_VERSION="1.24.12"
+K3D_VERSION="v5.4.9"
 
 # --------
 # Includes
