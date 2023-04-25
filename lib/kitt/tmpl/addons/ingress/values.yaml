@@ -26,6 +26,7 @@ controller:
       https: 443
       nats: 4222
       kyso-indexer: 8080
+      kyso-dam: 8880
       kyso-webhook: 9000
       elasticsearch: 9200
       mongodb: 27017
@@ -33,6 +34,7 @@ tcp:
   22: "__PORTMAPS_NAMESPACE__/kyso-scs:22"
   4222: "__PORTMAPS_NAMESPACE__/nats:4222"
   8080: "__PORTMAPS_NAMESPACE__/kyso-scs:8080"
+  8880: "__PORTMAPS_NAMESPACE__/kyso-dam:8880"
   9000: "__PORTMAPS_NAMESPACE__/kyso-scs:9000"
   9200: "__PORTMAPS_NAMESPACE__/elasticsearch:9200"
   27017: "__PORTMAPS_NAMESPACE__/mongodb:27017"

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-dam
+  namespace: __NAMESPACE__
+  labels:
+    deployment: __DEPLOYMENT__
+spec:
+  type: ExternalName
+  externalName: __KYSO_DAM_SVC_HOSTNAME__
+  ports:
+  - name: kyso-dam
+    port: 8880

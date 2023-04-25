@@ -125,12 +125,17 @@ create_namespace() {
     _name="$CLUSTER_PULL_SECRETS_NAME"
     _yaml="$CLUST_NS_KUBECTL_DIR/$_ns-$_name$SOPS_EXT.yaml"
     # Create/update docker config secret
-    create_pull_secrets_yaml "$_name" "$_ns" "$_yaml"
+    load_registry_conf
+    _registry_auth_entry="$(
+      print_registry_auth_entry "$REMOTE_REGISTRY_NAME" \
+        "$REMOTE_REGISTRY_USER" "$REMOTE_REGISTRY_PASS"
+    )"
+    create_pull_secrets_yaml "$_name" "$_ns" "$_yaml" "$_registry_auth_entry"
     # Add it to the namespace
     kubectl_apply "$_yaml"
     # Patch the default account to use the previous secret to pull images
     _pull_secrets_patch="$(
-      printf '{"imagePullSecrets": [{"name": "%s"}]}' "$_name"
+      printf '{"imagePullSecrets":[{"name":"%s"}]}' "$_name"
     )"
     kubectl patch serviceaccount default -n "$_ns" -p "$_pull_secrets_patch"
   fi
@@ -152,24 +157,61 @@ delete_namespace() {
   fi
 }
 
-create_pull_secrets_yaml() {
+print_registry_auth_entry() {
   if [ "$#" -ne "3" ]; then
-    echo "Wrong arguments, expecting SECRET_NAME, NAMESPACE & YAML file path"
+    cat <<EOF
+Wrong arguments, expecting:
+- REGISTRY_NAME
+- REGISTRY_USER
+- REGISTRY_PASS
+EOF
     exit 1
+  fi
+  _reg_name="$1"
+  _reg_user="$2"
+  _reg_pass="$3"
+  _b64_uap="$(printf "%s:%s" "$_reg_user" "$_reg_pass"| openssl base64 -A)"
+  printf '"%s":{"auth":"%s"}' "$_reg_name" "$_b64_uap"
+}
+
+create_pull_secrets_yaml() {
+  if [ "$#" -lt "4" ]; then
+    cat <<EOF
+Wrong arguments, expecting:
+
+- SECRET_NAME
+- NAMESPACE
+- YAML file path
+- REGISTRY_AUTH_ENTRY_1
+- ...
+- REGISTRY_AUTH_ENTRY_N
+EOF
+   exit 1
   fi
   _name="$1"
   _ns="$2"
   _yaml="$3"
-  load_registry_conf
+  _reg_auth_entries="$4"
+  shift 4
+  while [ "$#" -gt "0" ]; do
+    _reg_auth_entries="$_reg_auth_entries,$1"
+    shift 1
+  done
   : >"$_yaml"
   chmod 0600 "$_yaml"
-  kubectl --dry-run=client -o yaml \
-    create secret docker-registry "$_name" \
-    --docker-server="$REMOTE_REGISTRY_URL" \
-    --docker-username="$REMOTE_REGISTRY_USER" \
-    --docker-password="$REMOTE_REGISTRY_PASS" \
-    --namespace="$_ns" |
-    stdout_to_file "$_yaml"
+  _docker_config_json="$(
+    printf '{"auths":{%s}}' "$_reg_auth_entries" | openssl base64 -A
+  )"
+  stdout_to_file "$_yaml"<<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $_name
+  namespace: $_ns
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: $_docker_config_json
+EOF
 }
 
 deployment_restart() {
