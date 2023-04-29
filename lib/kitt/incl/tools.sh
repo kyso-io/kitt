@@ -27,6 +27,7 @@ AWS_IAM_AUTHENTICATOR_VERSION="0.5.9"
 HELM_VERSION="3.11.1"
 KUBECTL_VERSION="1.24.12"
 K3D_VERSION="v5.4.9"
+TERRAFORM_VERSION="1.4.6"
 
 # --------
 # Includes
@@ -443,6 +444,26 @@ tools_check_sops() {
   fi
 }
 
+tools_check_terraform() {
+  if tools_install_app "terraform"; then
+    version="$TERRAFORM_VERSION"
+    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+    arch="amd64"
+    zip_file="terraform_${version}_${os}_${arch}.zip"
+    download_url="https://releases.hashicorp.com/terraform/$version/$zip_file"
+    [ -d "/usr/local/bin" ] || sudo mkdir "/usr/local/bin"
+    orig_pwd="$(pwd)"
+    tmp_dir="$(mktemp -d)"
+    cd "$tmp_dir"
+    curl -sL "$download_url" -o "$tmp_dir/terraform.zip"
+    unzip terraform.zip
+    sudo install ./terraform /usr/local/bin/
+    cd "$orig_pwd"
+    rm -rf "$tmp_dir"
+    terraform version
+  fi
+}
+
 tools_check_stern() {
   if tools_install_app "stern"; then
     repo_path="stern/stern"
@@ -561,6 +582,7 @@ tools_check() {
     kubelogin) tools_check_kubelogin ;;
     mkcert) tools_check_mkcert ;;
     sops) tools_check_sops ;;
+    terraform) tools_check_terraform ;;
     stern) tools_check_stern ;;
     tsp) tools_check_tsp ;;
     uuid) tools_check_uuid ;;
@@ -573,7 +595,7 @@ tools_check() {
 
 tools_apps_list() {
   tools="age-keygen aws aws-iam-authenticator docker eksctl helm jq k3d krew"
-  tools="$tools kubectl kubectx kubelogin sops velero"
+  tools="$tools kubectl kubectx kubelogin sops terraform velero"
   # Don't add helmfile, stern and yq yet, not used by the scripts
   # tools="$tools helmfile stern yq"
   echo "$tools"
