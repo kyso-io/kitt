@@ -49,7 +49,7 @@ addons_ebs_export_variables() {
   export EBS_HELM_DIR="$CLUST_HELM_DIR/ebs"
   export EBS_KUBECTL_DIR="$CLUST_KUBECTL_DIR/ebs"
   # Templates
-  export EBS_EKS_EBS_POLICY_TMPL="$EBS_TMPL_DIR/iam-policy-example.json"
+#  export EBS_EKS_EBS_POLICY_TMPL="$EBS_TMPL_DIR/iam-policy-example.json"
   export EBS_HELM_VALUES_TMPL="$EBS_TMPL_DIR/values.yaml"
   export EBS_STORAGECLASS_TMPL="$EBS_TMPL_DIR/storageclass.yaml"
   # Files
@@ -88,8 +88,11 @@ addons_ebs_install() {
   header "Installing '$_addon'"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
-  # Add EKS_EFS Policy
-  aws_add_eks_ebs_policy "$EBS_EKS_EBS_POLICY_TMPL"
+#  Adding Policy and Service account NOT needed with EKS + Terraform
+#  # Add EKS_EBS Policy
+#  aws_add_eks_ebs_policy "$EFS_EKS_EBS_POLICY_TMPL"
+#  # Add role and attach it to the previous Policy
+#  aws_add_eks_ebs_service_account "$CLUSTER_NAME" "$CLUSTER_REGION"
   # Copy values tmpl to values.yaml
   cp "$_values_tmpl" "$_values_yaml"
   # Update or install chart

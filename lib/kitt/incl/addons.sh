@@ -178,13 +178,15 @@ addons_set_list() {
   case "$1" in
   all) addons_list ;;
   eks-all)
-    addons_list "ingress dashboard ebs efs prometheus loki promtail zabbix " \
-      "velero metrics-server vpa goldilocks"
+    _addons="ingress dashboard ebs efs prometheus loki promtail zabbix"
+    _addons="$_addons velero metrics-server vpa goldilocks"
+    addons_list "$_addons"
     ;;
   eks-backups) addons_list "velero" ;;
   k3d-all)
-    addons_list "ingress dashboard prometheus loki promtail zabbix minio " \
-      "velero vpa goldilocks"
+    _addons="ingress dashboard prometheus loki promtail zabbix minio"
+    _addons="$_addons velero vpa goldilocks"
+    addons_list "$_addons"
     ;;
   k3d-backups) addons_list "minio velero" ;;
   monitoring) addons_list "prometheus loki promtail zabbix" ;;

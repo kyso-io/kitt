@@ -1,0 +1,8 @@
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: __ROUTE53_ROLE_ARN__
+extraArgs:
+  - "--aws-zone-type=public"
+sources:
+  - ingress
+registry: noop
