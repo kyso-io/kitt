@@ -1,7 +1,7 @@
 #!/bin/sh
 # ----
 # File:        ctools/eks.sh
-# Description: Functions to manage eks cluster deployments with kitt.
+# Description: Functions to manage eks deployments with terraform & kitt.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
 # Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
 # ----
@@ -16,29 +16,23 @@ INCL_CTOOLS_EKS_SH="1"
 # Variables
 # ---------
 
-# CMND_DSC="eks: manage eks cluster deployments with this tool"
+# CMND_DSC="eks: manage eks cluster deployments with terraform and this tool"
 
 # EKS defaults
 export APP_DEFAULT_CLUSTER_REGION="eu-north-1"
-APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES="eu-north-1a,eu-north-1b,eu-north-1c"
-export APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES
-export APP_DEFAULT_CLUSTER_EKS_MNG1="mng1"
-export APP_DEFAULT_CLUSTER_EKS_MNG1_AZ="eu-north-1a"
-export APP_DEFAULT_CLUSTER_EKS_MNG2="mng2"
-export APP_DEFAULT_CLUSTER_EKS_MNG2_AZ="eu-north-1b"
-export APP_DEFAULT_CLUSTER_EKS_MNG3="mng3"
-export APP_DEFAULT_CLUSTER_EKS_MNG3_AZ="eu-north-1c"
-export APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE="m5.large"
+_eks_instance_types="m5a.large,m6a.large,m5.large,m6i.large"
+export APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPES="$_eks_instance_types"
 export APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE="80"
 export APP_DEFAULT_CLUSTER_EKS_MIN_WORKERS="0"
 export APP_DEFAULT_CLUSTER_EKS_MAX_WORKERS="3"
-export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG1="1"
-export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG2="0"
-export APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG3="0"
+export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ1="1"
+export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ2="0"
+export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ3="0"
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
-export APP_DEFAULT_CLUSTER_EKS_VERSION="1.23"
+export APP_DEFAULT_CLUSTER_EKS_VERSION="1.24"
+export APP_DEFAULT_CLUSTER_CDIR_PREFIX="10.23"
 export APP_DEFAULT_CLUSTER_AWS_EBS_FS_TYPE="ext4"
-export APP_DEFAULT_CLUSTER_AWS_EBS_TYPE="gp2"
+export APP_DEFAULT_CLUSTER_AWS_EBS_TYPE="gp3"
 
 # --------
 # Includes
@@ -58,7 +52,18 @@ ctool_eks_export_variables() {
   [ -z "$__ctool_eks_export_variables" ] || return 0
   _cluster="$1"
   cluster_export_variables "$_cluster"
+  # Get AWS values
+  _aws_account_id="$(aws_get_account_id)"
+  if [ -z "$_aws_account_id" ]; then
+    echo "Can't find the aws account, call 'aws configure help'"
+    exit 1
+  fi
+  _aws_user_name="$(aws_get_user_name)"
+  export AWS_ACCOUNT_ID="$_aws_account_id"
+  export AWS_USER_NAME="$_aws_user_name"
   # Variables
+  [ "$CLUSTER_ADMINS" ] || CLUSTER_ADMINS="${AWS_USER_NAME}"
+  export CLUSTER_ADMINS
   [ "$CLUSTER_DOMAIN" ] || CLUSTER_DOMAIN="${APP_DEFAULT_CLUSTER_DOMAIN}"
   export CLUSTER_DOMAIN
   [ "$CLUSTER_EKS_VERSION" ] ||
@@ -69,24 +74,9 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_AVAILABILITY_ZONES" ] ||
     CLUSTER_AVAILABILITY_ZONES="${APP_DEFAULT_CLUSTER_AVAILABILITY_ZONES}"
   export CLUSTER_AVAILABILITY_ZONES
-  [ "$CLUSTER_EKS_MNG1" ] || CLUSTER_EKS_MNG1="${APP_DEFAULT_CLUSTER_EKS_MNG1}"
-  export CLUSTER_EKS_MNG1
-  [ "$CLUSTER_EKS_MNG1_AZ" ] ||
-    CLUSTER_EKS_MNG1_AZ="${APP_DEFAULT_CLUSTER_EKS_MNG1_AZ}"
-  export CLUSTER_EKS_MNG1_AZ
-  [ "$CLUSTER_EKS_MNG2" ] || CLUSTER_EKS_MNG2="${APP_DEFAULT_CLUSTER_EKS_MNG2}"
-  export CLUSTER_EKS_MNG2
-  [ "$CLUSTER_EKS_MNG2_AZ" ] ||
-    CLUSTER_EKS_MNG2_AZ="${APP_DEFAULT_CLUSTER_EKS_MNG2_AZ}"
-  export CLUSTER_EKS_MNG2_AZ
-  [ "$CLUSTER_EKS_MNG3" ] || CLUSTER_EKS_MNG3="${APP_DEFAULT_CLUSTER_EKS_MNG3}"
-  export CLUSTER_EKS_MNG3
-  [ "$CLUSTER_EKS_MNG3_AZ" ] ||
-    CLUSTER_EKS_MNG3_AZ="${APP_DEFAULT_CLUSTER_EKS_MNG3_AZ}"
-  export CLUSTER_EKS_MNG3_AZ
-  [ "$CLUSTER_EKS_INSTANCE_TYPE" ] ||
-    CLUSTER_EKS_INSTANCE_TYPE="${APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPE}"
-  export CLUSTER_EKS_INSTANCE_TYPE
+  [ "$CLUSTER_EKS_INSTANCE_TYPES" ] ||
+    CLUSTER_EKS_INSTANCE_TYPES="${APP_DEFAULT_CLUSTER_EKS_INSTANCE_TYPES}"
+  export CLUSTER_EKS_INSTANCE_TYPES
   [ "$CLUSTER_EKS_VOLUME_SIZE" ] ||
     CLUSTER_EKS_VOLUME_SIZE="${APP_DEFAULT_CLUSTER_EKS_VOLUME_SIZE}"
   export CLUSTER_EKS_VOLUME_SIZE
@@ -96,15 +86,18 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_MIN_WORKERS" ] ||
     CLUSTER_MIN_WORKERS="${APP_DEFAULT_CLUSTER_EKS_MIN_WORKERS}"
   export CLUSTER_MIN_WORKERS
-  [ "$CLUSTER_NUM_WORKERS_MNG1" ] ||
-    CLUSTER_NUM_WORKERS_MNG1="${APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG1}"
-  export CLUSTER_NUM_WORKERS_MNG1
-  [ "$CLUSTER_NUM_WORKERS_MNG2" ] ||
-    CLUSTER_NUM_WORKERS_MNG2="${APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG2}"
-  export CLUSTER_NUM_WORKERS_MNG2
-  [ "$CLUSTER_NUM_WORKERS_MNG3" ] ||
-    CLUSTER_NUM_WORKERS_MNG3="${APP_DEFAULT_CLUSTER_EKS_NUM_WORKERS_MNG3}"
-  export CLUSTER_NUM_WORKERS_MNG3
+  [ "$CLUSTER_WORKERS_AZ1" ] ||
+    CLUSTER_WORKERS_AZ1="${APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ1}"
+  export CLUSTER_WORKERS_AZ1
+  [ "$CLUSTER_WORKERS_AZ2" ] ||
+    CLUSTER_WORKERS_AZ2="${APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ2}"
+  export CLUSTER_WORKERS_AZ2
+  [ "$CLUSTER_WORKERS_AZ3" ] ||
+    CLUSTER_WORKERS_AZ3="${APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ3}"
+  export CLUSTER_WORKERS_AZ3
+  [ "$CLUSTER_CDIR_PREFIX" ] ||
+    CLUSTER_CDIR_PREFIX="${APP_DEFAULT_CLUSTER_CDIR_PREFIX}"
+  export CLUSTER_CDIR_PREFIX
   [ "$CLUSTER_EFS_FILESYSTEMID" ] ||
     CLUSTER_EFS_FILESYSTEMID="${APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID}"
   export CLUSTER_EFS_FILESYSTEMID
@@ -115,18 +108,29 @@ ctool_eks_export_variables() {
     CLUSTER_AWS_EBS_TYPE="${APP_DEFAULT_CLUSTER_AWS_EBS_TYPE}"
   export CLUSTER_AWS_EBS_TYPE
   # Directories
-  export EKS_TMPL_DIR="$TMPL_DIR/eks"
-  # Templates
-  export EKS_CONFIG_TMPL="$EKS_TMPL_DIR/cluster.yaml"
-  # Generated files
-  export EKS_CONFIG_YAML="$CLUST_EKS_DIR/cluster.yaml"
+  export TERRAFORM_TMPL_DIR="$TMPL_DIR/terraform"
+  export TF_EKS_TMPL_DIR="$TERRAFORM_TMPL_DIR/eks"
+  export TF_STATE_TMPL_DIR="$TERRAFORM_TMPL_DIR/state"
+  export CLUST_TF_EKS_DIR="$CLUST_TERRAFORM_DIR/eks"
+  export CLUST_TF_STATE_DIR="$CLUST_TERRAFORM_DIR/state"
+  # Files
+  export TF_EKS_CONF_TMPL="$TF_EKS_TMPL_DIR/config.tf"
+  export TF_EKS_VARS_TMPL="$TF_EKS_TMPL_DIR/variables.tf"
+  export TF_EKS_CONFIG="$CLUST_TF_EKS_DIR/config.tf"
+  export TF_EKS_VARIABLES="$CLUST_TF_EKS_DIR/variables.tf"
+  export TF_STATE_CONF_TMPL="$TF_STATE_TMPL_DIR/config.tf"
+  export TF_STATE_VARS_TMPL="$TF_STATE_TMPL_DIR/variables.tf"
+  export TF_STATE_CONFIG="$CLUST_TF_STATE_DIR/config.tf"
+  export TF_STATE_VARIABLES="$CLUST_TF_STATE_DIR/variables.tf"
+  export TF_STATE_BUCKET_NAME="kyso-$CLUSTER_NAME-terraform-$AWS_ACCOUNT_ID"
+  export TF_STATE_TABLE_NAME="kyso-$CLUSTER_NAME-terraform"
   # set variable to avoid running the function twice
   __ctool_eks_export_variables="1"
 }
 
 ctool_eks_check_directories() {
   cluster_check_directories
-  for _d in $CLUST_EKS_DIR; do
+  for _d in $CLUST_TERRAFORM_DIR; do
     [ -d "$_d" ] || mkdir "$_d"
   done
 }
@@ -134,51 +138,33 @@ ctool_eks_check_directories() {
 ctool_eks_read_variables() {
   # Read common cluster variables
   cluster_read_variables
+  # Read list of cluster administrators
+  read_value "Cluster admins (comma separated list of AWS usernames)" \
+    "${CLUSTER_ADMINS}"
+  CLUSTER_ADMINS=${READ_VALUE}
   # Read eks specific settings
   read_value "EKS Version" "${CLUSTER_EKS_VERSION}"
   CLUSTER_EKS_VERSION=${READ_VALUE}
   read_value "Cluster Region" "${CLUSTER_REGION}"
   CLUSTER_REGION=${READ_VALUE}
-  read_value "Cluster Availability Zones" "${CLUSTER_AVAILABILITY_ZONES}"
-  CLUSTER_AVAILABILITY_ZONES=${READ_VALUE}
-  read_value "Cluster EKS Node Group 1" "${CLUSTER_EKS_MNG1}"
-  CLUSTER_EKS_MNG1=${READ_VALUE}
-  read_value "Cluster EKS Node Group 1 Availability Zone" \
-    "${CLUSTER_EKS_MNG1_AZ}"
-  CLUSTER_EKS_MNG1_AZ=${READ_VALUE}
-  read_value "Cluster EKS Node Group 2" "${CLUSTER_EKS_MNG2}"
-  CLUSTER_EKS_MNG2=${READ_VALUE}
-  read_value "Cluster EKS Node Group 2 Availability Zone" \
-    "${CLUSTER_EKS_MNG2_AZ}"
-  CLUSTER_EKS_MNG2_AZ=${READ_VALUE}
-  read_value "Cluster EKS Node Group 3" "${CLUSTER_EKS_MNG3}"
-  CLUSTER_EKS_MNG3=${READ_VALUE}
-  read_value "Cluster EKS Node Group 3 Availability Zone" \
-    "${CLUSTER_EKS_MNG3_AZ}"
-  CLUSTER_EKS_MNG3_AZ=${READ_VALUE}
-  read_value "Cluster EKS Instance Type" "${CLUSTER_EKS_INSTANCE_TYPE}"
-  CLUSTER_EKS_INSTANCE_TYPE=${READ_VALUE}
+  read_value "Cluster EKS Instance Types" "${CLUSTER_EKS_INSTANCE_TYPES}"
+  CLUSTER_EKS_INSTANCE_TYPES=${READ_VALUE}
   read_value "Cluster EKS Volume Size" "${CLUSTER_EKS_VOLUME_SIZE}"
   CLUSTER_EKS_VOLUME_SIZE=${READ_VALUE}
   read_value "Cluster Min Workers" "${CLUSTER_MIN_WORKERS}"
   CLUSTER_MIN_WORKERS=${READ_VALUE}
   read_value "Cluster Max Workers" "${CLUSTER_MAX_WORKERS}"
   CLUSTER_MAX_WORKERS=${READ_VALUE}
-  read_value \
-    "MNG1 Workers (between $CLUSTER_MIN_WORKERS & $CLUSTER_MAX_WORKERS)" \
-    "${CLUSTER_NUM_WORKERS_MNG1}"
-  CLUSTER_NUM_WORKERS_MNG1=${READ_VALUE}
-  read_value \
-    "MNG2 Workers (between $CLUSTER_MIN_WORKERS & $CLUSTER_MAX_WORKERS)" \
-    "${CLUSTER_NUM_WORKERS_MNG2}"
-  CLUSTER_NUM_WORKERS_MNG2=${READ_VALUE}
-  read_value \
-    "MNG3 Workers (between $CLUSTER_MIN_WORKERS & $CLUSTER_MAX_WORKERS)" \
-    "${CLUSTER_NUM_WORKERS_MNG3}"
-  CLUSTER_NUM_WORKERS_MNG3=${READ_VALUE}
+  read_value "Cluster Workers in AZ1" "${CLUSTER_WORKERS_AZ1}"
+  CLUSTER_WORKERS_AZ1=${READ_VALUE}
+  read_value "Cluster Workers in AZ2" "${CLUSTER_WORKERS_AZ2}"
+  CLUSTER_WORKERS_AZ2=${READ_VALUE}
+  read_value "Cluster Workers in AZ3" "${CLUSTER_WORKERS_AZ3}"
+  CLUSTER_WORKERS_AZ3=${READ_VALUE}
+  read_value "Cluster CDIR Prefix" "${CLUSTER_CDIR_PREFIX}"
+  CLUSTER_CDIR_PREFIX=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
   CLUSTER_EFS_FILESYSTEMID=${READ_VALUE}
-
 }
 
 ctool_eks_print_variables() {
@@ -186,40 +172,185 @@ ctool_eks_print_variables() {
   cluster_print_variables
   # Print eks variables
   cat <<EOF
+# Comma separated list of cluster admins (aws usernames)
+ADMINS=$CLUSTER_ADMINS
+# EKS Version to use
 EKS_VERSION=$CLUSTER_EKS_VERSION
 # AWS Region to use for the EKS deployment
 REGION=$CLUSTER_REGION
-# AWS Availability Zones to use for the EKS deployment
-AVAILABILITY_ZONES=$CLUSTER_AVAILABILITY_ZONES
-# Name of the EKS node group 1
-EKS_MNG1=$CLUSTER_EKS_MNG1
-# EKS node group 1 Availability Zone
-EKS_MNG1_AZ=$CLUSTER_EKS_MNG1_AZ
-# Name of the EKS node group 2
-EKS_MNG2=$CLUSTER_EKS_MNG2
-# EKS node group 2 Availability Zone
-EKS_MNG2_AZ=$CLUSTER_EKS_MNG2_AZ
-# Name of the EKS node group 3
-EKS_MNG3=$CLUSTER_EKS_MNG3
-# EKS node group 3 Availability Zone
-EKS_MNG3_AZ=$CLUSTER_EKS_MNG3_AZ
-# EKS Instance Type
-EKS_INSTANCE_TYPE=$CLUSTER_EKS_INSTANCE_TYPE
+# EC2 Instance types to use with EKS
+EKS_INSTANCE_TYPES=$CLUSTER_EKS_INSTANCE_TYPES
 # EKS Nodes Volume Size
 EKS_VOLUME_SIZE=$CLUSTER_EKS_VOLUME_SIZE
 # Minimum Number of ECS nodes to launch as workers
 MIN_WORKERS=$CLUSTER_MIN_WORKERS
 # Maximum Number of ECS nodes to launch as workers
 MAX_WORKERS=$CLUSTER_MAX_WORKERS
-# Number of ECS nodes to launch as workers for MNG1
-NUM_WORKERS_MNG1=$CLUSTER_NUM_WORKERS_MNG1
-# Number of ECS nodes to launch as workers for MNG2
-NUM_WORKERS_MNG2=$CLUSTER_NUM_WORKERS_MNG2
-# Number of ECS nodes to launch as workers for MNG3
-NUM_WORKERS_MNG3=$CLUSTER_NUM_WORKERS_MNG3
+# Number of nodes in AZ1 (leave empty to avoid creating the AZ1)
+WORKERS_AZ1=$CLUSTER_WORKERS_AZ1
+# Number of nodes in AZ2 (leave empty to avoid creating the AZ2)
+WORKERS_AZ2=$CLUSTER_WORKERS_AZ2
+# Number of nodes in AZ3 (leave empty to avoid creating the AZ3)
+WORKERS_AZ3=$CLUSTER_WORKERS_AZ3
+# Cluster CDIR prefix (i.e. for 10.0 internal CDIR will be 10.0.0.0/16)
+CDIR_PREFIX=$CLUSTER_CDIR_PREFIX
 # EFS filesystem to use for dynamic volumes
 EFS_FILESYSTEMID=$CLUSTER_EFS_FILESYSTEMID
 EOF
+}
+
+# Function to create the S3 bucket & DynamoDB table to keep the Terraform state
+ctool_eks_setup_tf() {
+  _cluster="$1"
+  ctool_eks_export_variables "$_cluster"
+  [ -d "$CLUST_TF_STATE_DIR" ] || mkdir "$CLUST_TF_STATE_DIR"
+  echo ".terraform/" > "$CLUST_TF_STATE_DIR/.gitignore"
+  cp -a "$TF_STATE_TMPL_DIR"/*.tf "$CLUST_TF_STATE_DIR/"
+  sed \
+      -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
+      -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
+      -e "s%__TF_STATE_TABLE_NAME__%$TF_STATE_TABLE_NAME%g" \
+      "$TF_STATE_VARS_TMPL" >"$TF_STATE_VARIABLES"
+  cd "$CLUST_TF_STATE_DIR"
+  if ! aws_s3_bucket_exists "$TF_STATE_BUCKET_NAME"; then
+    rm -f "$TF_STATE_CONFIG"
+    terraform init
+    terraform apply
+  fi
+  # Generate CONFIG file & init and apply again
+  sed \
+    -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
+    -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
+    -e "s%__TF_STATE_TABLE_NAME__%$TF_STATE_TABLE_NAME%g" \
+    "$TF_STATE_CONF_TMPL" >"$TF_STATE_CONFIG"
+  terraform init
+  terraform apply
+}
+
+ctool_eks_tf_conf() {
+  _cluster="$1"
+  ctool_eks_export_variables "$_cluster"
+  if ! aws_s3_bucket_exists "$TF_STATE_BUCKET_NAME"; then
+    echo "The terraform state bucket does not exist, call 'setup-tf' subcommand"
+    exit 1
+  fi
+  [ -d "$CLUST_TF_EKS_DIR" ] || mkdir "$CLUST_TF_EKS_DIR"
+  echo ".terraform/" > "$CLUST_TF_EKS_DIR/.gitignore"
+  cp -a "$TF_EKS_TMPL_DIR"/*.tf "$CLUST_TF_EKS_DIR/"
+  # AWS_AUTH_USERS
+  _aws_auth_users_list="$CLUST_TF_EKS_DIR/aws_auth_users.txt"
+  _cmnd="/^ *# BEG: AWS_AUTH_USERS/,/^ *# END: AWS_AUTH_USERS/"
+  _cmnd="$_cmnd{/^ *# \(BEG\|END\): AWS_AUTH_USERS/d;p;}"
+  _aws_auth_users_text="$(sed -n -e "$_cmnd" "$TF_EKS_VARIABLES")"
+  bad_users=""
+  for _aws_user_name in $(echo "$CLUSTER_ADMINS" | sed -e 's/,/ /g'); do
+    _aws_user_arn="$(aws_get_user_arn "$_aws_user_name")"
+    if [ "$_aws_user_arn" ]; then
+      echo "$_aws_auth_users_text" |
+        sed -e "s%__AWS_USER_ARN__%$_aws_user_arn%g" \
+            -e "s%__AWS_USER_NAME__%$_aws_user_name%g"
+    else
+      bad_users="$_aws_user_name $bad_users"
+    fi
+  done >"$_aws_auth_users_list"
+  if [ "$bad_users" ]; then
+    echo "The following AWS users were not found:"
+    for _u in $bad_users; do echo "- $_u"; done
+    echo "Aborting !!!"
+    rm -f "$_aws_auth_users_list"
+  fi
+  # KMS_KEY_ADMINISTRATORS
+  _kms_key_administrators_list="$CLUST_TF_EKS_DIR/kms_key_administrators.txt"
+  _cmnd="/^ *# BEG: KMS_KEY_ADMINISTRATORS/,/^ *# END: KMS_KEY_ADMINISTRATORS/"
+  _cmnd="$_cmnd{/^ *# \(BEG\|END\): KMS_KEY_ADMINISTRATORS/d;p;}"
+  _kms_key_administrators_text="$(sed -n -e "$_cmnd" "$TF_EKS_VARIABLES")"
+  for _aws_user_name in $(echo "$CLUSTER_ADMINS" | sed -e 's/,/ /g'); do
+    _aws_user_arn="$(aws_get_user_arn "$_aws_user_name")"
+    echo "$_kms_key_administrators_text" |
+      sed -e "s%__AWS_USER_ARN__%$_aws_user_arn%g"
+  done >"$_kms_key_administrators_list"
+  # EKS_INSTANCE_TYPES
+  _eks_instance_types_list="$CLUST_TF_EKS_DIR/eks_instance_types.txt"
+  _cmnd="/^ *# BEG: EKS_INSTANCE_TYPES/,/^ *# END: EKS_INSTANCE_TYPES/"
+  _cmnd="$_cmnd{/^ *# \(BEG\|END\): EKS_INSTANCE_TYPES/d;p;}"
+  _eks_instance_types_text="$(sed -n -e "$_cmnd" "$TF_EKS_VARIABLES")"
+  for _itype in $(echo "$CLUSTER_EKS_INSTANCE_TYPES" | sed -e 's/,/ /g'); do
+    echo "$_eks_instance_types_text" |
+      sed -e "s%__EKS_INSTANCE_TYPE__%$_itype%g"
+  done >"$_eks_instance_types_list"
+  # AZ related values
+  [ "$CLUSTER_WORKERS_AZ1" -ne "0" ] || CLUSTER_WORKERS_AZ1="0"
+  _az1_sed="s%__AZ1_WORKERS__%$CLUSTER_WORKERS_AZ1%g"
+  _az1_sed="$_az1_sed;s%__AZ1_NAME__%${CLUSTER_REGION}a%g"
+  [ "$CLUSTER_WORKERS_AZ2" -ne "0" ] || CLUSTER_WORKERS_AZ2="0"
+  _az2_sed="s%__AZ2_WORKERS__%$CLUSTER_WORKERS_AZ2%g"
+  _az2_sed="$_az2_sed;s%__AZ2_NAME__%${CLUSTER_REGION}b%g"
+  [ "$CLUSTER_WORKERS_AZ3" -ne "0" ] || CLUSTER_WORKERS_AZ3="0"
+  _az3_sed="s%__AZ3_WORKERS__%$CLUSTER_WORKERS_AZ3%g"
+  _az3_sed="$_az3_sed;s%__AZ3_NAME__%${CLUSTER_REGION}c%g"
+  # If only the AZ1 has workers use a single nat gateway
+  if [ "$CLUSTER_WORKERS_AZ1" -gt "0" ] &&
+    [ "$CLUSTER_WORKERS_AZ2" -eq "0" ] &&
+    [ "$CLUSTER_WORKERS_AZ2" -eq "0" ]; then
+    _single_nat_gateway="true"
+  else
+    _single_nat_gateway="false"
+  fi
+  # Generate VARIABLES file
+  sed \
+    -e "s%__AWS_ACCOUNT_ID__%$AWS_ACCOUNT_ID%g" \
+    -e "s%__CLUSTER_EKS_VERSION__%$CLUSTER_EKS_VERSION%g" \
+    -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
+    -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
+    -e "s%__CLUSTER_MAX_WORKERS__%$CLUSTER_MAX_WORKERS%g" \
+    -e "s%__CLUSTER_MIN_WORKERS__%$CLUSTER_MIN_WORKERS%g" \
+    -e "s%__CLUSTER_CDIR_PREFIX__%$CLUSTER_CDIR_PREFIX%g" \
+    -e "s%__CLUSTER_EKS_VOLUME_SIZE__%$CLUSTER_EKS_VOLUME_SIZE%g" \
+    -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
+    -e "s%__SINGLE_NAT_GATEWAY__%$_single_nat_gateway%g" \
+    -e "/^ *# END: AWS_AUTH_USERS/r $_aws_auth_users_list" \
+    -e "/^ *# BEG: AWS_AUTH_USERS/,/^ *# END: AWS_AUTH_USERS/d" \
+    -e "/^ *# END: KMS_KEY_ADMINISTRATORS/r $_kms_key_administrators_list" \
+    -e "/^ *# BEG: KMS_KEY_ADMINISTRATORS/,/^ *# END: KMS_KEY_ADMINISTRATORS/d"\
+    -e "/^ *# END: EKS_INSTANCE_TYPES/r $_eks_instance_types_list" \
+    -e "/^ *# BEG: EKS_INSTANCE_TYPES/,/^ *# END: EKS_INSTANCE_TYPES/d"\
+    -e "$_az1_sed" \
+    -e "$_az2_sed" \
+    -e "$_az3_sed" \
+    "$TF_EKS_VARS_TMPL" >"$TF_EKS_VARIABLES"
+  rm -f "$_aws_auth_users_list"
+  rm -f "$_kms_key_administrators_list"
+  rm -f "$_eks_instance_types_list"
+  # Generate CONFIG file
+  sed \
+    -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
+    -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
+    -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
+    "$TF_EKS_CONF_TMPL" >"$TF_EKS_CONFIG"
+}
+
+ctool_eks_tf_init() {
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform init
+}
+
+ctool_eks_tf_plan() {
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform plan
+}
+
+ctool_eks_tf_apply() {
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform apply
+}
+
+ctool_eks_tf_destroy() {
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform destroy
 }
 
 eks_get_cluster_json() {
@@ -234,90 +365,49 @@ eks_get_cluster_status() {
   eks_get_cluster_json "$_cluster" | jq -r ".[0].Status"
 }
 
-eks_get_cluster_vpcid() {
-  _cluster="$1"
-  eks_get_cluster_json "$_cluster" | jq -r ".[0].ResourcesVpcConfig.VpcId"
-}
-
-# Installation related functions
-ctool_eks_install() {
-  _cluster="$1"
-  ctool_eks_export_variables "$_cluster"
-  # Get cluster information
-  cluster_status="$(eks_get_cluster_status)"
-  # Create the cluster if it does not exist
-  if [ "$cluster_status" ]; then
-    header "EKS cluster '${CLUSTER_NAME}' already exist"
-    echo "The cluster status is '${cluster_status}'"
-  else
-    ctool_eks_check_directories
-    header "Creating EKS cluster '${CLUSTER_NAME}'"
-    sed \
-      -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
-      -e "s%__EKS_VERSION__%$CLUSTER_EKS_VERSION%g" \
-      -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
-      -e "s%__CLUSTER_AVAILABILITY_ZONES__%$CLUSTER_AVAILABILITY_ZONES%g" \
-      -e "s%__CLUSTER_EKS_MNG1__%$CLUSTER_EKS_MNG1%g" \
-      -e "s%__CLUSTER_EKS_MNG1_AZ__%$CLUSTER_EKS_MNG1_AZ%g" \
-      -e "s%__CLUSTER_EKS_MNG2__%$CLUSTER_EKS_MNG2%g" \
-      -e "s%__CLUSTER_EKS_MNG2_AZ__%$CLUSTER_EKS_MNG2_AZ%g" \
-      -e "s%__CLUSTER_EKS_MNG3__%$CLUSTER_EKS_MNG3%g" \
-      -e "s%__CLUSTER_EKS_MNG3_AZ__%$CLUSTER_EKS_MNG3_AZ%g" \
-      -e "s%__CLUSTER_EKS_INSTANCE_TYPE__%$CLUSTER_EKS_INSTANCE_TYPE%g" \
-      -e "s%__CLUSTER_EKS_VOLUME_SIZE__%$CLUSTER_EKS_VOLUME_SIZE%g" \
-      -e "s%__CLUSTER_NUM_WORKERS_MNG1__%$CLUSTER_NUM_WORKERS_MNG1%g" \
-      -e "s%__CLUSTER_NUM_WORKERS_MNG2__%$CLUSTER_NUM_WORKERS_MNG2%g" \
-      -e "s%__CLUSTER_NUM_WORKERS_MNG3__%$CLUSTER_NUM_WORKERS_MNG3%g" \
-      -e "s%__CLUSTER_MAX_WORKERS__%$CLUSTER_MAX_WORKERS%g" \
-      -e "s%__CLUSTER_MIN_WORKERS__%$CLUSTER_MIN_WORKERS%g" \
-      "$EKS_CONFIG_TMPL" >"$EKS_CONFIG_YAML"
-    eksctl create cluster --ssh-access --config-file="$EKS_CONFIG_YAML"
-  fi
-  footer
-  kubectx "$KUBECTL_CONTEXT"
-  kubectl cluster-info
-  footer
-}
-
-ctool_eks_remove() {
-  _cluster="$1"
-  ctool_eks_export_variables "$_cluster"
-  # Remove old cluster?
-  if [ -f "$EKS_CONFIG_YAML" ]; then
-    # Get cluster status
-    cluster_status="$(eks_get_cluster_status)"
-    if [ "$cluster_status" ]; then
-      read_value "Delete cluster '${CLUSTER_NAME}' (status '$cluster_status')" \
-        "Yes"
-      if is_selected "${READ_VALUE}"; then
-        header "Deleting EKS cluster '${CLUSTER_NAME}'"
-        eksctl delete cluster --config-file="$EKS_CONFIG_YAML"
-        rm -f "$EKS_CONFIG_YAML"
-      fi
-      cluster_remove_directories
-    else
-      rm -f "$EKS_CONFIG_YAML"
-    fi
-  fi
-}
-
 ctool_eks_scale() {
   _cluster="$1"
   ctool_eks_export_variables "$_cluster"
   eksctl scale nodegroup --cluster="$CLUSTER_NAME" \
     --name="$CLUSTER_EKS_MNG1" --nodes-min="$CLUSTER_MIN_WORKERS" \
-    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_NUM_WORKERS_MNG1"
+    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_AZ1_WORKERS"
   eksctl scale nodegroup --cluster="$CLUSTER_NAME" \
     --name="$CLUSTER_EKS_MNG2" --nodes-min="$CLUSTER_MIN_WORKERS" \
-    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_NUM_WORKERS_MNG2"
+    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_AZ2_WORKERS"
   eksctl scale nodegroup --cluster="$CLUSTER_NAME" \
     --name="$CLUSTER_EKS_MNG3" --nodes-min="$CLUSTER_MIN_WORKERS" \
-    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_NUM_WORKERS_MNG3"
+    --nodes-max="$CLUSTER_MAX_WORKERS" --nodes="$CLUSTER_AZ3_WORKERS"
 }
 
 ctool_eks_status() {
   _cluster="$1"
   eks_get_cluster_status "$_cluster"
+}
+
+ctool_eks_kubeconfig() {
+  _cluster="$1"
+  ctool_eks_export_variables "$_cluster"
+  aws eks update-kubeconfig --region "$CLUSTER_REGION" --name "$CLUSTER_NAME"
+  # Try to switch to the right kubectl context
+  KUBECTL_CONTEXT="$(guess_kubectl_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
+  kubectx "$KUBECTL_CONTEXT"
+  kubectl cluster-info
+}
+
+ctool_eks_install() {
+  ctool_eks_setup_tf "$1"
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform init
+  terraform apply
+  ctool_eks_kubeconfig "$1"
+}
+
+ctool_eks_remove() {
+  ctool_eks_tf_conf "$1"
+  cd "$CLUST_TF_EKS_DIR"
+  terraform destroy
+  # TODO
 }
 
 ctool_eks_command() {
@@ -326,14 +416,23 @@ ctool_eks_command() {
   case "$_command" in
     install) ctool_eks_install "$_cluster" ;;
     remove) ctool_eks_remove "$_cluster" ;;
-    scale) ctool_eks_scale "$_cluster" ;;
+    setup-tf) ctool_eks_setup_tf "$_cluster" ;;
+    tf-conf) ctool_eks_tf_conf "$_cluster" ;;
+    tf-init) ctool_eks_tf_init "$_cluster" ;;
+    tf-plan) ctool_eks_tf_plan "$_cluster" ;;
+    tf-apply) ctool_eks_tf_apply "$_cluster" ;;
+    tf-destroy) ctool_eks_tf_destroy "$_cluster" ;;
     status) ctool_eks_status "$_cluster" ;;
+    scale) ctool_eks_scale "$_cluster" ;;
+    kubeconfig) ctool_eks_kubeconfig "$_cluster" ;;
     *) echo "Unknown eks subcommand '$_command'"; exit 1 ;;
   esac
 }
 
 ctool_eks_command_list() {
-  echo "install remove scale status"
+  _commands="install remove status scale kubeconfig"
+  _commands="$_commands setup-tf tf-conf tf-init tf-plan tf-apply tf-destroy"
+  echo "$_commands"
 }
 
 # ----

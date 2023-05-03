@@ -17,12 +17,12 @@ INCL_COMMON_CLUSTER_SH="1"
 # ---------
 
 # Guess kubectl context name
-guess_kubeclt_context() {
+guess_kubectl_context() {
   _kind="$1"
   _name="$2"
   case "$_kind" in
   k3d) echo "k3d-$_name" ;;
-  eks) kubectx | grep "@$_name\." | head -1 || true ;;
+  eks) kubectx | sed -n -e "/cluster\/$_name$/ {p}" || true ;;
   *) echo "$_name" ;;
   esac
 }
@@ -58,6 +58,7 @@ cluster_export_variables() {
   export CLUST_NS_KUBECTL_DIR="$CLUSTER_DIR/ns-kubectl"
   export CLUST_SECRETS_DIR="$CLUSTER_DIR/secrets"
   export CLUST_STORAGE_DIR="$STORAGE_DIR/$CLUST_NAME"
+  export CLUST_TERRAFORM_DIR="$CLUSTER_DIR/terraform"
   export CLUST_VOLUMES_DIR="$VOLUMES_DIR/$CLUST_NAME"
   # Files
   export CLUSTER_CONFIG="$CLUSTER_DIR/config"
@@ -84,7 +85,7 @@ EOF
   if [ "$CLUSTER_KUBECTL_CONTEXT" ]; then
     KUBECTL_CONTEXT="$CLUSTER_KUBECTL_CONTEXT"
   else
-    KUBECTL_CONTEXT="$(guess_kubeclt_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
+    KUBECTL_CONTEXT="$(guess_kubectl_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
     export CLUSTER_KUBECTL_CONTEXT="$KUBECTL_CONTEXT"
   fi
   kubectx "$KUBECTL_CONTEXT" >/dev/null 2>/dev/null || true
@@ -256,7 +257,7 @@ EOF
 cluster_remove_directories() {
   for _d in "$CLUST_EKS_DIR" "$CLUST_ENVS_DIR" "$CLUST_EXTSVC_DIR" \
     "$CLUST_HELM_DIR" "$CLUST_K3D_DIR" "$CLUST_KUBECTL_DIR" \
-    "$CLUST_NS_KUBECTL_DIR"; do
+    "$CLUST_NS_KUBECTL_DIR" "$CLUST_TERRAFORM_DIR"; do
     if [ -d "$_d" ]; then
       rm -rf "$_d"
     fi
