@@ -127,9 +127,11 @@ Save updated configuration? (Yes/No) [Yes]: yes
 
 See [Install Kyso](../src/kyso.md)
 
-# Appendix 1. Terraform scripts examples
+# Appendix 1. Terraform scripts
 
-Files available [here](./terraform/)
+Source of truth available [here](../../../lib/kitt/tmpl/terraform/)
+
+The following files are an example of use, but please double check with the [source of truth](../../../lib/kitt/tmpl/terraform/)
 
 ## variables.tf
 

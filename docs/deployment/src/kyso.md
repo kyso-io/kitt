@@ -147,3 +147,9 @@ analytics-consumer-dev                   analytics-consumer-7d87645bd8-8flgb    
 kyso-front-dev                           kyso-front-56554bccfd-j5phj                                       1/1     Running   0          5m52s
 
 ```
+
+# Annex 1. Helm files
+
+Source of truth available [here](../../../lib/kitt/tmpl/apps/)
+
+Values are replaced using kitt for comfort, but they can be replaced manually if desired
