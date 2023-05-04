@@ -1,3 +1,5 @@
+Deployment recipes available [here](./docs/deployment)
+
 = Kyso Internal Tool of Tools
 
 This repository contains a command line tool to deploy and develop the
