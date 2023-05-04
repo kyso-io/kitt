@@ -1,16 +1,16 @@
-Deployment recipes available ./docs/deployment[here]
+Deployment recipes available [here](./docs/deployment)
 
-= Kyso Internal Tool of Tools
+# Kyso Internal Tool of Tools
 
 This repository contains a command line tool to deploy and develop the
 different Kyso components.
 
 The initial prototipe will be developed using shell scripts derived from the
 existing code of `kyso-deploy` and `kyso-k3d`, but the plan is to rewrite
-everything using a portable language like https://rust-lang.org[Rust] or
-https://go.dev/[Go].
+everything using a portable language like [Rust](https://rust-lang.org) or
+[Go](https://go.dev/).
 
-== Features
+## Features
 
 The tool will include support to do the following tasks:
 
@@ -18,14 +18,14 @@ The tool will include support to do the following tasks:
   `kubectl`, `k3d`, etc.).
 
 - Manage configurations, secrets, git repositories, container images and
-  packages from the https://gitlab.kyso.io/[Kyso Gitlab Server].
+  packages from the [Kyso Gitlab Server](https://gitlab.kyso.io/).
 
 - Run containers on the developer machine using
-  https://www.docker.com/products/docker-desktop/[docker desktop] (maybe in the
-  future we can also add support for https://podman.io/[podman] or other
+  [docker desktop](https://www.docker.com/products/docker-desktop/) (maybe in the
+  future we can also add support for [podman](https://podman.io/) or other
   container execution system).
 
-- Install https://kubernetes.io/[kubernetes] clusters using https://k3d.io[k3d]
+- Install [kubernetes](https://kubernetes.io/) clusters using [k3d](https://k3d.io)
   for development and testing (requires `docker` when running the cluster on
   the local machine)
 
@@ -42,5 +42,3 @@ The tool will include support to do the following tasks:
 
 - Perform common mainteinance tasks on the `kyso` deployments (backup and
   restore databases or filesystems, update components, etc.)
-
-// vim: ts=2:sw=2:et:ai:sts=2
