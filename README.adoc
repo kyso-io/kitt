@@ -1,4 +1,4 @@
-Deployment recipes available [here](./docs/deployment)
+Deployment recipes available ./docs/deployment[here]
 
 = Kyso Internal Tool of Tools
 
