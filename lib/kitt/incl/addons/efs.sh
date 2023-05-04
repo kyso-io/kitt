@@ -77,7 +77,7 @@ addons_efs_clean_directories() {
 addons_efs_createfs() {
   addons_efs_export_variables
   _orig_efs_filesystemid="$CLUSTER_EFS_FILESYSTEMID"
-  aws_add_eks_efs_filesystem "$CLUSTER_NAME"
+  aws_add_eks_efs_filesystem "$CLUSTER_NAME" "$CLUSTER_REGION"
   if [ "$_orig_efs_filesystemid" = "$CLUSTER_EFS_FILESYSTEMID" ]; then
     echo "The filesystem '$CLUSTER_EFS_FILESYSTEMID' already exists!"
   else
@@ -117,13 +117,14 @@ EOF
   header "Installing '$_addon'"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
-  # Add EKS_EFS Policy
-  aws_add_eks_efs_policy "$EFS_EKS_EFS_POLICY_TMPL"
-  # Add role and attach it to the previous Policy
-  aws_add_eks_efs_service_account "$CLUSTER_NAME"
+#  Adding Policy and Service account NOT needed with EKS + Terraform
+#  # Add EKS_EFS Policy
+#  aws_add_eks_efs_policy "$EFS_EKS_EFS_POLICY_TMPL"
+#  # Add role and attach it to the previous Policy
+#  aws_add_eks_efs_service_account "$CLUSTER_NAME" "$CLUSTER_REGION"
   # Copy values tmpl to values.yaml
   sed \
-    -e "s%__REGION__%$DEFAULT_EKS_EFS_REGION%" \
+    -e "s%__REGION__%$CLUSTER_REGION%" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"

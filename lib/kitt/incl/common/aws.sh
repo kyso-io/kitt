@@ -17,17 +17,13 @@ INCL_AWS_SH="1"
 # ---------
 
 # For now fixed values, will make configurable later
-export DEFAULT_EKS_EBS_REGION="eu-north-1"
 export DEFAULT_EKS_EBS_POLICY_NAME="AmazonEKS_EBS_CSI_Driver_Policy"
-
-export DEFAULT_EKS_EFS_REGION="eu-north-1"
 export DEFAULT_EKS_EFS_POLICY_NAME="AmazonEKS_EFS_CSI_Driver_Policy"
 export DEFAULT_EKS_EFS_NAME="kyso-efs-filesystem"
 export DEFAULT_EKS_EFS_INGRESS_RULE="kyso-efs-eks-ingress-rule"
 export DEFAULT_EKS_EFS_SG_NAME="EfsSecurityGroup"
 export DEFAULT_EKS_EFS_SG_DESC="EKS EFS Access Security Group"
 
-export DEFAULT_VELERO_REGION="eu-north-1"
 export DEFAULT_VELERO_BUCKET="kyso-saas-velero"
 export DEFAULT_VELERO_USER="velero"
 export DEFAULT_VELERO_POLICY_NAME="velero"
@@ -45,17 +41,57 @@ fi
 # Functions
 # ---------
 
+# Queries to get account data
+aws_get_account_id() {
+  aws sts get-caller-identity --query 'Account' --output text
+}
+
+# Queries to get role data
+aws_get_role_arn() {
+  if [ "$1" ]; then
+    aws iam get-role --query 'Role.Arn' --output text --role "$1"
+  fi
+}
+
+# Queries to get user data
+aws_get_user_arn() {
+  if [ "$1" ]; then
+    aws iam get-user --query 'User.Arn' --output text --user "$1"
+  else
+    aws iam get-user --query 'User.Arn' --output text
+  fi
+}
+
+aws_get_user_name() {
+  if [ "$1" ]; then
+    aws iam get-user --query 'User.UserName' --output text --user "$1"
+  else
+    aws iam get-user --query 'User.UserName' --output text
+  fi
+}
+
+# Check if a bucket exists
+aws_s3_bucket_exists() {
+  if [ "$1" ] && aws s3api head-bucket --bucket "$1" 2>/dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # Initial versions, will generalise later
 
 # EKS/EBS
 
 aws_add_eks_ebs_policy() {
-  _tmpl="$1"
+  _region="$1"
+  _tmpl="$2"
   _policy_name="$DEFAULT_EKS_EBS_POLICY_NAME"
   if [ -f "$_tmpl" ]; then
-    _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+    _account_id="$(aws_get_account_id)"
     _policy_id="$(
       aws iam get-policy \
+        --region "$_region" \
         --policy-arn "arn:aws:iam::$_account_id:policy/$_policy_name" \
         --query 'Policy.PolicyId' \
         --output text
@@ -66,6 +102,7 @@ aws_add_eks_ebs_policy() {
       cp "$_tmpl" "$tmp_dir/iam-policy-example.json"
       cd "$tmp_dir"
       aws iam create-policy \
+        --region "$_region" \
         --policy-name "$_policy_name" \
         --policy-document "file://iam-policy-example.json"
       cd "$old_dir"
@@ -81,20 +118,20 @@ aws_add_eks_ebs_policy() {
 
 aws_add_eks_ebs_service_account() {
   _cluster="$1"
-  _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+  _region="$2"
+  _account_id="$(aws_get_account_id)"
   _policy="$DEFAULT_EKS_EBS_POLICY_NAME"
-  _region="$DEFAULT_EKS_EBS_REGION"
   # Make sure we have an iam-oidc-provider available
   eksctl utils associate-iam-oidc-provider --region="$_region" \
     --cluster="$_cluster" --approve
   # Create the service account
   eksctl create iamserviceaccount \
     --cluster "$_cluster" \
+    --region "$_region" \
     --namespace kube-system \
     --name ebs-csi-controller-sa \
     --attach-policy-arn "arn:aws:iam::$_account_id:policy/$_policy" \
-    --approve \
-    --region "$_region"
+    --approve
 }
 
 # EKS/EFS
@@ -105,9 +142,10 @@ aws_add_eks_efs_policy() {
   _tmpl="$1"
   _policy_name="$DEFAULT_EKS_EFS_POLICY_NAME"
   if [ -f "$_tmpl" ]; then
-    _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+    _account_id="$(aws_get_account_id)"
     _policy_id="$(
       aws iam get-policy \
+        --region "$_region" \
         --policy-arn "arn:aws:iam::$_account_id:policy/$_policy_name" \
         --query 'Policy.PolicyId' \
         --output text
@@ -118,6 +156,7 @@ aws_add_eks_efs_policy() {
       cp "$_tmpl" "$tmp_dir/iam-policy-example.json"
       cd "$tmp_dir"
       aws iam create-policy \
+        --region "$_region" \
         --policy-name "$_policy_name" \
         --policy-document "file://iam-policy-example.json"
       cd "$old_dir"
@@ -133,15 +172,16 @@ aws_add_eks_efs_policy() {
 
 aws_add_eks_efs_service_account() {
   _cluster="$1"
-  _account_id="$(aws sts get-caller-identity --query "Account" --output text)"
+  _region="$2"
+  _account_id="$(aws_get_account_id)"
   _policy="$DEFAULT_EKS_EFS_POLICY_NAME"
-  _region="$DEFAULT_EKS_EFS_REGION"
   # Make sure we have an iam-oidc-provider available
   eksctl utils associate-iam-oidc-provider --region="$_region" \
     --cluster="$_cluster" --approve
   # Create the service account
   eksctl create iamserviceaccount \
     --cluster "$_cluster" \
+    --region "$_region" \
     --namespace kube-system \
     --name efs-csi-controller-sa \
     --attach-policy-arn "arn:aws:iam::$_account_id:policy/$_policy" \
@@ -151,7 +191,7 @@ aws_add_eks_efs_service_account() {
 
 aws_add_eks_efs_filesystem() {
   _cluster="$1"
-  _region="$DEFAULT_EKS_EFS_REGION"
+  _region="$2"
   _sg_name="$DEFAULT_EKS_EFS_SG_NAME"
   _sg_desc="$DEFAULT_EKS_EFS_SG_DESC"
   _efs_name="$DEFAULT_EKS_EFS_NAME-$_cluster"
@@ -160,17 +200,20 @@ aws_add_eks_efs_filesystem() {
   _vpc_id="$(
     aws eks describe-cluster \
       --name "$_cluster" \
+      --region "$_region" \
       --query "cluster.resourcesVpcConfig.vpcId" \
       --output text
   )"
   _cidr_range="$(
     aws ec2 describe-vpcs \
+      --region "$_region" \
       --vpc-ids "$_vpc_id" \
       --query "Vpcs[].CidrBlock" \
       --output text
   )"
   _security_group_id="$(
     aws ec2 describe-security-groups \
+      --region "$_region" \
       --filters \
         "Name=vpc-id,Values=$_vpc_id"\
         "Name=group-name,Values=$_sg_name" \
@@ -182,6 +225,7 @@ aws_add_eks_efs_filesystem() {
     _tag_spec="ResourceType=security-group,Tags=[{Key=Name,Value=$_sg_name}]"
     _security_group_id="$(
       aws ec2 create-security-group \
+        --region "$_region" \
         --group-name "$_sg_name" \
         --description "$_sg_desc" \
         --query "SecurityGroups[*].[GroupId]" \
@@ -193,6 +237,7 @@ aws_add_eks_efs_filesystem() {
   # Allow inbound connections from the eks cluster
   _efs_eks_ingress_rule_id="$(
     aws ec2 describe-security-group-rules \
+      --region "$_region" \
       --filter \
         "Name=group-id,Values=$_security_group_id" \
         "Name=tag:Name,Values=$_efs_eks_ingress_rule" \
@@ -203,6 +248,7 @@ aws_add_eks_efs_filesystem() {
     _tag_spec="ResourceType=security-group-rule"
     _tag_spec="$_tag_spec,Tags=[{Key=Name,Value=$_efs_eks_ingress_rule}]"
     aws ec2 authorize-security-group-ingress \
+      --region "$_region" \
       --group-id "$_security_group_id" \
       --protocol tcp \
       --port 2049 \
@@ -221,7 +267,9 @@ aws_add_eks_efs_filesystem() {
   )"
   for _fid in $_file_system_ids; do
     _name="$(
-      aws efs list-tags-for-resource --resource-id "$_fid" |
+      aws efs list-tags-for-resource \
+        --region "$_region" \
+        --resource-id "$_fid" |
         jq -r '.Tags[] | select(.Key=="Name") | .Value'
     )"
     if [ "$_name" = "$_efs_name" ]; then
@@ -244,6 +292,7 @@ aws_add_eks_efs_filesystem() {
   # Create mount targets
   _subnet_ids="$(
     aws ec2 describe-subnets \
+      --region "$_region" \
       --filters "Name=vpc-id,Values=$_vpc_id" \
       --query 'Subnets[*].{SubnetId: SubnetId}' \
       --output text |
@@ -251,6 +300,7 @@ aws_add_eks_efs_filesystem() {
   )"
   echo "$_subnet_ids" | while read -r _subnet_id; do
     aws efs create-mount-target \
+      --region "$_region" \
       --file-system-id "$_file_system_id" \
       --subnet-id "$_subnet_id" \
       --security-groups "$_security_group_id" || true
@@ -263,8 +313,8 @@ aws_add_eks_efs_filesystem() {
 # Functions from https://github.com/vmware-tanzu/velero-plugin-for-aws#setup
 
 aws_create_velero_bucket() {
+  _region="$1"
   _bucket="$DEFAULT_VELERO_BUCKET"
-  _region="$DEFAULT_VELERO_REGION"
   aws s3api create-bucket --bucket "$_bucket" --region "$_region" \
     --create-bucket-configuration "LocationConstraint=$_region"
 }
@@ -297,7 +347,8 @@ aws_add_velero_user_policy() {
 }
 
 aws_create_velero_s3_env() {
-  _outf="$1"
+  _region="$1"
+  _outf="$2"
   _user="$DEFAULT_VELERO_USER"
   _json="$(aws iam create-access-key --user-name "$_user")"
   _aws_access_key_id="$(echo "$_json" | jq '.AccessKey.AccessKeyId')"
@@ -308,7 +359,7 @@ USE_MINIO=false
 AWS_ACCESS_KEY_ID=$_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=$_aws_secret_access_key
 BUCKET=$DEFAULT_VELERO_BUCKET
-REGION=$DEFAULT_VELERO_REGION
+REGION=$_region
 S3_URL=
 S3_PUBLIC_URL=
 EOF

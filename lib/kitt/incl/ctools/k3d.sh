@@ -304,7 +304,7 @@ ctool_k3d_install() {
   rm -rf "$tmp_dir"
   footer
   # Try to switch to the right kubectl context
-  KUBECTL_CONTEXT="$(guess_kubeclt_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
+  KUBECTL_CONTEXT="$(guess_kubectl_context "$CLUSTER_KIND" "$CLUSTER_NAME")"
   kubectx "$KUBECTL_CONTEXT"
   kubectl cluster-info
   footer

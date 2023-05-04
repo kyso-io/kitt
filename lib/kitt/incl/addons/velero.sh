@@ -124,7 +124,7 @@ addons_velero_read_vars() {
     read_bool "Create velero s3 env" "false"
     if is_selected "${READ_VALUE}"; then
       addons_velero_check_directories
-      aws_create_velero_s3_env "$VELERO_S3_ENV" || true
+      aws_create_velero_s3_env "$CLUSTER_REGION" "$VELERO_S3_ENV" || true
       export_env_file_vars "$VELERO_S3_ENV" "VELERO"
     fi
   else
