@@ -1,4 +1,12 @@
-# Installation instructions
+# Table of contents
+
+1. [Overview](#overview)
+2. [Installation of required tools](#installation-of-required-tools)
+3. [Infrastructure provisioning with Terraform](#infrastructure-provisioning-with-terraform)
+4. [Kyso installation](#kyso-installation)
+5. [Appendix 1. Terraform scripts](#appendix-1-terraform-scripts)
+
+# Overview
 
 These instructions describe how to install Kyso and the required infrastructure at AWS, using EKS and EFS. This is the **production recommended installation**.
 
@@ -121,9 +129,7 @@ Save updated configuration? (Yes/No) [Yes]: yes
 
 > 💡 The minimal addons required for kyso are: **ingress**, **ebs** and **efs**
 
-
-
-# Install kyso
+# Kyso installation
 
 See [Install Kyso](../src/kyso.md)
 
