@@ -120,8 +120,34 @@ Save updated configuration? (Yes/No) [Yes]: yes
 
 > 💡 **IMPORTANT**. Execute the command until it don't fail. Sometimes the operation takes too much time, exceeding the timers and provoking a failure. As the **command is idempotent**, you can securely execute it as may times as you need until it finishes successfully
 
+7. Configure the **ingress** running the following command
 
-6. Now, install all the addons required into the cluster, executing:
+```shell
+./kitt.sh addons ingress env-update
+```
+And choosing the following options
+```shell
+Ingress Helm Chart Version [9.3.22]: 
+Ingress Backend Image Registry [docker.io]: 
+Ingress Backend Image Repository in Registry [bitnami/nginx]: 
+Ingress Backend Image Tag [1.22.1-debian-11-r7]: 
+Ingress Controller Image Registry [docker.io]: 
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]: 
+Ingress Controller Image Tag [1.5.1-debian-11-r5]: 
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/home/admin/kitt-data/clusters/default/envs/ingress/ingress.env'
+-------------------------------------
+```
+
+6. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/admin/kitt-data/certificates`
+
+> ⚠️ **EXTREMELY IMPORTANT:** Ensure that the name of the certs follows this convention *domain.crt* and *domain.key*. If your domain is whatever.example.com, then your files would be **whatever.example.com.crt** and **whatever.example.com.key**
+
+
+7. Now, install all the addons required into the cluster, executing:
 
 ```shell
 ./kitt.sh addons eks-all install
