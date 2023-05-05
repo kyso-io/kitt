@@ -1,4 +1,12 @@
-# Installation instructions
+# Table of contents
+
+1. [Overview](#overview)
+2. [EC2 instance creation instructions](#ec2-instance-creation-instructions)
+3. [Installation of required tools](#installation-of-required-tools)
+4. [K3D installation](#k3d-installation)
+5. [Kyso installation](#kyso-installation)
+5. [Appendix 1. DNS configuration](#appendix-1-dns-configuration)
+# Overview
 
 These instructions describe how to install Kyso for **evaluation purposes** in a EC2 instance at AWS
 
@@ -41,76 +49,19 @@ These instructions describe how to install Kyso for **evaluation purposes** in a
 ![Connect to instance using shell](./images/6.png)
 
 
-# Installation of required tools (docker, k3d, etc.)
+# Installation of required tools
 
-1. Update apt registries running the following command
+See [Installation of required tools](../src/required-tools.md)
 
-```shell
-sudo apt update
-```
+# K3D installation
 
-2. Install **git**, **curl**, **uidmap**, **unzip** and **age** executing the following command
-
-```shell
-sudo apt install git curl unzip age uidmap --yes
-```
-
-3. Clone the **kitt** repository provided by Kyso. For example, if the provided repository is **https://gitlab.kyso.io/ext/CUSTOMER_REPOSITORY/kyso-installation**, then run:
-
-```shell 
-admin@ip-172-31-4-139:~$ git clone https://gitlab.kyso.io/ext/CUSTOMER_REPOSITORY/kyso-installation.git
-Cloning into 'kitt'...
-Username for 'https://gitlab.kyso.io': xxxx
-Password for 'https://xxx@gitlab.kyso.io': xxxxx
-remote: Enumerating objects: 3719, done.
-remote: Counting objects: 100% (1003/1003), done.
-remote: Compressing objects: 100% (278/278), done.
-remote: Total 3719 (delta 769), reused 842 (delta 688), pack-reused 2716
-Receiving objects: 100% (3719/3719), 1.45 MiB | 6.63 MiB/s, done.
-Resolving deltas: 100% (2160/2160), done.
-
-``` 
-> Kyso will provide you the required credentials
-
-4. Go into the cloned kitt folder and the bin directory
-
-```shell
-cd kitt/bin
-```
-
-5. Install all the required tools to install Kyso using the following kitt.sh command
-
-```shell
-./kitt.sh tools docker k3d kubectx kubectl helm jq krew kubelogin sops 
-```
-```log
-docker could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-k3d could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-Preparing to install k3d into /usr/local/bin
-kubectx could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-kubectl could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-helm could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-jq could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-krew could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-kubelogin could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-sops could not be found.
-Install it in /usr/local/bin? (Yes/No) [Yes]: Yes
-```
-6. Sudo as root
+1. Sudo as root
 
 ```shell
 sudo su .
 ```
 
-7. Configure the K3D cluster running the following command
+2. Configure the K3D cluster running the following command
 
 ```shell
 ./kitt.sh clust config update
@@ -126,7 +77,7 @@ To adjust the value to an empty string use a single - or edit the file.
 -------------------------------------
 Cluster kind? (eks|ext|k3d) [k3d]: 
 Cluster Kubectl Context [default]: 
-Cluster DNS Domain [lo.kyso.io]: <PUT_HERE_THE_DOMAIN_YOU_WILL_ _USE>
+Cluster DNS Domain [lo.kyso.io]: <PUT_HERE_THE_DOMAIN_YOU_WILL_USE>
 Keep cluster data in git (Yes/No) [Yes]: 
 Force SSL redirect on ingress (Yes/No) [Yes]: 
 Cluster Ingress Replicas [1]: 
@@ -161,9 +112,9 @@ Configuration saved to '/home/admin/kitt-data/clusters/default/secrets/registry.
 -------------------------------------
 ``` 
 
-> **EXTREMELY IMPORTANT:** Ensure that you put the **LoadBalancer Host IP** property to **0.0.0.0**
+> ⚠️ **EXTREMELY IMPORTANT:** Ensure that you put the **LoadBalancer Host IP** property to **0.0.0.0**
 
-8. Install k3d cluster
+3. Install k3d cluster
 
 ```shell
 ./kitt.sh clust k3d install
@@ -208,7 +159,7 @@ To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 -------------------------------------
 ```
 
-9. Check that everything is working running:
+4. Check that everything is working running:
 
 ```shell
 kubectl get pods -A
@@ -222,7 +173,7 @@ kube-system   calico-kube-controllers-788b5f94dc-pxf4x   1/1     Running   0    
 kube-system   metrics-server-5f9f776df5-bmkn9            1/1     Running   0          58m
 ```
 
-10. Configure the **ingress** running the following command
+5. Configure the **ingress** running the following command
 
 ```shell
 ./kitt.sh addons ingress env-update
@@ -244,9 +195,9 @@ ingress configuration saved to '/root/kitt-data/clusters/default/envs/ingress/in
 -------------------------------------
 ```
 
-11. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/root/kitt-data/certificates`
+6. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/root/kitt-data/certificates`
 
-> **EXTREMELY IMPORTANT:** Ensure that the name of the certs follows this convention *domain.crt* and *domain.key*. If your domain is whatever.example.com, then your files would be **whatever.example.com.crt** and **whatever.example.com.key**
+> ⚠️ **EXTREMELY IMPORTANT:** Ensure that the name of the certs follows this convention *domain.crt* and *domain.key*. If your domain is whatever.example.com, then your files would be **whatever.example.com.crt** and **whatever.example.com.key**
 
 > To copy the certs from your local machine to the EC2 instance you can run the following command
 
@@ -263,7 +214,7 @@ And to copy to the desired folder
 root@ip-172-31-4-139:/home/admin/kitt/bin# cp ../../fjbarrena.kyso.io.* /root/kitt-data/certificates/
 ```
 
-12. Install the ingress
+7. Install the ingress
 
 ```shell 
 ./kitt.sh addons ingress install
@@ -278,7 +229,7 @@ ingress-nginx-ingress-controller                   LoadBalancer   10.43.139.205 
 -------------------------------------
 ```
 
-13. Check that the ingress is listening correctly running the following command
+8. Check that the ingress is listening correctly running the following command
 
 ```shell
 ss -tnlp                   
@@ -293,157 +244,11 @@ LISTEN    0    4096     0.0.0.0:443       0.0.0.0:*
 LISTEN    0    4096     0.0.0.0:80        0.0.0.0:*
 ```
 
-Make sure it's listening to **0.0.0.0** and not to **127.0.0.1**
+> ⚠️ Make sure it's listening to **0.0.0.0** and not to **127.0.0.1**
 
 # Kyso installation
 
-1. Login into registry.kyso.io with the provided credentials, running the following command
-
-```shell
-docker login registry.kyso.io
-```
-
-2. Configure common properties for Kyso deployment running:
-
-```shell
-./kitt.sh apps common env-update
-```
-And set the following properties
-
-```logs
--------------------------------------
-Common Settings
--------------------------------------
-Space separated list of ingress hostnames [fjbarrena.kyso.io]: 
-imagePullPolicy ('Always'/'IfNotPresent') [Always]: 
-Manage TLS certificates for the ingress definitions? (Yes/No) [No]: Yes
-Port forward IP address [127.0.0.1]: 
--------------------------------------
-common configuration saved to '/root/kitt-data/clusters/default/deployments/dev/envs/common.env'
--------------------------------------
-```
-
-3. Install **MongoDB**
-
-```shell
-./kitt.sh apps mongodb install
-```
-
-4. Install **NATS**
-
-```shell
-./kitt.sh apps nats install
-```
-
-5. Install **ElasticSearch**
-
-```shell
-./kitt.sh apps elasticsearch install
-```
-
-6. Install **Mongo GUI**
-
-```shell
-./kitt.sh apps mongo-gui install
-```
-
-7. **If provided**, execute the script `kyso-exports.sh`. This script will export all the environment variables needed for the next commands. To execute the script run the following command
-
-```shell
-source kyso-exports.sh
-```
-
-8. Install **kyso-api**
-
-```shell
-./kitt.sh apps kyso-api install
-```
-> If `kyso-exports.sh` was not provided, use the following command specifying the docker image
-
-```shell
-KYSO_API_IMAGE=registry.kyso.io/kyso-io/kyso-api/develop:latest ./kitt.sh apps kyso-api install
-```
-
-9. Install **kyso-scs**
-
-```shell
-./kitt.sh apps kyso-scs install
-```
-> If `kyso-exports.sh` was not provided, use the following command specifying the docker image
-
-```shell
-KYSO_SCS_INDEXER_IMAGE=registry.kyso.io/kyso-io/kyso-indexer/develop:latest ./kitt.sh apps kyso-scs install
-```
-10. Install **kyso-front**
-
-```shell
-./kitt.sh apps kyso-front install
-```
-> If `kyso-exports.sh` was not provided, use the following command specifying the docker image
-
-```shell
-KYSO_FRONT_IMAGE=registry.kyso.io/kyso-io/kyso-front/develop:latest ./kitt.sh apps kyso-front install
-```
-10. Install **consumers**
-
-> If you are not going to use Microsoft Teams nor Slack integrations, you can skip their installation
-
-> The consumers are not mandatory, but if not installed some features wouldn't be available
-
-```shell
-./kitt.sh apps activity-feed-consumer install
-./kitt.sh apps notification-consumer install
-./kitt.sh apps slack-notifications-consumer install
-./kitt.sh apps teams-notification-consumer install
-./kitt.sh apps file-metadata-postprocess-consumer install
-./kitt.sh apps analytics-consumer install
-```
-> If `kyso-exports.sh` was not provided, use the following command specifying the docker image
-
-```shell
-ACTIVITY_FEED_CONSUMER_IMAGE=registry.kyso.io/kyso-io/consumers/activity-feed-consumer/develop:latest ./kitt.sh apps activity-feed-consumer install
-NOTIFICATION_CONSUMER_IMAGE=registry.kyso.io/kyso-io/consumers/notification-consumer/develop:latest ./kitt.sh apps notification-consumer install
-SLACK_NOTIFICATIONS_CONSUMER_IMAGE=registry.kyso.io/kyso-io/consumers/slack-notifications-consumer/develop:latest ./kitt.sh apps slack-notifications-consumer install
-TEAMS_NOTIFICATION_CONSUMER_IMAGE=registry.kyso.io/kyso-io/consumers/teams-notification-consumer/develop:latest  ./kitt.sh apps teams-notification-consumer install
-FILE_METADATA_POSTPROCESS_IMAGE=registry.kyso.io/kyso-io/consumers/file-metadata-postprocess/develop:latest ./kitt.sh apps file-metadata-postprocess-consumer install
-ANALYTICS_CONSUMER_IMAGE=registry.kyso.io/kyso-io/consumers/analytics-consumer:latest ./kitt.sh apps analytics-consumer install
-```
-
-11. Finally, install OnlyOffice server
-
-```shell
-./kitt.sh apps onlyoffice-ds install
-```
-
-12. Check that all the kubernetes pods are running executing the following command:
-
-```shell
-kubectl get pods -A
-```
-
-13. Finally, open your browser and access to your domain, in this example https://fjbarrena.kyso.io
-
-You should view something similar to this:
-
-```shell
-root@ip-172-31-4-139:/home/admin/kitt/bin# kubectl get pods -A
-NAMESPACE                                NAME                                                              READY   STATUS    RESTARTS   AGE
-mongodb-dev                              kyso-mongodb-0                                                    1/1     Running   0          163m
-nats-dev                                 kyso-nats-box-9cd6697db-fvq8d                                     1/1     Running   0          162m
-nats-dev                                 kyso-nats-0                                                       3/3     Running   0          162m
-elasticsearch-dev                        elasticsearch-master-0                                            1/1     Running   0          161m
-mongo-gui-dev                            mongo-gui-694754b6bc-2r2mn                                        1/1     Running   0          159m
-kyso-api-dev                             kyso-api-55794c75fd-bv5p7                                         1/1     Running   0          157m
-kyso-scs-dev                             kyso-scs-0                                                        4/4     Running   0          137m
-activity-feed-consumer-dev               activity-feed-consumer-7dc76d5f54-fklmr                           1/1     Running   0          12m
-notification-consumer-dev                notification-consumer-576f5c8747-f7zh6                            1/1     Running   0          11m
-slack-notifications-consumer-dev         slack-notifications-consumer-7548f87fbc-fchhd                     1/1     Running   0          11m
-teams-notification-consumer-dev          teams-notification-consumer-7fdcf75974-m9htk                      1/1     Running   0          11m
-file-metadata-postprocess-consumer-dev   file-metadata-postprocess-consumer-6f997cc7c4-vrnsb               1/1     Running   0          10m
-analytics-consumer-dev                   analytics-consumer-7d87645bd8-8flgb                               1/1     Running   0          9m8s
-kyso-front-dev                           kyso-front-56554bccfd-j5phj                                       1/1     Running   0          5m52s
-
-```
+See [Kyso installation](../src/kyso.md)
 
 # Appendix 1. DNS Configuration
 
