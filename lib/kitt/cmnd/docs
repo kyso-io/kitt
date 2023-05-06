@@ -1,0 +1,48 @@
+#!/bin/sh
+# ----
+# File:        docs
+# Description: Command to lauch a webserver to review kitt documentation
+# Author:      Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2023 Sergio Talens-Oliag <sto@kyso.io>
+# ----
+
+set -e
+
+# ---------
+# Variables
+# ---------
+
+CMND_DSC="docs: launch a webserver to view documentation"
+
+# ---------
+# Functions
+# ---------
+
+# Usage
+usage() {
+  cat <<EOF
+Command to ${CMND_DSC#*: }.
+
+Usage:
+
+  $APP_BASE_NAME $(basename "$0")
+EOF
+  exit "$1"
+}
+
+# ----
+# MAIN
+# ----
+
+DOCS_DIR="$BASE_DIR/share/doc/kitt"
+
+if [ -d "$DOCS_DIR" ]; then
+  cd "$DOCS_DIR"
+  exec python3 -m http.server
+else
+  echo "Can't find '$DOCS_DIR', build documentation to view it"
+  exit 1
+fi
+
+# ----
+# vim: ts=2:sw=2:et:ai:sts=2

@@ -1,0 +1,95 @@
+= Terraform eks scripts
+ifndef::file_includes[]
+:sourcedir: ../../../..
+endif::file_includes[]
+:tmplsdir: {sourcedir}/lib/kitt/tmpl/terraform/eks
+
+On the following sub sections we are going to include the templates for the
+terraform eks scripts, note that right now the values are replaced by `kitt.sh`
+using variables and `sed` commands.
+
+// BEG: tf script
+
+:tf_file: config.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+// BEG: tf script
+
+:tf_file: eks_oidc_roles.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+// BEG: tf script
+
+:tf_file: eks.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+// BEG: tf script
+
+:tf_file: network.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+// BEG: tf script
+
+:tf_file: outputs.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+// BEG: tf script
+
+:tf_file: variables.tf
+:tf_path: {tmplsdir}/{tf_file}
+
+== {tf_file}
+
+[source,terraform]
+.eks/{tf_file}
+----
+include::{tf_path}[]
+----
+// END: tf script
+
+

@@ -1,0 +1,19 @@
+= Kitt Documentation
+:author: Kyso Inc.
+:doctype: article
+:lang: en
+:nofooter:
+// Directories
+:docsdir: .
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+// User defined attributes
+:file_includes: true
+
+// Add document metadada on the top of the PDF (no title page)
+ifdef::backend-pdf[]
+[.text-center]
+{author} -- Version {revnumber}
+endif::backend-pdf[]
+
+include::{docsdir}/deployment/index.adoc[leveloffset=1]

@@ -1,0 +1,284 @@
+= Kyso Deployment using Amazon EC2 and k3d
+:author: Kyso Inc.
+:data-uri:
+:doctype: article
+:icons: font
+:lang: en
+ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
+:source-highlighter: rouge
+:title-page:
+:toc: left
+:toclevels: 4
+// User defined attributes
+:sourcedir: ../../..
+:docsdir: ..
+:includedir: _include
+:imagesdir: {docsdir}/images/deployment/ec2-aws-evaluation
+// define 'file_includes' to check it on the included files
+:file_includes: true
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+== Overview
+
+These instructions describe how to install Kyso for *evaluation purposes* in a EC2 instance at AWS
+
+== EC2 instance creation instructions
+
+. Open and login into AWS console
+. Open EC2 Dashboard
+. Click on Launch instance button and select option "Launch instance":
++
+image::1.png[Launch instance]
+
+. Write a *name* for the instance, i.e: kyso-pilot
+. Select *Debian* as OS
++
+[NOTE]
+======
+Kyso can be installed in *any* operating system, but this instructions are based on Debian. Other OS based in Unix might have slightly different instructions (different package manager, etc.), but the step by step, and the tools, are exactly the same.
+======
+
+. Choose the desired instance type. *t3.large is the recommended type for a pilot*
+. Click on *Create new key pair* and choose the following options (recommended, but other options are good as well)
++
+image::2.png[Create new key pair]
++
+A `.pem` file will be downloaded in your local machine, save it in a secure place
+
+. Put the following rules at Network Settings:
++
+image::3.png[Network settings]
+
+. Configure the storage to the desired size. *Recommended size for a pilot is 30GB GP3*.
+. Click on "Launch instance"
+. Create a new ElasticIP and associate it with the recently created instance
+. Click on the menu item *Instances* and select the recently created instance
+. Click on the "Connect" button. You will see the public IP of your machine. Save it for later.
+. Click on the tab *SSH Client* to configure your local machine to access through SSH to the EC2 instance
++
+image::5.png[SSH Client]
+
+. Check out that you are able to connect to the EC2 instance through SSH
++
+image::6.png[Connect to instance using shell]
+
+// == Installation of required tools
+
+include::{includedir}/required-tools.adoc[leveloffset=1]
+
+== k3d installation
+
+. Sudo as root
++
+[source,console]
+----
+$ sudo su -
+----
+
+. Configure the `k3d` cluster running the following command and selecting the options shown:
++
+[source,console]
+----
+$ ./kitt.sh clust config update
+Cluster kind? (eks|ext|k3d) []: k3d
+
+When reading values an empty string or spaces keep the default value.
+To adjust the value to an empty string use a single - or edit the file.
+-------------------------------------
+Cluster kind? (eks|ext|k3d) [k3d]:
+Cluster Kubectl Context [default]:
+Cluster DNS Domain [lo.kyso.io]: <PUT_HERE_THE_DOMAIN_YOU_WILL_USE>
+Keep cluster data in git (Yes/No) [Yes]:
+Force SSL redirect on ingress (Yes/No) [Yes]:
+Cluster Ingress Replicas [1]:
+Add pull secrets to namespaces (Yes/No) [No]:
+Use basic auth (Yes/No) [Yes]:
+Use SOPS (Yes/No) [Yes]: No
+Number of servers (Master + Agent) [1]:
+Number of workers (Agents) [0]:
+K3s Image [docker.io/rancher/k3s:v1.25.7-k3s1]:
+API Host [127.0.0.1]:
+API Port [6443]:
+LoadBalancer Host IP [127.0.0.1]: 0.0.0.0
+LoadBalancer HTTP Port [80]:
+LoadBalancer HTTPS Port [443]:
+Map Kyso development ports? (Yes/No) [No]:
+Use local storage? (Yes/No) [Yes]:
+Use local registry? (Yes/No) [No]:
+Use remote registry? (Yes/No) [Yes]:
+Use calico? (Yes/No) [Yes]:
+-------------------------------------
+Configuration saved to '/home/admin/kitt-data/clusters/default/config'
+-------------------------------------
+Remote registry configuration not found, configuring it now!
+Configuring remote registry
+-------------------------------------
+Registry NAME []: registry.kyso.io
+Registry URL []: registry.kyso.io
+Registry USER []: <PUT_HERE_CREDENTIALS_PROVIDED>
+Registry PASS []: <PUT_HERE_CREDENTIALS_PROVIDED>
+-------------------------------------
+Configuration saved to '/home/admin/kitt-data/clusters/default/secrets/registry.sops.env'
+-------------------------------------
+----
++
+[WARNING]
+=========
+*EXTREMELY IMPORTANT:* Ensure that you set the _LoadBalancer Host IP_ property to `0.0.0.0`
+=========
+
+. Install `k3d` cluster
++
+[source,console]
+----
+$ ./kitt.sh clust k3d install
+Creating K3D cluster
+-------------------------------------
+INFO[0000] Using config file /tmp/tmp.brihaIgBSN/k3d-config.yaml (k3d.io/v1alpha4#simple)
+INFO[0000] portmapping '127.0.0.1:80:80' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy]
+INFO[0000] portmapping '127.0.0.1:443:443' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy]
+INFO[0000] Prep: Network
+INFO[0000] Created network 'k3d-default'
+INFO[0000] Created image volume k3d-default-images
+INFO[0000] Starting new tools node...
+INFO[0001] Creating node 'k3d-default-server-0'
+INFO[0001] Pulling image 'ghcr.io/k3d-io/k3d-tools:5.4.9'
+INFO[0002] Pulling image 'docker.io/rancher/k3s:v1.25.7-k3s1'
+INFO[0002] Starting Node 'k3d-default-tools'
+INFO[0007] Creating LoadBalancer 'k3d-default-serverlb'
+INFO[0008] Pulling image 'ghcr.io/k3d-io/k3d-proxy:5.4.9'
+INFO[0011] Using the k3d-tools node to gather environment information
+INFO[0011] HostIP: using network gateway 172.18.0.1 address
+INFO[0011] Starting cluster 'default'
+INFO[0011] Starting servers...
+INFO[0012] Starting Node 'k3d-default-server-0'
+INFO[0017] All agents already running.
+INFO[0017] Starting helpers...
+INFO[0018] Starting Node 'k3d-default-serverlb'
+INFO[0025] Injecting records for hostAliases (incl. host.k3d.internal) and for 2 network members into CoreDNS configmap...
+INFO[0027] Cluster 'default' created successfully!
+INFO[0027] You can now use it like this:
+kubectl cluster-info
+-------------------------------------
+✔ Switched to context "k3d-default".
+Kubernetes control plane is running at https://127.0.0.1:6443
+CoreDNS is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Metrics-server is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/https:metrics-server:https/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+-------------------------------------
+----
+
+. Check that everything is working running the following:
++
+[source,console]
+----
+$ kubectl get pods -A
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
+kube-system   calico-node-gf7gd                          1/1     Running   0          58m
+kube-system   local-path-provisioner-79f67d76f8-gn6km    1/1     Running   0          58m
+kube-system   coredns-597584b69b-kj26p                   1/1     Running   0          58m
+kube-system   calico-kube-controllers-788b5f94dc-pxf4x   1/1     Running   0          58m
+kube-system   metrics-server-5f9f776df5-bmkn9            1/1     Running   0          58m
+----
+
+. Configure the *ingress* running the following command and choose the
+options shown:
++
+[source,console]
+----
+$ ./kitt.sh addons ingress env-update
+Ingress Helm Chart Version [9.3.22]:
+Ingress Backend Image Registry [docker.io]:
+Ingress Backend Image Repository in Registry [bitnami/nginx]:
+Ingress Backend Image Tag [1.22.1-debian-11-r7]:
+Ingress Controller Image Registry [docker.io]:
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]:
+Ingress Controller Image Tag [1.5.1-debian-11-r5]:
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/root/kitt-data/clusters/default/envs/ingress/ingress.env'
+-------------------------------------
+----
+
+. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/root/kitt-data/certificates`
++
+[WARNING]
+======
+
+*EXTREMELY IMPORTANT:* Ensure that the name of the certs follows this convention _domain.crt_ and _domain.key_.
+
+If your domain is
+`whatever.example.com`, then your files would be `whatever.example.com.crt` and `whatever.example.com.key`
+
+======
+
+. To copy the certs from your local machine to the EC2 instance you can run the
+following command:
++
+[source,console]
+----
+$ scp -i fjbarrena@kyso-pilot.pem fjbarrena.kyso.io.* admin@ec2-13-50-108-185.eu-north-1.compute.amazonaws.com:~/
+fjbarrena.kyso.io.crt                           100% 5676    94.0KB/s   00:00
+fjbarrena.kyso.io.key                           100% 1704    29.6KB/s   00:00
+----
++
+And to copy to the desired folder
++
+[source,console]
+----
+$ cp ../../fjbarrena.kyso.io.* /root/kitt-data/certificates/
+----
+
+. Install the ingress, you should see an output like the following:
++
+[source,console]
+----
+$ ./kitt.sh addons ingress install
+-------------------------------------
+LoadBalancer info:
+-------------------------------------
+NAME                                               TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-ingress-controller                   LoadBalancer   10.43.139.205   172.18.0.2    80:32519/TCP,443:31084/TCP   21s
+-------------------------------------
+----
+
+. Check that the ingress is listening correctly running the following command
++
+[source,console]
+----
+ss -tnlp
+----
++
+And look for the following lines:
++
+[source]
+----
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0    4096     0.0.0.0:443       0.0.0.0:*
+LISTEN    0    4096     0.0.0.0:80        0.0.0.0:*
+----
++
+[WARNING]
+=========
+Make sure it's listening on `0.0.0.0` and not on `127.0.0.1`
+=========
+
+// == Kyso installation
+
+include::{includedir}/kyso.adoc[leveloffset=1]
+
+== Appendices
+
+=== DNS Configuration
+
+Remember to add an entry to your DNS with the public IP:
+
+image::7.png[DNS entry]
+
+// === Charts `values.yaml` templates
+
+include::{includedir}/charts_values_yaml_templates.adoc[leveloffset=2]
