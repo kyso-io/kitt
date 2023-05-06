@@ -24,6 +24,9 @@ export EFS_HELM_REPO_NAME="aws-efs-csi-driver"
 export EFS_HELM_REPO_URL="https://kubernetes-sigs.github.io/aws-efs-csi-driver"
 export EFS_HELM_CHART="$EFS_HELM_REPO_NAME/aws-efs-csi-driver"
 export EFS_HELM_RELEASE="efs-csi-driver"
+export EFS_EKS_FILESYSTEM_NAME_SUFFIX="efs-filesystem"
+export EFS_EKS_FILESYSTEM_INGRESS_RULE_SUFFIX="kyso-efs-eks-ingress-rule"
+export DEFAULT_EKS_EFS_SG_DESC="EKS EFS Access Security Group"
 
 # --------
 # Includes
@@ -71,14 +74,165 @@ addons_efs_clean_directories() {
   done
 }
 
+addons_efs_check_efs() {
+  _file_system_info="$(
+    aws efs describe-file-systems \
+      --region "$_region" \
+      --file-system-id "$CLUSTER_EFS_FILESYSTEMID" \
+      --output text 2>/dev/null
+  )" || true
+  if [ "$_file_system_info" ]; then
+    echo "EFS filesystem '$_orig_efs_filesystemid' already exists"
+  fi
+}
+
+# Function from https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html
 addons_efs_createfs() {
   addons_efs_export_variables
   _orig_efs_filesystemid="$CLUSTER_EFS_FILESYSTEMID"
-  aws_add_eks_efs_filesystem "$CLUSTER_NAME" "$CLUSTER_REGION"
-  if [ "$_orig_efs_filesystemid" = "$CLUSTER_EFS_FILESYSTEMID" ]; then
-    echo "The filesystem '$CLUSTER_EFS_FILESYSTEMID' already exists!"
-  else
-    echo "The new filesystem id is '$CLUSTER_EFS_FILESYSTEMID'"
+  _cluster="$CLUSTER_NAME"
+  _region="$CLUSTER_REGION"
+  _sg_name="$_cluster-$EFS_EKS_FILESYSTEM_NAME_SUFFIX"
+  _sg_desc="$DEFAULT_EKS_EFS_SG_DESC"
+  _efs_name="$_cluster-$EFS_EKS_FILESYSTEM_NAME_SUFFIX"
+  _efs_eks_ingress_rule="$_cluster-$EFS_EKS_FILESYSTEM_INGRESS_RULE_SUFFIX"
+  # Check if the filesystem already exists
+  addons_efs_check_efs
+  # Get values
+  _private_subnets="$(
+    cd "$CLUST_TF_EKS_DIR"; terraform output -json private_subnets | jq '.[]' -r
+  )"
+  _vpc_id="$(
+    aws eks describe-cluster \
+      --name "$_cluster" \
+      --region "$_region" \
+      --query "cluster.resourcesVpcConfig.vpcId" \
+      --output text
+  )"
+  _cidr_range="$(
+    aws ec2 describe-vpcs \
+      --region "$_region" \
+      --vpc-ids "$_vpc_id" \
+      --query "Vpcs[].CidrBlock" \
+      --output text
+  )"
+  # Get or create the security group
+  _security_group_id=""
+  while [ -z "$_security_group_id" ]; do
+    _security_group_id="$(
+      aws ec2 describe-security-groups \
+        --region "$_region" \
+        --filters \
+          "Name=vpc-id,Values=$_vpc_id" \
+          "Name=group-name,Values=$_sg_name" \
+        --query "SecurityGroups[*].[GroupId]" \
+        --output text
+    )"
+    # Create security group if missing
+    if [ -z "$_security_group_id" ]; then
+      echo "Creating security group for EFS"
+      _tag_spec="ResourceType=security-group,Tags=[{Key=Name,Value=$_sg_name}]"
+      aws ec2 create-security-group \
+        --region "$_region" \
+        --group-name "$_sg_name" \
+        --description "$_sg_desc" \
+        --query "SecurityGroups[*].[GroupId]" \
+        --vpc-id "$_vpc_id" \
+        --tag-specifications "$_tag_spec" \
+        --output text >/dev/null
+    else
+      echo "Found security group for EFS with id '$_security_group_id'"
+    fi
+  done
+  # Get or create ingress rules
+  _efs_eks_ingress_rule_id=""
+  while [ -z "$_efs_eks_ingress_rule_id" ]; do
+    # Allow inbound connections from the eks cluster
+    _efs_eks_ingress_rule_id="$(
+      aws ec2 describe-security-group-rules \
+        --region "$_region" \
+        --filter \
+          "Name=group-id,Values=$_security_group_id" \
+          "Name=tag:Name,Values=$_efs_eks_ingress_rule" \
+        --query 'SecurityGroupRules[].SecurityGroupRuleId' \
+        --output text
+    )"
+    if [ -z "$_efs_eks_ingress_rule_id" ]; then
+      echo "Creating rule to allow EFS access"
+      _tag_spec="ResourceType=security-group-rule"
+      _tag_spec="$_tag_spec,Tags=[{Key=Name,Value=$_efs_eks_ingress_rule}]"
+      aws ec2 authorize-security-group-ingress \
+        --region "$_region" \
+        --group-id "$_security_group_id" \
+        --protocol tcp \
+        --port 2049 \
+        --tag-specifications "$_tag_spec" \
+        --cidr "$_cidr_range"
+    else
+      echo "Found rule to allow EFS access with id '$_efs_eks_ingress_rule_id'"
+    fi
+  done
+  # Create fileystem if missing
+  _file_system_id=""
+  while [ -z "$_file_system_id" ]; do
+    _file_system_ids="$(
+      aws efs describe-file-systems \
+        --region "$_region" \
+        --query "FileSystems[*].[FileSystemId]" \
+        --output text
+    )"
+    for _fid in $_file_system_ids; do
+      _name="$(
+        aws efs list-tags-for-resource \
+          --region "$_region" \
+          --resource-id "$_fid" |
+          jq -r '.Tags[] | select(.Key=="Name") | .Value'
+      )"
+      if [ "$_name" = "$_efs_name" ]; then
+        _file_system_id="$_fid"
+        break
+      fi
+    done
+    if [ -z "$_file_system_id" ]; then
+      echo "Creating EFS filesystem"
+      aws efs create-file-system \
+        --region "$_region" \
+        --performance-mode generalPurpose \
+        --throughput-mode bursting \
+        --encrypted \
+        --tags "Key=Name,Value=$_efs_name" \
+        --query 'FileSystemId' \
+        --output text
+      # FIXME: Small delay to make sure the filesystem is created
+      sleep 10
+    else
+      echo "Found EFS filesystem with id '$_file_system_id'"
+    fi
+  done
+  export CLUSTER_EFS_FILESYSTEMID="$_file_system_id"
+  # Create mount targets on the private subnets
+  echo "$_private_subnets" | while read -r _sid; do
+    _query="MountTargets[?SubnetId=='$_sid'].{MountTargetId: MountTargetId}"
+    _mount_target_id="$(
+      aws efs describe-mount-targets \
+        --region "$_region" \
+        --file-system-id "$_file_system_id" \
+        --query "$_query" \
+        --output text
+    )"
+    if [ -z "$_mount_target_id" ]; then
+      echo "Creating mount target for subnet '$_sid'"
+      aws efs create-mount-target \
+        --region "$_region" \
+        --file-system-id "$_file_system_id" \
+        --subnet-id "$_sid" \
+        --security-groups "$_security_group_id" || true
+    else
+      echo "Found mount target '$_mount_target_id' for subnet '$_sid'"
+    fi
+  done
+  if [ "$_orig_efs_filesystemid" != "$CLUSTER_EFS_FILESYSTEMID" ]; then
+    echo "The EFS filesystem '$_file_system_id' is NEW!"
     if [ -f "$CLUSTER_CONFIG" ]; then
       read_bool "Save updated configuration?" "Yes"
     else
@@ -97,6 +251,15 @@ addons_efs_install() {
   if [ -z "$CLUSTER_EFS_FILESYSTEMID" ]; then
     cat <<EOF
 Can't setup the EFS dynamic provisioner without an EFS File system ID.
+
+Create it with the 'createfs' subcommand and update the cluster configuration.
+EOF
+    exit 1
+  fi
+  # Abort if the filesystem can't be found
+  if [ -z "$(addons_efs_check_efs)" ]; then
+    cat <<EOF
+Can't find the EFS file system '$CLUSTER_EFS_FILESYSTEMID'.
 
 Create it with the 'createfs' subcommand and update the cluster configuration.
 EOF
