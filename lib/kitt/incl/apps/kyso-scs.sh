@@ -1033,8 +1033,7 @@ apps_kyso_scs_status() {
   if find_namespace "$_ns"; then
     kubectl get -n "$_ns" all,cronjobs,endpoints,ingress,secrets,pvc
     echo ""
-    kubectl get "pv/$_ns"
-
+    kubectl get "pv/$_ns" 2>/dev/null || true
   else
     echo "Namespace '$_ns' for '$_app' not found!"
   fi
