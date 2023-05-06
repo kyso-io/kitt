@@ -207,6 +207,7 @@ ctool_eks_setup_tf() {
   echo ".terraform/" > "$CLUST_TF_STATE_DIR/.gitignore"
   cp -a "$TF_STATE_TMPL_DIR"/*.tf "$CLUST_TF_STATE_DIR/"
   sed \
+      -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
       -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
       -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
       -e "s%__TF_STATE_TABLE_NAME__%$TF_STATE_TABLE_NAME%g" \
@@ -219,6 +220,7 @@ ctool_eks_setup_tf() {
   fi
   # Generate CONFIG file & init and apply again
   sed \
+    -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
     -e "s%__CLUSTER_REGION__%$CLUSTER_REGION%g" \
     -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
     -e "s%__TF_STATE_TABLE_NAME__%$TF_STATE_TABLE_NAME%g" \
