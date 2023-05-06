@@ -27,9 +27,9 @@ export APP_DEFAULT_CLUSTER_EKS_MIN_WORKERS="0"
 export APP_DEFAULT_CLUSTER_EKS_MAX_WORKERS="3"
 export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ1="1"
 export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ2="0"
-export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ3="0"
+export APP_DEFAULT_CLUSTER_EKS_WORKERS_AZ3=""
 export APP_DEFAULT_CLUSTER_EFS_FILESYSTEMID=""
-export APP_DEFAULT_CLUSTER_EKS_VERSION="1.24"
+export APP_DEFAULT_CLUSTER_EKS_VERSION="1.25"
 export APP_DEFAULT_CLUSTER_CDIR_PREFIX="10.23"
 export APP_DEFAULT_CLUSTER_AWS_EBS_FS_TYPE="ext4"
 export APP_DEFAULT_CLUSTER_AWS_EBS_TYPE="gp3"
@@ -281,19 +281,31 @@ ctool_eks_tf_conf() {
       sed -e "s%__EKS_INSTANCE_TYPE__%$_itype%g"
   done >"$_eks_instance_types_list"
   # AZ related values
-  [ "$CLUSTER_WORKERS_AZ1" -ne "0" ] || CLUSTER_WORKERS_AZ1="0"
-  _az1_sed="s%__AZ1_WORKERS__%$CLUSTER_WORKERS_AZ1%g"
-  _az1_sed="$_az1_sed;s%__AZ1_NAME__%${CLUSTER_REGION}a%g"
-  [ "$CLUSTER_WORKERS_AZ2" -ne "0" ] || CLUSTER_WORKERS_AZ2="0"
-  _az2_sed="s%__AZ2_WORKERS__%$CLUSTER_WORKERS_AZ2%g"
-  _az2_sed="$_az2_sed;s%__AZ2_NAME__%${CLUSTER_REGION}b%g"
-  [ "$CLUSTER_WORKERS_AZ3" -ne "0" ] || CLUSTER_WORKERS_AZ3="0"
-  _az3_sed="s%__AZ3_WORKERS__%$CLUSTER_WORKERS_AZ3%g"
-  _az3_sed="$_az3_sed;s%__AZ3_NAME__%${CLUSTER_REGION}c%g"
+  if [ "$CLUSTER_WORKERS_AZ1" ]; then
+    _az1_sed="s%__AZ1_NAME__%${CLUSTER_REGION}a%g"
+    _az1_sed="$_az1_sed;s%__AZ1_WORKERS__%$CLUSTER_WORKERS_AZ1%g"
+  else
+    CLUSTER_WORKERS_AZ1="0"
+    _az1_sed="/__AZ1_NAME__/d;/__AZ1_WORKERS__/d"
+  fi
+  if [ "$CLUSTER_WORKERS_AZ2" ]; then
+    _az2_sed="s%__AZ2_NAME__%${CLUSTER_REGION}b%g"
+    _az2_sed="$_az2_sed;s%__AZ2_WORKERS__%$CLUSTER_WORKERS_AZ2%g"
+  else
+    CLUSTER_WORKERS_AZ2="0"
+    _az2_sed="/__AZ2_NAME__/d;/__AZ2_WORKERS__/d"
+  fi
+  if [ "$CLUSTER_WORKERS_AZ3" ]; then
+    _az3_sed="s%__AZ3_NAME__%${CLUSTER_REGION}c%g"
+    _az3_sed="$_az3_sed;s%__AZ3_WORKERS__%$CLUSTER_WORKERS_AZ3%g"
+  else
+    CLUSTER_WORKERS_AZ3="0"
+    _az3_sed="/__AZ3_NAME__/d;/__AZ3_WORKERS__/d"
+  fi
   # If only the AZ1 has workers use a single nat gateway
   if [ "$CLUSTER_WORKERS_AZ1" -gt "0" ] &&
     [ "$CLUSTER_WORKERS_AZ2" -eq "0" ] &&
-    [ "$CLUSTER_WORKERS_AZ2" -eq "0" ]; then
+    [ "$CLUSTER_WORKERS_AZ3" -eq "0" ]; then
     _single_nat_gateway="true"
   else
     _single_nat_gateway="false"

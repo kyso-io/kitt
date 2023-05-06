@@ -50,20 +50,14 @@ variable "kms_key_administrators" {
   ]
 }
 
-variable "eks_mng" {
+variable "eks_mng_defaults" {
   type = object({
-    az1_size       = string
-    az2_size       = string
-    az3_size       = string
     min_size       = string
     max_size       = string
     disk_size      = string
     instance_types = list(string)
   })
   default = {
-    az1_size       = "__AZ1_WORKERS__"
-    az2_size       = "__AZ2_WORKERS__"
-    az3_size       = "__AZ3_WORKERS__"
     min_size       = "__CLUSTER_MIN_WORKERS__"
     max_size       = "__CLUSTER_MAX_WORKERS__"
     disk_size      = "__CLUSTER_EKS_VOLUME_SIZE__"
@@ -73,6 +67,15 @@ variable "eks_mng" {
 # END: EKS_INSTANCE_TYPES
     ]
   }
+}
+
+variable "eks_mng_list" {
+  type = list(map(string))
+  default = [
+    { name: "__AZ1_NAME__", size: "__AZ1_WORKERS__" },
+    { name: "__AZ2_NAME__", size: "__AZ2_WORKERS__" },
+    { name: "__AZ3_NAME__", size: "__AZ3_WORKERS__" },
+  ]
 }
 
 # We asume that are always using three availability zones on the CLUSTER_REGION
