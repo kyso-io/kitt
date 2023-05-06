@@ -17,8 +17,6 @@ INCL_AWS_SH="1"
 # ---------
 
 # For now fixed values, will make configurable later
-export DEFAULT_EKS_EBS_POLICY_NAME="AmazonEKS_EBS_CSI_Driver_Policy"
-export DEFAULT_EKS_EFS_POLICY_NAME="AmazonEKS_EFS_CSI_Driver_Policy"
 export DEFAULT_EKS_EFS_NAME="kyso-efs-filesystem"
 export DEFAULT_EKS_EFS_INGRESS_RULE="kyso-efs-eks-ingress-rule"
 export DEFAULT_EKS_EFS_SG_NAME="EfsSecurityGroup"
