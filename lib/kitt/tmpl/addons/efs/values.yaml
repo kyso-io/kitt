@@ -1,6 +1,19 @@
-image:
-  repository: "602401143452.dkr.ecr.__REGION__.amazonaws.com/eks/aws-efs-csi-driver"
 controller:
   serviceAccount:
-    create: false
-    name: efs-csi-controller-sa
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::__AWS_ACCOUNT_ID__:role/__CLUSTER_NAME__-efs-csi-driver
+
+node:
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::__AWS_ACCOUNT_ID__:role/__CLUSTER_NAME__-efs-csi-driver
+
+storageClasses:
+- name: efs-sc
+  parameters:
+    provisioningMode: efs-ap
+    fileSystemId: __EFS_FILESYSTEMID__
+    directoryPerms: "700"
+    uid: "2020"
+    gid: "2020"
+    basePath: "/efs" # optional

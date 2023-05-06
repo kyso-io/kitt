@@ -49,12 +49,9 @@ addons_efs_export_variables() {
   export EFS_HELM_DIR="$CLUST_HELM_DIR/efs"
   export EFS_KUBECTL_DIR="$CLUST_KUBECTL_DIR/efs"
   # Templates
-  export EFS_EKS_EFS_POLICY_TMPL="$EFS_TMPL_DIR/iam-policy-example.json"
   export EFS_HELM_VALUES_TMPL="$EFS_TMPL_DIR/values.yaml"
-  export EFS_STORAGECLASS_TMPL="$EFS_TMPL_DIR/storageclass.yaml"
   # Files
   export EFS_HELM_VALUES_YAML="$EFS_HELM_DIR/values.yaml"
-  export EFS_STORAGECLASS_YAML="$EFS_KUBECTL_DIR/storageclass.yaml"
   # Set variable to avoid loading variables twice
   __addons_efs_export_variables="1"
 }
@@ -117,22 +114,14 @@ EOF
   header "Installing '$_addon'"
   # Check helm repo
   check_helm_repo "$_repo_name" "$_repo_url"
-#  Adding Policy and Service account NOT needed with EKS + Terraform
-#  # Add EKS_EFS Policy
-#  aws_add_eks_efs_policy "$EFS_EKS_EFS_POLICY_TMPL"
-#  # Add role and attach it to the previous Policy
-#  aws_add_eks_efs_service_account "$CLUSTER_NAME" "$CLUSTER_REGION"
-  # Copy values tmpl to values.yaml
+  # Create values.yaml
   sed \
-    -e "s%__REGION__%$CLUSTER_REGION%" \
+    -e "s%__CLUSTER_NAME__%$CLUSTER_NAME%g" \
+    -e "s%__EFS_FILESYSTEMID__%$CLUSTER_EFS_FILESYSTEMID%" \
+    -e "s%__AWS_ACCOUNT_ID__%$_aws_account_id%g" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
-  # Add storageclass
-  sed \
-    -e "s%__EFS_FILESYSTEMID__%$CLUSTER_EFS_FILESYSTEMID%" \
-    "$EFS_STORAGECLASS_TMPL" >"$EFS_STORAGECLASS_YAML"
-  kubectl_apply "$EFS_STORAGECLASS_YAML"
   footer
 }
 
@@ -146,7 +135,6 @@ addons_efs_remove() {
   if [ -f "$_values_yaml" ]; then
     rm -f "$_values_yaml"
   fi
-  kubectl_delete "$EFS_STORAGECLASS_YAML" || true
   addons_efs_clean_directories
 }
 
