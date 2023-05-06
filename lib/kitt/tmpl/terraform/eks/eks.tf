@@ -27,26 +27,19 @@ module "eks" {
 
   # Defaults
   eks_managed_node_group_defaults = {
-    min_size       = var.eks_mng["min_size"]
-    max_size       = var.eks_mng["max_size"]
-    instance_types = var.eks_mng["instance_types"]
-    disk_size      = var.eks_mng["disk_size"]
+    min_size       = var.eks_mng_defaults["min_size"]
+    max_size       = var.eks_mng_defaults["max_size"]
+    instance_types = var.eks_mng_defaults["instance_types"]
+    disk_size      = var.eks_mng_defaults["disk_size"]
     capacity_type  = "ON_DEMAND"
   }
 
   eks_managed_node_groups = {
-    az1_node_group = {
-      desired_size = var.eks_mng["az1_size"]
-      subnet_ids = [module.vpc.private_subnets[0]]
-    }
-    az2_node_group = {
-      desired_size = var.eks_mng["az2_size"]
-      subnet_ids = [module.vpc.private_subnets[1]]
-    }
-    az3_node_group = {
-      desired_size = var.eks_mng["az3_size"]
-      subnet_ids = [module.vpc.private_subnets[2]]
-    }
+    for i, v in var.eks_mng_list:
+      v["name"] => {
+        desired_size = v["size"]
+        subnet_ids = [module.vpc.private_subnets[i]]
+      }
   }
 
   # extend node-to-node security group rules
