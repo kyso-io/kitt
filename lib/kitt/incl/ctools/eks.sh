@@ -418,10 +418,14 @@ ctool_eks_install() {
 }
 
 ctool_eks_remove() {
-  ctool_eks_tf_conf "$1"
-  cd "$CLUST_TF_EKS_DIR"
-  terraform destroy
-  # TODO
+  if [ -d "$CLUST_TF_EKS_DIR" ]; then
+    ctool_eks_tf_conf "$1"
+    _opwd="$(pwd)"
+    cd "$CLUST_TF_EKS_DIR"
+    terraform destroy
+    cd "$_opwd"
+  fi
+  cluster_remove_directories
 }
 
 ctool_eks_command() {
