@@ -1,0 +1,30 @@
+= Kyso Deployment Options
+ifndef::file-includes[]
+:author: Kyso Inc.
+:doctype: article
+:lang: en
+:nofooter:
+// Directories (update sourcedir to point to the repository base)
+:sourcedir: ../..
+:docsdir: ..
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+// Add document metadada on the top of the PDF (no title page)
+ifdef::backend-pdf[]
+[.text-center]
+{author} -- Version {revnumber}
+endif::backend-pdf[]
+endif::file-includes[]
+
+// Adjust extension depending on the document type
+ifndef::backend-pdf[:ext: html]
+ifdef::backend-pdf[:ext: pdf]
+:ec2-eval: {docsdir}/deployment/ec2-aws-evaluation
+:eks-prod: {docsdir}/deployment/eks-efs-aws-recommended-installation
+
+// Links to the documents
+* link:{ec2-eval}.{ext}[EC2 AWS single node using K3D for evaluation purposes^]
+ifndef::backednd-pdf[(link:{ec2-eval}.pdf[PDF^])]
+* link:{eks-prod}.{ext}[Production ready EKS EFS AWS with multiple availability zones^]
+ifndef::backednd-pdf[(link:{eks-prod}.pdf[PDF^])]

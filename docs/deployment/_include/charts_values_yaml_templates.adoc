@@ -1,0 +1,218 @@
+= Charts `values.yaml` templates
+
+ifndef::file_includes[]
+:sourcedir: ../../../..
+endif::file_includes[]
+:tmplsdir: {sourcedir}/lib/kitt/tmpl/apps
+
+On the following sub sections we are going to include the templates for the
+application charts, note that right now the values are replaced by `kitt.sh`
+using variables and `sed` commands.
+
+// BEG: app values
+:app_name: activity-feed-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: analytics-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: elasticsearch
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: file-metadata-postprocess-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: imagebox
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: kyso-api
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: kyso-front
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: kyso-nbdime
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: kyso-scs
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: mongodb
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: mongo-gui
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: nats
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: notification-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: onlyoffice-ds
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: slack-notifications-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
+:app_name: teams-notification-consumer
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values

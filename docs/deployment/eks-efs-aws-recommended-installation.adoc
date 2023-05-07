@@ -1,0 +1,209 @@
+= Kyso production deployment on Amazon EKS
+:author: Kyso Inc.
+:data-uri:
+:doctype: article
+:icons: font
+:lang: en
+ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
+:source-highlighter: rouge
+:title-page:
+:toc: left
+:toclevels: 4
+// User defined attributes
+:sourcedir: ../../..
+:docsdir: ..
+:includedir: _include
+:imagesdir: {docsdir}/images/deployment/eks-efs-aws-recommended-installation
+// define 'file_includes' to check it on the included files
+:file_includes: true
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+== Overview
+
+These instructions describe how to install Kyso and the required infrastructure at AWS, using EKS and EFS. This is the *production recommended installation*.
+
+The following diagrams summarize the global system architecture:
+
+image::diagram.png[Systems diagram, title="Global system architecture"]
+
+image::diagram-2.png[Detailed systems diagram, title="Pods interconnection and relationships"]
+
+These instructions were tested on Ubuntu and Debian operating systems. Minor adjustments would be needed if the operating system is different.
+
+// == Installation of required tools
+
+include::{includedir}/required-tools.adoc[leveloffset=1]
+
+== Infrastructure provisioning with Terraform
+
+Kyso provides *kitt*, a CLI tool that eases the generation (and execution) of the terraform scripts which provisions the infrastructure in AWS. If you prefer to generate and execute by yourself the terraform scripts, please move to the appendices (there is a section about the terraform templates) and add manually your information (users, regions, etc.).
+
+[NOTE]
+======
+We recommend you to use *kitt* ;)
+======
+
+If you are using *kitt*, continue reading and follow the next steps.
+
+. Login into aws CLI with an account with enough permissions (administrator)
++
+[NOTE]
+======
+terraform and kitt uses aws cli under the hood
+======
+
+. Run the following kitt command to configure the variables related to the EKS cluster, and adjust them depending on your needs.
++
+[source,console]
+----
+$ ./kitt.sh clust config update
+...
+-------------------------------------
+Update configuration? (Yes/No) [No]: Yes
+Configuring cluster 'default'
+-------------------------------------
+When reading values an empty string or spaces keep the default value.
+To adjust the value to an empty string use a single - or edit the file.
+-------------------------------------
+Cluster kind? (eks|ext|k3d) []: eks
+Cluster Kubectl Context []: terraform-test
+Cluster DNS Domain []: terraform-test.kyso.io
+Keep cluster data in git (Yes/No) []: Yes
+Force SSL redirect on ingress (Yes/No) []: Yes
+Cluster Ingress Replicas []: 1
+Add pull secrets to namespaces (Yes/No) []: Yes
+Use basic auth (Yes/No) []: Yes
+Use SOPS (Yes/No) []: No
+Cluster admins (comma separated list of AWS usernames) []: sto,fjbarrena
+EKS Version []: 1.25
+Cluster Region []: eu-north-1
+Cluster EKS Instance Types []: m5a.large,m6a.large,m5.large,m6i.large
+Cluster EKS Volume Size []: 80
+Cluster Min Workers []: 0
+Cluster Max Workers []: 3
+Cluster Workers in AZ1 []: 1
+Cluster Workers in AZ2 []: 0
+Cluster Workers in AZ3 []: 0
+Cluster CDIR Prefix []: 10.23
+Cluster EFS fileSystemId []:
+Save updated configuration? (Yes/No) [Yes]: Yes
+-------------------------------------
+Configuration saved to '/home/admin/kitt-data/clusters/default/config'
+-------------------------------------
+Remote registry configuration not found, configuring it now!
+Configuring remote registry
+-------------------------------------
+Registry NAME []: registry.kyso.io
+Registry URL []: registry.kyso.io
+Registry USER []: <PUT_HERE_CREDENTIALS_PROVIDED>
+Registry PASS []: <PUT_HERE_CREDENTIALS_PROVIDED>
+-------------------------------------
+Configuration saved to '/home/admin/kitt-data/clusters/default/secrets/registry.sops.env'
+-------------------------------------
+----
++
+[NOTE]
+======
+These values are used to generate terraform scripts
+======
+
+. Then, execute the following command to create the EKS cluster
++
+[source,console]
+----
+$ ./kitt.sh clust eks install
+----
++
+[WARNING]
+=========
+This process needs several minutes, depending on the number of workers, instance types, etc.
+=========
++
+[NOTE]
+======
+Terraform stores the state of the deployment in S3 and DynamoDB as explained in the https://developer.hashicorp.com/terraform/language/settings/backends/s3[official documentation]
+======
+
+. Once finished, your local kubernetes context will be changed to the new EKS cluster
++
+[WARNING]
+=========
+If that don't happens, run the command `./kitt.sh clust eks kubeconfig` to switch to the new EKS cluster context
+=========
+
+. Check that effectively the kubectl context changed to your new EKS cluster running the following command:
++
+[source,console]
+----
+$ kubectl get nodes
+----
+
+. Then, create the *efs* filesystem
++
+[source,console]
+----
+$ ./kitt.sh addons efs createfs
+...
+The new filesystem id is 'fs-99999999999999'
+Save updated configuration? (Yes/No) [Yes]: yes
+----
++
+[WARNING]
+=========
+*IMPORTANT*. Execute the command until it don't fail. Sometimes the operation takes too much time, exceeding the timers and provoking a failure. As the *command is idempotent*, you can securely execute it as may times as you need until it finishes successfully
+=========
+
+. Configure the *ingress* running the following command and choosing the
+options shown:
++
+[source,console]
+----
+$ ./kitt.sh addons ingress env-update
+Ingress Helm Chart Version [9.3.22]:
+Ingress Backend Image Registry [docker.io]:
+Ingress Backend Image Repository in Registry [bitnami/nginx]:
+Ingress Backend Image Tag [1.22.1-debian-11-r7]:
+Ingress Controller Image Registry [docker.io]:
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]:
+Ingress Controller Image Tag [1.5.1-debian-11-r5]:
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/home/admin/kitt-data/clusters/default/envs/ingress/ingress.env'
+-------------------------------------
+----
+
+. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/admin/kitt-data/certificates`
++
+[WARNING]
+=========
+*EXTREMELY IMPORTANT:* Ensure that the name of the certs follows this convention _domain.crt_ and _domain.key_. If your domain is whatever.example.com, then your files would be *whatever.example.com.crt* and *whatever.example.com.key*
+=========
+
+. Now, install all the addons required into the cluster, executing:
++
+[source,console]
+----
+$ ./kitt.sh addons eks-all install
+----
++
+[NOTE]
+======
+The minimal addons required for kyso are: *ingress*, *ebs* and *efs*
+======
+
+// == Kyso installation
+
+include::{includedir}/kyso.adoc[leveloffset=1]
+
+== Appendices
+
+// === Terraform eks scripts 
+
+include::{includedir}/terraform_eks_scripts.adoc[leveloffset=2]
+
+// === Charts `values.yaml` templates
+
+include::{includedir}/charts_values_yaml_templates.adoc[leveloffset=2]

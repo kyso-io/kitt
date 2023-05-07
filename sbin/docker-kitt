@@ -91,13 +91,15 @@ docker_build() {
     )"
   fi
   DOCKER_BUILD_COMMAND="DOCKER_BUILDKIT=1 docker build${BUILD_ARGS}"
-  DOCKER_BUILD_COMMAND="$DOCKER_BUILD_COMMAND --tag '$IMAGE_TAG' ."
+  DOCKER_BUILD_COMMAND="$DOCKER_BUILD_COMMAND --tag '$IMAGE_URI' ."
   ret="0"
   # Create version file
   VERSION_INFO="$(./bin/kitt.sh version)"
   echo "Build version information"
   echo "---"
   echo "$VERSION_INFO" | tee version.txt
+  echo "---"
+  echo "Build command: '$DOCKER_BUILD_COMMAND'"
   echo "---"
   eval "$DOCKER_BUILD_COMMAND" || ret="$?"
   rm -f version.txt
