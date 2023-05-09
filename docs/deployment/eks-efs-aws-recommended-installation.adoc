@@ -219,6 +219,8 @@ Then, configure two CNAME registries in your DNS pointing to the configured doma
 
 image::dns_configuration_aws.png[DNS Configuration, title="DNS Configuration"]
 
+{empty} +
+
 // == Troubleshooting
 
 include::{includedir}/troubleshooting.adoc[leveloffset=1]
