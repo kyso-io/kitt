@@ -198,7 +198,9 @@ The minimal addons required for kyso are: *ingress*, *ebs* and *efs*
 // == Kyso installation
 
 include::{includedir}/kyso.adoc[leveloffset=1]
+
 {empty} +
+
 == DNS configuration
 
 . Extract the domain name from AWS executing the following command:
