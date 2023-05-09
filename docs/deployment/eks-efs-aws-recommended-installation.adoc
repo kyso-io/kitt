@@ -198,6 +198,24 @@ The minimal addons required for kyso are: *ingress*, *ebs* and *efs*
 
 include::{includedir}/kyso.adoc[leveloffset=1]
 
+== DNS configuration
+
+. Extract the domain name from AWS executing the following command:
+
++
+[source,console]
+----
+kubectl get svc -A | grep ingress
+ingress                       ingress-nginx-ingress-controller                   LoadBalancer   172.20.135.99    a1605eb9dc0aa4870a9d24ede549695a-1762245390.eu-west-1.elb.amazonaws.com   80:32609/TCP,443:30680/TCP                              107m
+ingress                       ingress-nginx-ingress-controller-default-backend   ClusterIP      172.20.96.153    <none>                                                                    80/TCP                                                  107m
+----
+
+In this case, we want **a1605eb9dc0aa4870a9d24ede549695a-1762245390.eu-west-1.elb.amazonaws.com**
+
+Then, configure two CNAME registries in your DNS pointing to the configured domain (the following example is using Cloudflare)
+
+image::dns_configuration_aws.png[DNS Configuration, title="DNS Configuration"]
+
 // == Troubleshooting
 
 include::{includedir}/troubleshooting.adoc[leveloffset=1]
