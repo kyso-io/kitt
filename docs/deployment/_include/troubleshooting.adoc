@@ -4,7 +4,6 @@
 
 This happens when the cluster has two default StorageClasses, and the error output is similar to the next onlyoffice
 
-+
 [source,console]
 ----
  ./kitt.sh apps mongodb install
@@ -16,7 +15,6 @@ Error from server (Forbidden): error when creating "STDIN": persistentvolumeclai
 
 To know if that is your case, run the following command:
 
-+
 [source,console]
 ----
 $ kubectl get storageclasses 
@@ -30,7 +28,6 @@ The problem happens when there are two **(default)**
 
 To solve it, just remove the **default** tag on the desired storage class, executing the following command (in this example, we want to make gp3 the default storage class, so the command must point to gp2 to remove the default tag):
 
-+
 [source,console]
 ----
 $ kubectl patch storageclass gp2 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
@@ -39,7 +36,6 @@ storageclass.storage.k8s.io/gp2 patched
 
 Finally, confirm that only one default StorageClass remains
 
-+
 [source,console]
 ----
 $ kubectl get storageclasses 
