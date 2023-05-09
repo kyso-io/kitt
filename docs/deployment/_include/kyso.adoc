@@ -32,6 +32,12 @@ common configuration saved to '/root/kitt-data/clusters/default/deployments/dev/
 $ ./kitt.sh apps mongodb install
 ----
 
++
+[NOTE]
+======
+Issues? See the troubleshooting section ;)
+======
+
 . Install *NATS*
 +
 [source,console]
