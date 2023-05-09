@@ -86,7 +86,38 @@ $ KYSO_API_IMAGE=registry.kyso.io/kyso-io/kyso-api/develop:latest \
 
 ======
 
+. Configure *kyso-scs* and adjust values depending on your needs and the supported storage classes 
+
++
+[source,console]
+----
+$ ./kitt.sh apps kyso-scs env-update
+-------------------------------------
+Update kyso-scs env vars? (Yes/No) [No]: Yes
+-------------------------------------
+Reading kyso-scs settings
+-------------------------------------
+Kyso Indexer Endpoint (i.e. '172.17.0.1:8080' or '-' to deploy image) []: 
+Indexer Image URI (i.e. 'registry.kyso.io/kyso-io/kyso-indexer/develop:latest' or export KYSO_SCS_INDEXER_IMAGE var) []: 
+MySecureShell Image URI [registry.kyso.io/docker/mysecureshell:latest]: 
+Nginx Image URI [registry.kyso.io/docker/nginx-scs:latest]: 
+Webhook Image URI [registry.kyso.io/docker/webhook-scs:latest]: 
+SCS Replicas [1]: 
+Kyso SCS Access Modes ('ReadWriteOnce', 'ReadWriteMany' if efs) [ReadWriteOnce]: ReadWriteMany 
+Kyso SCS Storage Class ('local-storage' @ k3d, 'efs-sc' @ eks) []: efs-sc
+Kyso SCS Volume Size [10Gi]: 
+Kyso SCS backups use restic (Yes/No) [No]: 
+Kyso SCS Hardlink Cronjob Image URI [registry.kyso.io/docker/alpine:latest]: 
+Kyso SCS Hardlink Cronjob Schedule [0 0 * * *]: 
+Fixed port for kyso-indexer pf? (i.e. 8080 or '-' for random) []: 
+Fixed port for mysecureshell pf? (i.e. 2020 or '-' for random) []: 
+Fixed port for webhook pf? (i.e. 9000 or '-' for random) []: 
+-------------------------------------
+Save updated kyso-scs env vars? (Yes/No) [Yes]: Yes
+----
+
 . Install *kyso-scs*
+
 +
 [source,console]
 ----
