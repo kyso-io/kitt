@@ -81,6 +81,7 @@ addons_efs_check_efs() {
       --file-system-id "$CLUSTER_EFS_FILESYSTEMID" \
       --output text 2>/dev/null
   )" || true
+  
   if [ "$_file_system_info" ]; then
     echo "EFS filesystem '$_orig_efs_filesystemid' already exists"
   fi
@@ -247,6 +248,8 @@ addons_efs_createfs() {
 
 addons_efs_install() {
   addons_efs_export_variables
+  _region="$CLUSTER_REGION"
+  
   # Abort if there is no EKS_CLUSTER_EFS_FILESYSTEMID
   if [ -z "$CLUSTER_EFS_FILESYSTEMID" ]; then
     cat <<EOF
