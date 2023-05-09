@@ -175,7 +175,7 @@ ingress configuration saved to '/home/admin/kitt-data/clusters/default/envs/ingr
 -------------------------------------
 ----
 
-. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/admin/kitt-data/certificates`
+. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/${user}/kitt-data/certificates`
 +
 [WARNING]
 =========
