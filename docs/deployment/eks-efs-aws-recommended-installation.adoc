@@ -28,7 +28,7 @@ The following diagrams summarize the global system architecture:
 image::diagram.png[Systems diagram, title="Global system architecture"]
 
 image::diagram-2.png[Detailed systems diagram, title="Pods interconnection and relationships"]
-
+<br/>
 These instructions were tested on Ubuntu and Debian operating systems. Minor adjustments would be needed if the operating system is different.
 
 // == Installation of required tools
