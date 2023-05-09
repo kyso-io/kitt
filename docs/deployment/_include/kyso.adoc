@@ -35,8 +35,8 @@ $ ./kitt.sh apps mongodb install
 +
 [NOTE]
 ======
-
 Issues? See the troubleshooting section ;)
+======
 
 . Install *NATS*
 +
