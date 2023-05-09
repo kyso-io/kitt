@@ -94,6 +94,10 @@ addons_ebs_install() {
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart"
+  # Unset default storage class for gp2
+  _annotation='"storageclass.kubernetes.io/is-default-class":"false"'
+  _metadata="{\"metadata\": {\"annotations\":{$_annotation}}}"
+  kubectl patch storageclass gp2 -p "$_metadata" || true
   footer
 }
 
@@ -107,6 +111,10 @@ addons_ebs_remove() {
   if [ -f "$_values_yaml" ]; then
     rm -f "$_values_yaml"
   fi
+  # Make gp2 the default storage class again
+  _annotation='"storageclass.kubernetes.io/is-default-class":"true"'
+  _metadata="{\"metadata\": {\"annotations\":{$_annotation}}}"
+  kubectl patch storageclass gp2 -p "$_metadata" || true
   addons_ebs_clean_directories
 }
 
