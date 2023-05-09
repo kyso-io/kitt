@@ -1,0 +1,50 @@
+= Troubleshooting
+
+== Error claiming persistent volume: 2 default StorageClasses were found
+
+This happens when the cluster has two default StorageClasses, and the error output is similar to the next onlyoffice
+
++
+[source,console]
+----
+ ./kitt.sh apps mongodb install
+namespace/mongodb-test created
+secret/dockerconfigjson created
+serviceaccount/default patched
+Error from server (Forbidden): error when creating "STDIN": persistentvolumeclaims "datadir-kyso-mongodb-0" is forbidden: Internal error occurred: 2 default StorageClasses were found
+----
+
+To know if that is your case, run the following command:
+
++
+[source,console]
+----
+$ kubectl get storageclasses 
+NAME            PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+efs-sc          efs.csi.aws.com         Delete          Immediate              false                  3m31s
+gp2 (default)   kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer   false                  78m
+gp3 (default)   ebs.csi.aws.com         Delete          WaitForFirstConsumer   true                   41m
+----
+
+The problem happens when there are two **(default)**
+
+To solve it, just remove the **default** tag on the desired storage class, executing the following command (in this example, we want to make gp3 the default storage class, so the command must point to gp2 to remove the default tag):
+
++
+[source,console]
+----
+$ kubectl patch storageclass gp2 -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+storageclass.storage.k8s.io/gp2 patched
+----
+
+Finally, confirm that only one default StorageClass remains
+
++
+[source,console]
+----
+$ kubectl get storageclasses 
+NAME            PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+efs-sc          efs.csi.aws.com         Delete          Immediate              false                  13m
+gp2             kubernetes.io/aws-ebs   Delete          WaitForFirstConsumer   false                  88m
+gp3 (default)   ebs.csi.aws.com         Delete          WaitForFirstConsumer   true                   51m
+----

@@ -198,6 +198,10 @@ The minimal addons required for kyso are: *ingress*, *ebs* and *efs*
 
 include::{includedir}/kyso.adoc[leveloffset=1]
 
+// == Troubleshooting
+
+include::{includedir}/troubleshooting.adoc[leveloffset=1]
+
 == Appendices
 
 // === Terraform eks scripts 
