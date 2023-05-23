@@ -3,7 +3,7 @@
 # File:        apps/analytics-consumer.sh
 # Description: Functions to manage analytics-consumer deployments
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

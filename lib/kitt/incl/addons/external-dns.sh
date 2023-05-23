@@ -3,7 +3,7 @@
 # File:        addons/external-dns.sh
 # Description: Functions to install and remove the external-dns from a cluster
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

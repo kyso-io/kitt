@@ -3,7 +3,7 @@
 # File:        common/io.sh
 # Description: Auxiliary functions for input/output processing
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

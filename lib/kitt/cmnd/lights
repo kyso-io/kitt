@@ -5,7 +5,7 @@
 #              This is a shell version of the kitt-car-ascii-art challenge from 
 #              https://codegolf.stackexchange.com/questions/95517/.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

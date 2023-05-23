@@ -3,7 +3,7 @@
 # File:        j2f/spooler.sh
 # Description: Functions to queue calls to the webhook command for json files
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

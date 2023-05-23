@@ -3,7 +3,7 @@
 # File:        apps/kyso-front.sh
 # Description: Functions to manage kyso-front deployments for kyso on k8s
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

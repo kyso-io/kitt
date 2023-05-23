@@ -3,7 +3,7 @@
 # File:        j2f/systemd.sh
 # Description: Functions to manage the j2f subcommand as a systemd service.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

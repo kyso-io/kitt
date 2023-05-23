@@ -3,7 +3,7 @@
 # File:        docker-build-docs.sh
 # Description: Script to build kitt docs with a container.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

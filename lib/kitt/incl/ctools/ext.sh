@@ -3,7 +3,7 @@
 # File:        ctools/ext.sh
 # Description: Functions to configure external clusters to use with kitt.
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

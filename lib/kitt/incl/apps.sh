@@ -3,7 +3,7 @@
 # File:        apps.sh
 # Description: Functions to configure, deploy & remove kyso applications on k8s
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e
@@ -56,13 +56,20 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_APPS_FILE_METADATA_POSTPROCESS_CONSUMER_SH" = "1" ] ||
     . "$INCL_DIR/apps/file-metadata-postprocess-consumer.sh"
   # shellcheck source=./apps/onlyoffice-ds.sh
-  [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || . "$INCL_DIR/apps/onlyoffice-ds.sh"
+  [ "$INCL_APPS_ONLYOFFICE_DS_SH" = "1" ] || 
+    . "$INCL_DIR/apps/onlyoffice-ds.sh"
   # shellcheck source=./apps/imagebox.sh
-  [ "$INCL_APPS_IMAGEBOX_SH" = "1" ] || . "$INCL_DIR/apps/imagebox.sh"
+  [ "$INCL_APPS_IMAGEBOX_SH" = "1" ] || 
+    . "$INCL_DIR/apps/imagebox.sh"
   # shellcheck source=./apps/kyso-nbdime.sh
-  [ "$INCL_APPS_KYSO_NBDIME_SH" = "1" ] || . "$INCL_DIR/apps/kyso-nbdime.sh"
+  [ "$INCL_APPS_KYSO_NBDIME_SH" = "1" ] || 
+    . "$INCL_DIR/apps/kyso-nbdime.sh"
+  # shellcheck source=./apps/jupyter-diff.sh
+  [ "$INCL_APPS_JUPYTER_DIFF_SH" = "1" ] || 
+    . "$INCL_DIR/apps/jupyter-diff.sh"
   # shellcheck source=./apps/portmaps.sh
-  [ "$INCL_APPS_PORTMAPS_SH" = "1" ] || . "$INCL_DIR/apps/portmaps.sh"
+  [ "$INCL_APPS_PORTMAPS_SH" = "1" ] || 
+    . "$INCL_DIR/apps/portmaps.sh"
 else
   echo "This file has to be sourced using kitt.sh"
   exit 1
@@ -155,6 +162,9 @@ apps_command() {
   kyso-nbdime)
     apps_kyso_nbdime_command "$_command" "$_deployment" "$_cluster"
     ;;
+  jupyter-diff)
+    apps_jupyter_diff_command "$_command" "$_deployment" "$_cluster"
+    ;;
   portmaps)
     apps_portmaps_command "$_command" "$_deployment" "$_cluster"
     ;;
@@ -173,6 +183,7 @@ apps_list() {
   _apps="$_apps slack-notifications-consumer"
   _apps="$_apps teams-notification-consumer"
   _apps="$_apps file-metadata-postprocess-consumer"
+  _apps="$_apps jupyter-diff"
   _apps="$_apps onlyoffice-ds imagebox kyso-nbdime portmaps"
   echo "$_apps"
 }
@@ -204,6 +215,7 @@ apps_command_list() {
   onlyoffice-ds | onlyoffice_ds) apps_onlyoffice_ds_command_list ;;
   imagebox) apps_imagebox_command_list ;;
   kyso-nbdime) apps_kyso_nbdime_command_list ;;
+  jupyter-diff) apps_jupyter_diff_command_list ;;
   portmaps) apps_portmaps_command_list ;;
   esac
 }

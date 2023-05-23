@@ -3,7 +3,7 @@
 # File:        apps/config.sh
 # Description: Functions to configure a kyso application deployment
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

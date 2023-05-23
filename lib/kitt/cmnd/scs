@@ -3,7 +3,7 @@
 # File:        scs
 # Description: Command to dump or restore the scs filesystem using tarfiles
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e

@@ -3,7 +3,7 @@
 # File:        apps/slack-notifications-consumer.sh
 # Description: Functions to manage slack-notifications-consumer deployments
 # Author:      Sergio Talens-Oliag <sto@kyso.io>
-# Copyright:   (c) 2022-2023 Sergio Talens-Oliag <sto@kyso.io>
+# Copyright:   (c) 2022-2023 Kyso Inc.
 # ----
 
 set -e
