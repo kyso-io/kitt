@@ -353,10 +353,10 @@ EOF
 pf_start_mongodb() {
   _name="mongodb"
   _ns="$MONGODB_NAMESPACE"
-  _svc="svc/$MONGODB_RELEASE-headless"
+  _svc="svc/kyso-mongodb-headless"
   _addr="$DEPLOYMENT_PF_ADDR"
   _pf_port="$MONGODB_PF_PORT"
-  _svc_port="mongodb"
+  _svc_port="27017"
   _pidf="$MONGODB_PF_PID"
   _outf="$MONGODB_PF_OUT"
   if ! pf_running "$_pidf"; then
@@ -367,6 +367,8 @@ pf_start_mongodb() {
       exit 1
     fi
     echo "Starting $_name port-forward"
+    echo kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
+      "$_pf_port:$_svc_port"
     nohup kubectl port-forward -n "$_ns" "$_svc" --address "$_addr" \
       "$_pf_port:$_svc_port" >"$_outf" 2>/dev/null &
     echo "$!" >"$_pidf"
