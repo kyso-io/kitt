@@ -92,7 +92,7 @@ Cluster DNS Domain [lo.kyso.io]: <PUT_HERE_THE_DOMAIN_YOU_WILL_USE>
 Keep cluster data in git (Yes/No) [Yes]:
 Force SSL redirect on ingress (Yes/No) [Yes]:
 Cluster Ingress Replicas [1]:
-Add pull secrets to namespaces (Yes/No) [No]:
+Add pull secrets to namespaces (Yes/No) [Yes]: Yes
 Use basic auth (Yes/No) [Yes]:
 Use SOPS (Yes/No) [Yes]: No
 Number of servers (Master + Agent) [1]:
