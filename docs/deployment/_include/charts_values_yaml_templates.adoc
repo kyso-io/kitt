@@ -101,6 +101,19 @@ include::{app_values}[]
 // END: app values
 
 // BEG: app values
+:app_name: jupyter-diff
+:app_values: {tmplsdir}/{app_name}/values.yaml
+
+== {app_name}
+
+[source,yaml]
+.{app_name}/values.yaml
+----
+include::{app_values}[]
+----
+// END: app values
+
+// BEG: app values
 :app_name: kyso-nbdime
 :app_values: {tmplsdir}/{app_name}/values.yaml
 

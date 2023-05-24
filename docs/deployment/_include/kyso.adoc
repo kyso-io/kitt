@@ -154,6 +154,25 @@ $ KYSO_FRONT_IMAGE=registry.kyso.io/kyso-io/kyso-front/develop:latest \
 ----
 ======
 
+. Install *jupyter-diff* component
++
+[source,console]
+----
+./kitt.sh apps jupyter-diff install
+----
++
+[NOTE]
+======
+If `kyso-exports.sh` was not provided, use the following command specifying the docker image
+
+[source,console]
+----
+$ JUPYTER_DIFF_IMAGE=registry.kyso.io/kyso-io/microfrontends/jupyter-diff/develop:latest \
+  ./kitt.sh apps jupyter-diff install
+----
+======
+
+
 . Install *consumers*
 +
 [NOTE]
