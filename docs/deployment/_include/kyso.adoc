@@ -154,6 +154,28 @@ $ KYSO_FRONT_IMAGE=registry.kyso.io/kyso-io/kyso-front/develop:latest \
 ----
 ======
 
+
+. Install *kyso-nbdime* component
++
+[source,console]
+----
+./kitt.sh apps kyso-nbdime install
+----
++
+[NOTE]
+======
+If `kyso-exports.sh` was not provided, use the following command specifying the docker image
+
+[source,console]
+----
+$ KYSO_NBDIME_IMAGE=registry.kyso.io/docker/kyso-nbdime:latest \
+  ./kitt.sh apps kyso-nbdime install
+
+----
+======
+
+
+
 . Install *jupyter-diff* component
 +
 [source,console]
@@ -227,19 +249,23 @@ $ ./kitt.sh apps onlyoffice-ds install
 [source,console]
 ----
 $ kubectl get pods -A
-NAMESPACE                                NAME                                                              READY   STATUS    RESTARTS   AGE
-mongodb-dev                              kyso-mongodb-0                                                    1/1     Running   0          163m
-nats-dev                                 kyso-nats-box-9cd6697db-fvq8d                                     1/1     Running   0          162m
-nats-dev                                 kyso-nats-0                                                       3/3     Running   0          162m
-elasticsearch-dev                        elasticsearch-master-0                                            1/1     Running   0          161m
-mongo-gui-dev                            mongo-gui-694754b6bc-2r2mn                                        1/1     Running   0          159m
-kyso-api-dev                             kyso-api-55794c75fd-bv5p7                                         1/1     Running   0          157m
-kyso-scs-dev                             kyso-scs-0                                                        4/4     Running   0          137m
-activity-feed-consumer-dev               activity-feed-consumer-7dc76d5f54-fklmr                           1/1     Running   0          12m
-notification-consumer-dev                notification-consumer-576f5c8747-f7zh6                            1/1     Running   0          11m
-slack-notifications-consumer-dev         slack-notifications-consumer-7548f87fbc-fchhd                     1/1     Running   0          11m
-teams-notification-consumer-dev          teams-notification-consumer-7fdcf75974-m9htk                      1/1     Running   0          11m
-file-metadata-postprocess-consumer-dev   file-metadata-postprocess-consumer-6f997cc7c4-vrnsb               1/1     Running   0          10m
-analytics-consumer-dev                   analytics-consumer-7d87645bd8-8flgb                               1/1     Running   0          9m8s
-kyso-front-dev                           kyso-front-56554bccfd-j5phj                                       1/1     Running   0          5m52s
+NAMESPACE                                 NAME                                                              READY   STATUS      RESTARTS        AGE
+nats-dev                                  kyso-nats-box-7db44f66bc-tcf2x                                    1/1     Running     0               341d
+activity-feed-consumer-dev                activity-feed-consumer-5f4cc74dc5-6424h                           1/1     Running     0               163d
+slack-notifications-consumer-dev          slack-notifications-consumer-645b5bbf58-clhnx                     1/1     Running     0               9d
+analytics-consumer-dev                    analytics-consumer-85cc77cf8f-sstpx                               1/1     Running     0               55d
+imagebox-dev                              imagebox-d88544db9-krnzf                                          1/1     Running     0               163d
+teams-notification-consumer-dev           teams-notification-consumer-f587d498f-lkj68                       1/1     Running     0               9d
+file-metadata-postprocess-consumer-dev    file-metadata-postprocess-consumer-6f46c8d8dc-qccc7               1/1     Running     0               79d
+nats-dev                                  kyso-nats-0                                                       3/3     Running     0               341d
+mongodb-dev                               kyso-mongodb-0                                                    1/1     Running     0               161d
+mongo-gui-dev                             mongo-gui-dcb855c46-gdc94                                         1/1     Running     0               163d
+kyso-scs-dev                              kyso-scs-0                                                        4/4     Running     0               91d
+elasticsearch-dev                         elasticsearch-master-0                                            1/1     Running     0               341d
+onlyoffice-ds-dev                         onlyoffice-ds-554f88d446-vk2b2                                    1/1     Running     0               163d
+notification-consumer-dev                 notification-consumer-cd89d999-jn7dw                              1/1     Running     0               8d
+kyso-api-dev                              kyso-api-68f8d84d58-ftkm5                                         1/1     Running     0               2d16h
+jupyter-diff-dev                          jupyter-diff-f89f4fddb-gzkb9                                      1/1     Running     0               15h
+kyso-front-dev                            kyso-front-cfcf646f6-qs22p                                        1/1     Running     0               56m
+kyso-nbdime-dev                           kyso-nbdime-6c5d568c49-gdhhw                                      1/1     Running     0               115s
 ----
