@@ -77,5 +77,7 @@ env:
   REGISTRY_ADMIN_SECRET: "dockerconfigjson"
   REGISTRY_USER_SECRET: "dockerconfigjson"
   REGISTRY_URL: "https://zot.lo.kyso.io"
-  BUILDER_IMAGE: "zot.lo.kyso.io/kyso-dam-builder:latest"
+  BUILDER_TOOL: "kaniko"
+  DIND_BUILDER_IMAGE: "zot.lo.kyso.io/kyso-dam-builder-dind:latest"
+  KANIKO_BUILDER_IMAGE: "zot.lo.kyso.io/kyso-dam-builder-kaniko:latest"
   KYSO_CLI_IMAGE: "zot.lo.kyso.io/kyso-cli:latest"

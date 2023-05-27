@@ -25,13 +25,15 @@ export DEPLOYMENT_DEFAULT_KYSO_DAM_IMAGE="$_kyso_dam_image"
 export DEPLOYMENT_DEFAULT_KYSO_DAM_REPLICAS="1"
 # Port forward settings
 export DEPLOYMENT_DEFAULT_KYSO_DAM_PF_PORT=""
+export DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_TOOL="kaniko"
 _default_skopeo_image="registry.kyso.io/docker/skopeo:latest"
 export DEPLOYMENT_DEFAULT_KYSO_DAM_SKOPEO_IMAGE="$_default_skopeo_image"
 _default_kyso_cli_image="registry.kyso.io/kyso-io/kyso-cli:latest"
 export DEPLOYMENT_DEFAULT_KYSO_DAM_KYSO_CLI_IMAGE="$_default_kyso_cli_image"
-_default_dam_builder_image="registry.kyso.io/docker/kyso-dam-builder:latest"
-DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_IMAGE="$_default_dam_builder_image"
-export DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_IMAGE
+_default_dind_image="registry.kyso.io/docker/kyso-dam-builder-dind:latest"
+export DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_DIND_IMAGE="$_default_dind_image"
+_default_kaniko_image="registry.kyso.io/docker/kyso-dam-builder-kaniko:latest"
+export DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_KANIKO_IMAGE="$_default_kaniko_image"
 
 # Fixed values
 export KYSO_DAM_SERVER_PORT="8880"
@@ -127,6 +129,16 @@ dam_kyso_dam_export_variables() {
     KYSO_DAM_REPLICAS="$DEPLOYMENT_DEFAULT_KYSO_DAM_REPLICAS"
   fi
   export KYSO_DAM_REPLICAS
+  if [ -z "$KYSO_DAM_BUILDER_TOOL" ]; then
+    if [ "$DEPLOYMENT_KYSO_DAM_BUILDER_TOOL" ]; then
+      KYSO_DAM_BUILDER_TOOL="$DEPLOYMENT_KYSO_DAM_BUILDER_TOOL"
+    else
+      KYSO_DAM_BUILDER_TOOL="$DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_TOOL"
+    fi
+  else
+    KYSO_DAM_AUTO_SAVE_ENV="true"
+  fi
+  export KYSO_DAM_BUILDER_TOOL
   if [ "$DEPLOYMENT_KYSO_DAM_SKOPEO_IMAGE" ]; then
     KYSO_DAM_SKOPEO_IMAGE="$DEPLOYMENT_KYSO_DAM_SKOPEO_IMAGE"
   else
@@ -142,15 +154,24 @@ dam_kyso_dam_export_variables() {
   KYSO_DAM_KYSO_CLI_IMAGE_IN_ZOT="$ZOT_HOSTNAME/kyso-cli:$_kyso_cli_tag"
   export KYSO_DAM_KYSO_CLI_IMAGE
   export KYSO_DAM_KYSO_CLI_IMAGE_IN_ZOT
-  if [ "$DEPLOYMENT_KYSO_DAM_BUILDER_IMAGE" ]; then
-    KYSO_DAM_BUILDER_IMAGE="$DEPLOYMENT_KYSO_DAM_BUILDER_IMAGE"
+  if [ "$DEPLOYMENT_KYSO_DAM_BUILDER_KANIKO_IMAGE" ]; then
+    _kaniko_image="$DEPLOYMENT_KYSO_DAM_BUILDER_KANIKO_IMAGE"
   else
-    KYSO_DAM_BUILDER_IMAGE="$DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_IMAGE"
+    _kaniko_image="$DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_KANIKO_IMAGE"
   fi
-  _builder_tag="${KYSO_DAM_BUILDER_IMAGE##*:}"
-  KYSO_DAM_BUILDER_IMAGE_IN_ZOT="$ZOT_HOSTNAME/kyso-dam-builder:$_builder_tag"
-  export KYSO_DAM_BUILDER_IMAGE
-  export KYSO_DAM_BUILDER_IMAGE_IN_ZOT
+  export KYSO_DAM_BUILDER_KANIKO_IMAGE="$_kaniko_image"
+  _builder_tag="${KYSO_DAM_BUILDER_KANIKO_IMAGE##*:}"
+  _kaniko_image_in_zot="$ZOT_HOSTNAME/kyso-dam-builder-kaniko:$_builder_tag"
+  export KYSO_DAM_BUILDER_KANIKO_IMAGE_IN_ZOT="$_kaniko_image_in_zot"
+  if [ "$DEPLOYMENT_KYSO_DAM_BUILDER_DIND_IMAGE" ]; then
+    _dind_image="$DEPLOYMENT_KYSO_DAM_BUILDER_DIND_IMAGE"
+  else
+    _dind_image="$DEPLOYMENT_DEFAULT_KYSO_DAM_BUILDER_DIND_IMAGE"
+  fi
+  export KYSO_DAM_BUILDER_DIND_IMAGE="$_dind_image"
+  _dind_tag="${KYSO_DAM_BUILDER_DIND_IMAGE##*:}"
+  _dind_image_in_zot="$ZOT_HOSTNAME/kyso-dam-builder-dind:$_dind_tag"
+  export KYSO_DAM_BUILDER_DIND_IMAGE_IN_ZOT="$_dind_image_in_zot"
   # Export auto save environment flag
   export KYSO_DAM_AUTO_SAVE_ENV
   __dam_kyso_dam_export_variables="1"
@@ -195,12 +216,16 @@ dam_kyso_dam_read_variables() {
   read_value "Fixed port for kyso-dam pf? (i.e. 8880 or '-' for random)" \
     "${KYSO_DAM_PF_PORT}"
   KYSO_DAM_PF_PORT=${READ_VALUE}
+  read_value "builder tool (docker or kaniko)" "${KYSO_DAM_BUILDER_TOOL}"
+  KYSO_DAM_BUILDER_TOOL=${READ_VALUE}
   read_value "skopeo image" "${KYSO_DAM_SKOPEO_IMAGE}"
   KYSO_DAM_SKOPEO_IMAGE=${READ_VALUE}
   read_value "kyso-cli image" "${KYSO_DAM_KYSO_CLI_IMAGE}"
   KYSO_DAM_KYSO_CLI_IMAGE=${READ_VALUE}
-  read_value "kyso-dam-builder image" "${KYSO_DAM_BUILDER_IMAGE}"
-  KYSO_DAM_BUILDER_IMAGE=${READ_VALUE}
+  read_value "kaniko image" "${KYSO_DAM_BUILDER_KANIKO_IMAGE}"
+  KYSO_DAM_BUILDER_KANIKO_IMAGE=${READ_VALUE}
+  read_value "dind image" "${KYSO_DAM_BUILDER_DIND_IMAGE}"
+  KYSO_DAM_BUILDER_DIND_IMAGE=${READ_VALUE}
 }
 
 dam_kyso_dam_print_variables() {
@@ -225,12 +250,16 @@ KYSO_DAM_REPLICAS=$KYSO_DAM_REPLICAS
 KYSO_DAM_KYSO_API_URL=$KYSO_DAM_KYSO_API_URL
 # Fixed port for kyso-dam pf (recommended is 8880, random if empty)
 KYSO_DAM_PF_PORT=$KYSO_DAM_PF_PORT
+# Builder tool ('docker' or 'kaniko')
+KYSO_DAM_BUILDER_TOOL=$KYSO_DAM_BUILDER_TOOL
 # skopeo image
 KYSO_DAM_SKOPEO_IMAGE=$KYSO_DAM_SKOPEO_IMAGE
 # kyso-cli image
 KYSO_DAM_KYSO_CLI_IMAGE=$KYSO_DAM_KYSO_CLI_IMAGE
 # kyso-dam-builder image
-KYSO_DAM_BUILDER_IMAGE=$KYSO_DAM_BUILDER_IMAGE
+KYSO_DAM_BUILDER_KANIKO_IMAGE=$KYSO_DAM_BUILDER_KANIKO_IMAGE
+# dind image
+KYSO_DAM_BUILDER_DIND_IMAGE=$KYSO_DAM_BUILDER_DIND_IMAGE
 # ---
 EOF
 }
@@ -287,8 +316,12 @@ dam_kyso_dam_copy_images() {
   if [ "$ret" -eq "0" ]; then
     echo "Copying builder image"
     kubectl exec -n "$_ns" skopeo -ti -- skopeo copy \
-      "docker://$KYSO_DAM_BUILDER_IMAGE" \
-      "docker://$KYSO_DAM_BUILDER_IMAGE_IN_ZOT" || ret="$?"
+      "docker://$KYSO_DAM_BUILDER_KANIKO_IMAGE" \
+      "docker://$KYSO_DAM_BUILDER_KANIKO_IMAGE_IN_ZOT" || ret="$?"
+    echo "Copying dind image"
+    kubectl exec -n "$_ns" skopeo -ti -- skopeo copy \
+      "docker://$KYSO_DAM_BUILDER_DIND_IMAGE" \
+      "docker://$KYSO_DAM_BUILDER_DIND_IMAGE_IN_ZOT" || ret="$?"
     echo "Copying kyso-cli image"
     kubectl exec -n "$_ns" skopeo -ti -- skopeo copy \
       "docker://$KYSO_DAM_KYSO_CLI_IMAGE" \
@@ -389,7 +422,9 @@ dam_kyso_dam_install() {
     -e "s%__ZOT_HOSTNAME__%$ZOT_HOSTNAME%" \
     -e "s%__ZOT_ADMIN_SECRET__%$_pull_name%" \
     -e "s%__ZOT_READER_SECRET__%$_pull_name%" \
-    -e "s%__BUILDER_IMAGE__%$KYSO_DAM_BUILDER_IMAGE_IN_ZOT%" \
+    -e "s%__BUILDER_TOOL__%$KYSO_DAM_BUILDER_TOOL%" \
+    -e "s%__DIND_BUILDER_IMAGE__%$KYSO_DAM_BUILDER_DIND_IMAGE_IN_ZOT%" \
+    -e "s%__KANIKO_BUILDER_IMAGE__%$KYSO_DAM_BUILDER_KANIKO_IMAGE_IN_ZOT%" \
     -e "s%__KYSO_CLI_IMAGE__%$KYSO_DAM_KYSO_CLI_IMAGE_IN_ZOT%" \
     "$_helm_values_tmpl" > "$_helm_values_yaml_plain"
   # Apply ingress values
