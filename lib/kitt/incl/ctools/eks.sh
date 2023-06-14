@@ -33,6 +33,7 @@ export APP_DEFAULT_CLUSTER_EKS_VERSION="1.25"
 export APP_DEFAULT_CLUSTER_CDIR_PREFIX="10.23"
 export APP_DEFAULT_CLUSTER_AWS_EBS_FS_TYPE="ext4"
 export APP_DEFAULT_CLUSTER_AWS_EBS_TYPE="gp3"
+export APP_DEFAULT_CLUSTER_PUBLIC_ENDPOINTS="true"
 
 # --------
 # Includes
@@ -107,6 +108,9 @@ ctool_eks_export_variables() {
   [ "$CLUSTER_AWS_EBS_TYPE" ] ||
     CLUSTER_AWS_EBS_TYPE="${APP_DEFAULT_CLUSTER_AWS_EBS_TYPE}"
   export CLUSTER_AWS_EBS_TYPE
+  [ "$CLUSTER_PUBLIC_ENDPOINTS" ] ||
+    CLUSTER_PUBLIC_ENDPOINTS="${APP_DEFAULT_CLUSTER_PUBLIC_ENDPOINTS}"
+  export CLUSTER_PUBLIC_ENDPOINTS
   # Directories
   export TERRAFORM_TMPL_DIR="$TMPL_DIR/terraform"
   export TF_EKS_TMPL_DIR="$TERRAFORM_TMPL_DIR/eks"
@@ -165,6 +169,8 @@ ctool_eks_read_variables() {
   CLUSTER_CDIR_PREFIX=${READ_VALUE}
   read_value "Cluster EFS fileSystemId" "${CLUSTER_EFS_FILESYSTEMID}"
   CLUSTER_EFS_FILESYSTEMID=${READ_VALUE}
+  read_bool "Cluster Public Endpoints" "${CLUSTER_PUBLIC_ENDPOINTS}"
+  CLUSTER_PUBLIC_ENDPOINTS=${READ_VALUE}
 }
 
 ctool_eks_print_variables() {
@@ -196,6 +202,8 @@ WORKERS_AZ3=$CLUSTER_WORKERS_AZ3
 CDIR_PREFIX=$CLUSTER_CDIR_PREFIX
 # EFS filesystem to use for dynamic volumes
 EFS_FILESYSTEMID=$CLUSTER_EFS_FILESYSTEMID
+# Enable public endpoints
+PUBLIC_ENDPOINTS=$CLUSTER_PUBLIC_ENDPOINTS
 EOF
 }
 
@@ -320,6 +328,7 @@ ctool_eks_tf_conf() {
     -e "s%__CLUSTER_MIN_WORKERS__%$CLUSTER_MIN_WORKERS%g" \
     -e "s%__CLUSTER_CDIR_PREFIX__%$CLUSTER_CDIR_PREFIX%g" \
     -e "s%__CLUSTER_EKS_VOLUME_SIZE__%$CLUSTER_EKS_VOLUME_SIZE%g" \
+    -e "s%__CLUSTER_PUBLIC_ENDPOINTS__%$CLUSTER_PUBLIC_ENDPOINTS%g" \
     -e "s%__TF_STATE_BUCKET_NAME__%$TF_STATE_BUCKET_NAME%g" \
     -e "s%__SINGLE_NAT_GATEWAY__%$_single_nat_gateway%g" \
     -e "/^ *# END: AWS_AUTH_USERS/r $_aws_auth_users_list" \
