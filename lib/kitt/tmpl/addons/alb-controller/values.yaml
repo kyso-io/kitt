@@ -1,0 +1,7 @@
+clusterName: __CLUSTER_NAME__
+replicaCount: __REPLICA_COUNT__
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::__AWS_ACCOUNT_ID__:role/__CLUSTER_NAME__-aws-load-balancer-controller

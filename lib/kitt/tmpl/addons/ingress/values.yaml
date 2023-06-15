@@ -16,20 +16,13 @@ extraArgs:
   default-ssl-certificate: "ingress/__INGRESS_CERT_NAME__"
   ingress-class: nginx
 replicaCount: __REPLICAS__
+# BEG: USE_ALB_CONTROLLER
+service:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "__INGRESS_LOAD_BALANCER_SCHEME__"
+# END: USE_ALB_CONTROLLER
 # BEG: MAP_KYSO_DEV_PORTS
-controller:
-  service:
-    enabled: true
-    ports:
-      kyso-sftp: 22
-      http: 80
-      https: 443
-      nats: 4222
-      kyso-indexer: 8080
-      kyso-dam: 8880
-      kyso-webhook: 9000
-      elasticsearch: 9200
-      mongodb: 27017
 tcp:
   22: "__PORTMAPS_NAMESPACE__/kyso-scs:22"
   4222: "__PORTMAPS_NAMESPACE__/nats:4222"

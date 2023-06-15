@@ -21,6 +21,12 @@ if [ -d "$INCL_DIR" ]; then
   [ "$INCL_COMMON_SH" = "1" ] || . "$INCL_DIR/common.sh"
   # Start loading addons
   ADDON_LIST=""
+  # shellcheck source=./addons/alb-controller.sh
+  if [ -f "$INCL_DIR/addons/alb-controller.sh" ]; then
+    [ "$INCL_ADDONS_ALB_CONTROLLER_SH" = "1" ] ||
+      . "$INCL_DIR/addons/alb-controller.sh"
+    ADDON_LIST="$ADDON_LIST alb-controller"
+  fi
   # shellcheck source=./addons/dashboard.sh
   if [ -f "$INCL_DIR/addons/dashboard.sh" ]; then
     [ "$INCL_ADDONS_DASHBOARD_SH" = "1" ] || . "$INCL_DIR/addons/dashboard.sh"
@@ -120,6 +126,7 @@ addons_command() {
   _cluster="$3"
   addons_check_directories
   case "$_addon" in
+  alb-controller) addons_alb_controller_command "$_command" "$_cluster" ;;
   dashboard) addons_dashboard_command "$_command" "$_cluster" ;;
   ebs) addons_ebs_command "$_command" "$_cluster" ;;
   efs) addons_efs_command "$_command" "$_cluster" ;;
@@ -141,8 +148,9 @@ addons_command() {
 }
 
 addons_list() {
-  _default_order="ingress dashboard ebs efs prometheus loki promtail zabbix"
-  _default_order="$_default_order minio velero metrics-server vpa goldilocks"
+  _default_order="ingress alb-controller dashboard ebs efs prometheus loki"
+  _default_order="$_default_order promtail zabbix minio velero metrics-server"
+  _default_order="$_default_order vpa goldilocks"
   [ "$1" ] && _order="$1" || _order="$_default_order"
   for _a in $_order; do
     if echo "$ADDON_LIST" | grep -q -w "$_a"; then
@@ -154,6 +162,7 @@ addons_list() {
 addons_command_list() {
   _addon="$1"
   case "$_addon" in
+  alb-controller) addons_alb_controller_command_list ;;
   dashboard) addons_dashboard_command_list ;;
   ebs) addons_ebs_command_list ;;
   efs) addons_efs_command_list ;;
@@ -178,8 +187,8 @@ addons_set_list() {
   case "$1" in
   all) addons_list ;;
   eks-all)
-    _addons="ingress dashboard ebs efs prometheus loki promtail zabbix"
-    _addons="$_addons velero metrics-server vpa goldilocks"
+    _addons="ingress alb-controller dashboard ebs efs prometheus loki promtail"
+    _addons="$_addons zabbix velero metrics-server vpa goldilocks"
     addons_list "$_addons"
     ;;
   eks-backups) addons_list "velero" ;;
