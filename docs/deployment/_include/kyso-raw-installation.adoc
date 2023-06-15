@@ -1,0 +1,915 @@
+= Kyso raw installation
+:author: Kyso Inc.
+:data-uri:
+:doctype: article
+:icons: font
+:lang: en
+ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
+:source-highlighter: rouge
+:title-page:
+:toc: left
+:toclevels: 4
+// User defined attributes
+:sourcedir: ../../../..
+:docsdir: ../..
+:includedir: _include
+:imagesdir: {docsdir}/images/_include/kyso-raw-installation
+// define 'file_includes' to check it on the included files
+:file_includes: true
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+
+This documentation describes how to install Kyso without using **kitt**. This docs are intended for those customers in which
+internal procedures don't allow the execution of third party non-approved scripts, and therefore, are not elegible to use **kitt**.
+
+In any case, we strongly recommend to use **kitt**, because there are lots of configurations that are managed 
+automatically by kitt. Most of those configurations are centralized in the collection KysoSettings in MongoDB 
+(in which we have around 60 properties), and others are in environment variables directly in the kubernetes 
+deployments. For example, when you install mongodb and kyso-api using kitt, the connection string of the 
+database is injected automatically in kyso-api. That kind of magic disappears without kitt, and must be 
+managed manually. 
+
+This instructions tries to be as explanatory as possible, but we strongly recommend to have an expert 
+kubernetes engineer
+
+Having said this, please follow the next instructions to install Kyso directly with helm and kubectl 
+
+. Login into *registry.kyso.io* with the provided credentials, running the following command
++
+[source,console]
+----
+$ docker login registry.kyso.io
+----
+
+== Install *MongoDB*
+
+. Create the mongodb namespace
+
++
+[source,console]
+----
+$ kubectl create namespace mongodb-prod
+----
+
+. In kitt folder (there are the helm charts too, we are not going to execute nothing 
+with kitt, but the definitions still there), open the folder `lib/kitt/tmpl/apps/mongodb`
+
+. That folder contains the definitions of the persistent volumes (pv.yaml), persistent volume claims (pvc.yaml)
+and the values that would be used by the helm chart (values.yaml).
+
+. Copy those 3 files into a temporary directory
+
+. Open pvc.yaml and change the values to fit into your infrastructure. The next example defines a Persistent
+Volume Claim of 8Gb in local file system using GP3 at AWS
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: datadir-kyso-mongodb-0
+  namespace: mongodb-prod
+  labels:
+    app.kubernetes.io/name: mongodb
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: "gp3"    
+----
+
++
+[NOTE]
+======
+There are LOTS of PVC types. Please adjust the configuration of them following the provider instructions 
+======
+
+. Apply the pvc.yaml running the following command
+
++
+[source,console]
+----
+kubectl apply -f pvc.yaml
+persistentvolumeclaim/datadir-kyso-mongodb-0 created
+----
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous PVC. Please note that this is a **standard mongodb helm chart**, for changes
+checkout out its documentation.
+
++
+[source,yaml]
+----
+global:
+    imageRegistry: docker.io
+    # If needed credentials to download the image 
+    imagePullSecrets:
+        - dockerconfigjson
+image:
+    repository: bitnami/mongodb
+    # tag: not set, we expect the one from the chart to be available
+architecture: replicaset
+# Number of replicas for replicaset mode
+replicaCount: 1
+# Use statefulSet if running in standalone mode
+useStatefulSet: true
+arbiter:
+    enabled: false
+metrics:
+    enabled: true
+    image:
+        repository: bitnami/mongodb-exporter
+        # tag: not set, we expect the one from the chart to be available
+    extraFlags: --compatible-mode
+    # Added --compatible-mode for the metrics exporter (almost all grafana
+    # dashboards available use the old variable names) and use the chart to
+    # generate the serviceMonitor (we have added the release label to the
+    # additionalLabels to make the prometheus operator select the
+    # serviceMonitor automatically (it probably can be done using a different
+    # strategy, but this is simple and works).
+    serviceMonitor:
+        enabled: true
+        additionalLabels:
+            release: null
+auth:
+    replicaSetKey: PVcSMXikxa
+    rootPassword: 4irK7lqwTE
+    databases:
+        - kyso
+    usernames:
+        - kysodb
+    passwords:
+        - Ugui1dpMKP
+persistence:
+    enabled: true
+    # Make sure the storage class matches with the previously defined PVC
+    storageClass: gp3 
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n mongodb-prod -f values.yaml kyso-mongodb bitnami/mongodb --version=12.1.31
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n mongodb-prod
+NAME             READY   STATUS    RESTARTS   AGE
+kyso-mongodb-0   1/1     Running   0          76s
+----
+
+== Install *MongoGUI* (optional)
+
+MongoGUI is an open source MongoDB explorer that could be useful, specially to change settings without 
+the need of accessing the pod via shell. If you are proficient with MongoDB and shell, this step is not 
+required
+
+. Create the mongo-gui namespace
+
++
+[source,console]
+----
+$ kubectl create namespace mongo-gui-prod
+----
+
+. In kitt folder (there are the helm charts too, we are not going to execute nothing 
+with kitt, but the definitions still there), open the folder `lib/kitt/tmpl/apps/mongo-gui`
+
+. That folder contains the definitions of the values that would be used by the helm chart (values.yaml).
+
+. Copy that file into a temporary directory
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous MongoDB deployment, remember to change the values of the passwords and routes 
+to fit into your configuration. Please note that this is a **standard mongo-gui helm chart**, for changes
+checkout out its documentation.
+
++
+[source,yaml]
+----
+replicaCount: 
+image:
+  repository: "registry.kyso.io/docker/mongo-gui"
+  tag: "1.0.0"
+  pullPolicy: "Always"
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "4321"
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  # PUT HERE THE MAIN DOMAIN YOU WILL USE 
+  hosts:
+  - host: "lo.kyso.io"
+ingressAuth:
+  user: "mongo-admin"
+  pass: ""
+# Kyso configuration file values
+secrets:
+  mongodbDatabaseUri: "mongodb://root:4irK7lqwTE@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/admin"
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n mongo-gui-prod -f values.yaml mongo-gui $KITT_HOME/lib/kitt/charts/mongo-gui
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n mongo-gui-prod
+NAME                         READY   STATUS    RESTARTS   AGE
+mongo-gui-694754b6bc-znvf4   1/1     Running   0          25s
+----
+
+. [Optional] For a quick test, lets portforward the mongo-gui deployment to check that the UI is accessible.
+For that, run the following command, changing the namespace and pod name for yours
+
++
+[source,console]
+----
+$ kubectl port-forward -n mongo-gui-prod mongo-gui-694754b6bc-znvf4 40000:4321
+Forwarding from 127.0.0.1:40000 -> 4321
+Handling connection for 40000
+Handling connection for 40000
+----
+
+. Now the mongo-gui application is redirected to your local port 40000. Open the browser and access
+http://localhost:40000/mongo-gui, you should see the following:
++
+image::portforwarded-mongo-gui.png[Port Forwarded Mongo GUI]
+
++
+[NOTE]
+======
+Use Ctrl+C to stop the portforwarding
+======
+
+== Install **nats**
+
+. Create the nats namespace
+
++
+[source,console]
+----
+$ kubectl create namespace nats-prod
+----
+
+. In kitt folder open the folder `lib/kitt/tmpl/apps/nats`
+
+. That folder contains the definitions of the persistent volumes (pv.yaml), persistent volume claims (pvc.yaml)
+and the values that would be used by the helm chart (values.yaml).
+
+. Copy those 3 files into a temporary directory
+
+. Open pvc.yaml and change the values to fit into your infrastructure. The next example defines a Persistent
+Volume Claim of 10Gb in local file system using GP3 at AWS
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kyso-nats-js-pvc-kyso-nats-0
+  namespace: nats-prod
+  labels:
+    app.kubernetes.io/name: nats
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: "gp3"
+----
+
++
+[NOTE]
+======
+There are LOTS of PVC types. Please adjust the configuration of them following the provider instructions 
+======
+
+. Apply the pvc.yaml running the following command
+
++
+[source,console]
+----
+kubectl apply -f pvc.yaml
+persistentvolumeclaim/kyso-nats-js-pvc-kyso-nats-0 created
+----
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous PVC. Please note that this is a **standard nats helm chart**, for changes
+checkout out its documentation.
+
++
+[source,yaml]
+----
+imagePullSecrets:
+  - name: "dockerconfigjson"
+nats:
+  image: nats:2.8.2-alpine
+  jetstream:
+    enabled: true
+    memStorage:
+      enabled: true
+      size: "2Gi"
+    fileStorage:
+      enabled: true
+      size: "10Gi"
+natsbox:
+  image: natsio/nats-box:0.11.0
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+reloader:
+  image: natsio/nats-server-config-reloader:0.7.0
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+exporter:
+  image: natsio/prometheus-nats-exporter:0.9.3
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+cluster:
+  enabled: false
+  name: "kyso-nats"
+  replicas: 1
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n nats-prod -f values.yaml kyso-nats nats/nats --version=0.17.0
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n nats-prod
+NAME                            READY   STATUS    RESTARTS   AGE
+kyso-nats-box-9cd6697db-zt6td   1/1     Running   0          17s
+kyso-nats-0                     3/3     Running   0          17s
+----
+
+== Install **Elasticsearch**
+
+. Create the elasticsearch namespace
+
++
+[source,console]
+----
+$ kubectl create namespace elasticsearch-prod
+----
+
+. In kitt folder open the folder `lib/kitt/tmpl/apps/elasticsearch`
+
+. That folder contains the definitions of the persistent volumes (pv.yaml), persistent volume claims (pvc.yaml)
+and the values that would be used by the helm chart (values.yaml).
+
+. Copy those 3 files into a temporary directory
+
+. Open pvc.yaml and change the values to fit into your infrastructure. The next example defines a Persistent
+Volume Claim of 30Gb in local file system using GP3 at AWS
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-master-elasticsearch-master-0
+  namespace: elasticsearch-prod
+  labels:
+    app.kubernetes.io/name: elasticsearch
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+  storageClassName: "gp3"
+----
+
++
+[NOTE]
+======
+There are LOTS of PVC types. Please adjust the configuration of them following the provider instructions 
+======
+
+. Apply the pvc.yaml running the following command
+
++
+[source,console]
+----
+kubectl apply -f pvc.yaml
+persistentvolumeclaim/elasticsearch-master-elasticsearch-master-0 created
+----
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous PVC. Please note that this is a **standard elasticsearch helm chart**, for changes
+checkout out its documentation.
+
++
+[source,yaml]
+----
+replicas: 1
+image: docker.elastic.co/elasticsearch/elasticsearch
+# imageTag: not set, we expect the one from the chart to be available
+# To make pods spread between zones could change the antiAffinityTopologyKey to
+# 'topology.kubernetes.io/zone', but for now that is OK and while we have one
+# node per zone all will work as expected.
+antiAffinityTopologyKey: kubernetes.io/hostname
+# set to hard, we will need as many nodes as replicas
+antiAffinity: hard
+esJavaOpts: ""
+resources:
+    requests:
+        cpu: 1000m
+        memory: 2Gi
+clusterHealthCheckParams: local=true
+volumeClaimTemplate:
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 30Gi
+    storageClassName: gp3
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n elasticsearch-prod -f values.yaml kyso-elasticsearch elastic/elasticsearch --version=7.17.3
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n elasticsearch-prod 
+NAME                     READY   STATUS    RESTARTS   AGE
+elasticsearch-master-0   1/1     Running   0          26s
+----
+
+. [Optional] Let's check quickly that the Elasticsearch is effectively running. You can use any 
+elasticsearch client to test it, but if you don't have any we recommend you https://elasticvue.com/[ElasticVue]. Before connecting to Elastic, we need to perform a port forwarding to your local port executing the following command (please adapt the command to your namespace and pod naming)
+
++
+[source,console]
+----
+kubectl port-forward -n elasticsearch-prod elasticsearch-master-0 40001:9200
+----
+
+. Now, open your Elasticsearch client to configure the connection. For this example we are going to use ElasticVue as commented before. **Elasticsearch is configured without any username and password, because is NOT ACCESIBLE OUTSIDE THE INSTALLATION**. This is the connection configuration we used
+
++
+image::elastic-0.png[Connection to Elasticsearch]
+
++
+image::elastic-1.png[Information of nodes]
+
++
+[NOTE]
+======
+Use Ctrl+C to stop the portforwarding
+======
+
+== Install **kyso-api**
+
+. Create the kyso-api namespace
+
++
+[source,console]
+----
+$ kubectl create namespace kyso-api-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/kyso-api`
+
+. That folder contains the definitions of the values that would be used by the helm chart (values.yaml) and the definition of the SVC (svc_map.yaml)
+
+. Copy these files into a temporary directory
+
+. Open svc_map.yaml and change the values to fit into your infrastructure. The following example is related to previous deployments, and future deployments. Remember to change the values to fit into your configuration. This configuration allows kyso-api to communicate with other services
+
++
+[source,yaml]
+----
+# The first service will be removed, it is used only while moving from kitt 1.x
+# to 2.x (it is needed if kyso-api is updated before kyso-scs, as we have
+# changed the service name removing the '-svc' suffix)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-api-svc
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-api
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-nbdime
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nbdime.kyso-nbdime-prod.svc.cluster.local
+  ports:
+  - name: http
+    port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply svc_map.yaml executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/kyso-api-svc created
+service/elasticsearch created
+service/kyso-nbdime created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous MongoDB deployment, remember to change the values of the passwords and routes 
+to fit into your configuration.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    # Put here the repository in which the images are placed
+    repository: registry.kyso.io/kyso-io/kyso-api
+    # Specify the desired tag
+    tag: 2.0.20
+    pullPolicy: IfNotPresent
+imagePullSecrets:
+    - name: dockerconfigjson
+# Endpoint settings
+endpoint:
+    enabled: false
+    ip: ""
+    port: "4000"
+# Service settings
+service:
+    targetPort: "4000"
+# Ingress configuration
+ingress:
+    enabled: true
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    hosts:
+        # Specify the host in which kyso will respond on
+        - host: lo.kyso.io
+# Ingress API Docs configuration (optional)
+ingressDocs:
+    enabled: false
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+# Basic authentication if required (optional)
+ingressDocsAuth:
+    user: apidoc
+    pass: ""
+# Kyso configuration file values
+envSecret:
+    # Connection String to MongoDB
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+    # To populate Kyso with testing metadata (optional)
+    populateMailPrefix: lo
+    populateTestData: true
+
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n kyso-api-prod -f values.yaml kyso-api $KITT_HOME/lib/kitt/charts/kyso-api
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n kyso-api-prod
+NAME                        READY   STATUS    RESTARTS   AGE
+kyso-api-746575c79f-fkh2x   1/1     Running   0          40s
+----
+
+. [Optional] For a quick test, lets portforward the kyso-api deployment to check that it is effectively running. For that, run the following command, changing the namespace and pod name for yours
+
++
+[source,console]
+----
+$ kubectl port-forward -n kyso-api-prod kyso-api-746575c79f-fkh2x 40002:4000
+Forwarding from 127.0.0.1:40002 -> 4000
+Handling connection for 40002
+Handling connection for 40002
+----
+
++
+[NOTE]
+======
+Use Ctrl+C to stop the portforwarding
+======
+
+. Now kyso-api is redirected to your local port 40002. Open the browser and access
+http://localhost:40002/api/v.html, you should see the following:
+
++
+image::kyso-api-0.png[Port Forwarded Kyso API]
+
+. If you still have the mongo-gui port forwarded, access to http://localhost:40000/mongo-gui. You will see a new database named **kyso**, with several collections. The most interesting collection is KysoSettings, in which there are important configuration settings.
+
++
+image::kyso-api-1.png[Populated database]
+
+. Adjust the following variables at KysoSettings collection with the values according to your deployment
+
+[cols="1,1,1"]
+|===
+|**key**
+|**description**
+|**example value**
+
+|BASE_URL
+|domain in which kyso will be served
+|https://production.kyso.io
+
+|MAIL_TRANSPORT
+|SMTP mail transport using the following format: smtps://USER:PASSWORD@MAIL.DOMAIN
+|smtps://dev@dev.kyso.io:thepassword@mailu.kyso.io
+
+|MAIL_FROM
+|Sender name and email which will send emails in name of Kyso
+|"kyso" <dev@dev.kyso.io>
+
+|FRONTEND_URL
+|domain in which kyso will be served (same as BASE_URL, legacy setting)
+|https://production.kyso.io
+
+|ELASTICSEARCH_URL
+|Internal Kubernetes URL for Elasticsearch. **DEPENDS ON ELASTICSEARCH DEPLOYMENT**
+|http://**elasticsearch-master**.**elasticsearch-prod**.svc.cluster.local:**9200**
+
+|KYSO_NATS_URL
+|Internal Kubernetes URL for NATS. **DEPENDS ON NATS DEPLOYMENT**
+|nats://**kyso-nats**.**nats-prod**.svc.cluster.local:**4222**
+
+|=== 
+
+== Install **kyso-front**
+
+. Create the kyso-front namespace
+
++
+[source,console]
+----
+$ kubectl create namespace kyso-front-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/kyso-front`
+
+. That folder contains the definitions of the values that would be used by the helm chart (values.yaml) and the definition of the SVC (svc_map.yaml)
+
+. Copy these files into a temporary directory
+
+. Open svc_map.yaml and change the values to fit into your infrastructure. The following example is related to previous deployments, and future deployments. Remember to change the values to fit into your configuration. This configuration allows kyso-api to communicate with other services
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: kyso-front-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: kyso-front-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: kyso-front-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: kyso-front-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply svc_map.yaml executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open values.yaml and change the values to fit into your infrastructure. The following example 
+is related to the previous MongoDB deployment, remember to change the values of the passwords and routes 
+to fit into your configuration.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/kyso-front
+    tag: 2.0.20
+    pullPolicy: IfNotPresent
+imagePullSecrets:
+    - name: dockerconfigjson
+# Endpoint settings
+endpoint:
+    enabled: false
+    ip: ""
+    port: "3000"
+# Service settings
+service:
+    targetPort: "3000"
+# Ingress configuration
+ingress:
+    enabled: true
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+        - host: production.kyso.io
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n kyso-front-prod -f values.yaml kyso-front $KITT_HOME/lib/kitt/charts/kyso-front
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n kyso-front-prod
+NAME                         READY   STATUS    RESTARTS   AGE
+kyso-front-b4d6fc8cf-pgrtk   1/1     Running   0          3m14s
+----
+
+. [Optional] For a quick test, lets portforward the kyso-api deployment to check that it is effectively running. For that, run the following command, changing the namespace and pod name for yours
+
++
+[source,console]
+----
+$ kubectl port-forward -n kyso-front-prod kyso-front-b4d6fc8cf-pgrtk 40003:3000
+Forwarding from 127.0.0.1:40003 -> 3000
+Handling connection for 40003
+Handling connection for 40003
+----
+
++
+[NOTE]
+======
+Use Ctrl+C to stop the portforwarding
+======
+
+. Now kyso-front is redirected to your local port 40003. Open the browser and access
+http://localhost:40003/login, you should see the following:
+
++
+image::kyso-front-0.png[Port Forwarded Kyso front]
+
++
+[IMPORTANT]
+======
+kyso-front expects the API to be available in the same domain, in the subroute **/api**. That's not happening now, and in consequence, the login is not going to work. This will be solved later when we install the ingress routes.
+======
+
