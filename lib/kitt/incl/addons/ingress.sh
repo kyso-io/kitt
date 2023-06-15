@@ -28,6 +28,8 @@ _controller_repo="bitnami/nginx-ingress-controller"
 export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REPO="$_controller_repo"
 export CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG="1.5.1-debian-11-r5"
 export CLUSTER_DEFAULT_INGRESS_ADD_COREDNS_CUSTOM="false"
+export CLUSTER_DEFAULT_INGRESS_USE_ALB_CONTROLLER="false"
+export CLUSTER_DEFAULT_INGRESS_LOAD_BALANCER_SCHEME="internet-facing"
 
 # Fixed values
 export INGRESS_NAMESPACE="ingress"
@@ -113,6 +115,18 @@ addons_ingress_export_variables() {
     _add_coredns_custom="$CLUSTER_DEFAULT_INGRESS_ADD_COREDNS_CUSTOM"
   fi
   export INGRESS_ADD_COREDNS_CUSTOM="$_add_coredns_custom"
+  if [ "$CLUSTER_INGRESS_USE_ALB_CONTROLLER" ]; then
+    _use_alb_controller="$CLUSTER_INGRESS_USE_ALB_CONTROLLER"
+  else
+    _use_alb_controller="$CLUSTER_DEFAULT_INGRESS_USE_ALB_CONTROLLER"
+  fi
+  export INGRESS_USE_ALB_CONTROLLER="$_use_alb_controller"
+  if [ "$CLUSTER_INGRESS_LOAD_BALANCER_SCHEME" ]; then
+    _load_balancer_scheme="$CLUSTER_INGRESS_LOAD_BALANCER_SCHEME"
+  else
+    _load_balancer_scheme="$CLUSTER_DEFAULT_INGRESS_LOAD_BALANCER_SCHEME"
+  fi
+  export INGRESS_LOAD_BALANCER_SCHEME="$_load_balancer_scheme"
   # Set variable to avoid loading variables twice
   _addons_ingress_export_variables="1"
 }
@@ -154,6 +168,13 @@ addons_ingress_read_variables() {
   INGRESS_CONTROLLER_TAG=${READ_VALUE}
   read_bool "Add Ingress CoreDNS Custom Config" "${INGRESS_ADD_COREDNS_CUSTOM}"
   INGRESS_ADD_COREDNS_CUSTOM=${READ_VALUE}
+  read_bool "Use AWS Load Balancer Controller " "${INGRESS_USE_ALB_CONTROLLER}"
+  INGRESS_USE_ALB_CONTROLLER=${READ_VALUE}
+  if is_selected "$INGRESS_USE_ALB_CONTROLLER"; then
+    read_value "AWS load balancer scheme (internal/internet-facing)" \
+      "${INGRESS_LOAD_BALANCER_SCHEME}"
+    INGRESS_LOAD_BALANCER_SCHEME=${READ_VALUE}
+  fi
 }
 
 addons_ingress_print_variables() {
@@ -177,6 +198,10 @@ INGRESS_CONTROLLER_REPO=$INGRESS_CONTROLLER_REPO
 INGRESS_CONTROLLER_TAG=$INGRESS_CONTROLLER_TAG
 # Add CoreDNS Custom Config (*.CLUSTER_DOMAIN returns the internal INGRESS IP)
 INGRESS_ADD_COREDNS_CUSTOM=$INGRESS_ADD_COREDNS_CUSTOM
+# Use AWS load balancer controller
+INGRESS_USE_ALB_CONTROLLER=$INGRESS_USE_ALB_CONTROLLER
+# AWS load balancer scheme (must be 'internal' or 'internet-facing')
+INGRESS_LOAD_BALANCER_SCHEME=$INGRESS_LOAD_BALANCER_SCHEME
 # ---
 EOF
 }
@@ -225,6 +250,13 @@ addons_ingress_install() {
   fi
   # Add ingress certificate
   kubectl_apply "$_cert_yaml"
+  # Remove AWS Load Balancer Controller section if not in use
+  if is_selected "${CLUSTER_INGRESS_USE_ALB_CONTROLLER}"; then
+    _lb_scheme="$INGRESS_LOAD_BALANCER_SCHEME"
+    alb_controller_sed="s%__INGRESS_LOAD_BALANCER_SCHEME__%$_lb_scheme%"
+  else
+    alb_controller_sed="/BEG: USE_ALB_CONTROLLER/,/END: USE_ALB_CONTROLLER/d"
+  fi
   # Remove kyso dev port mapping if not set
   if is_selected "${CLUSTER_MAP_KYSO_DEV_PORTS}"; then
     dev_ports_sed="s%__PORTMAPS_NAMESPACE__%$INGRESS_PORTMAPS_NAMESPACE%"
@@ -242,6 +274,7 @@ addons_ingress_install() {
     -e "s%__INGRESS_CONTROLLER_REPO__%$INGRESS_CONTROLLER_REPO%" \
     -e "s%__INGRESS_CONTROLLER_TAG__%$INGRESS_CONTROLLER_TAG%" \
     -e "$dev_ports_sed" \
+    -e "$alb_controller_sed" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart" "$_version"
