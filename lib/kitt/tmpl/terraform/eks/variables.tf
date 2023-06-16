@@ -14,6 +14,7 @@ variable "aws_config" {
     cluster_name = "__CLUSTER_NAME__"
     cluster_version = "__CLUSTER_EKS_VERSION__"
     region = "__CLUSTER_REGION__"
+    cluster_public_endpoints = "__CLUSTER_PUBLIC_ENDPOINTS__"
   }
 }
 

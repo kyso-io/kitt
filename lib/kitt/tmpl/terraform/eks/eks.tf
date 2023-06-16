@@ -8,7 +8,7 @@ module "eks" {
 
   cluster_endpoint_private_access = true
   # Disable public access if using a VPN
-  cluster_endpoint_public_access  = __CLUSTER_PUBLIC_ENDPOINTS__
+  cluster_endpoint_public_access  = var.aws_config["cluster_public_endpoints"]
 
   cluster_addons = {
     coredns = {
