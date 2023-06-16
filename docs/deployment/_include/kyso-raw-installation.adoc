@@ -1264,4 +1264,21 @@ scs:8LQYSUh1Dyj98l9o
 
 == Install **ingress**
 
-TBD
+Now that we have the essential parts of Kyso, we need to make them accessible without the need of any portforwarding. 
+
+=== Certificates
+
+Kyso requires **https**. In this section we are going to prepare the configuration for SSL Certificates. These are the prerrequisites necessary
+
+[cols="1"]
+|===
+|**prerequisite**
+
+|Certificate KEY file
+
+|Certificate CRT file
+
+|http://kyso-scs.kyso-scs-prod.svc.cluster.local:9000
+|=== 
+
+. 
