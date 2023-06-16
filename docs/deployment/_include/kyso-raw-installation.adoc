@@ -913,3 +913,355 @@ image::kyso-front-0.png[Port Forwarded Kyso front]
 kyso-front expects the API to be available in the same domain, in the subroute **/api**. That's not happening now, and in consequence, the login is not going to work. This will be solved later when we install the ingress routes.
 ======
 
+== Install **kyso-scs**
+
+. Create kyso-scs namespace
+
++
+[source,console]
+----
+$ kubectl create namespace kyso-scs-prod
+----
+
+. In kitt folder open the folder `lib/kitt/tmpl/apps/kyso-scs`
+
+. That folder contains the definitions of the persistent volumes (pv.yaml), persistent volume claims (pvc.yaml), services (svc_map.yaml) and values that would be used by the helm chart (values.yaml).
+
+. Copy those 4 files into a temporary directory
+
+. Open pvc.yaml and change the values to fit into your infrastructure. The next example defines a Persistent Volume Claim of 10Gb in local file system using **EFS** at AWS. Please adjust these parameters
+into your infrastructure.
+
++
+[WARNING]
+======
+kyso-scs is the most storage consuming component in kyso's architecture. Here is where the files of the reports are stored (version by version), and other public data like portraits, images, themes, etc. In a production environment we recommend to use a scalable filesystem like **AWS EFS**, but you can use a regular volume enough big to store your reports (you can redimension it when its necessary)
+======
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kyso-scs-prod
+  namespace: kyso-scs-prod
+  labels:
+    app.kubernetes.io/name: kyso-scs
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  # If no storageClassName is defined, kubernetes will take the default (if it's defined)
+  #storageClassName: "gp3"
+  storageClassName: "efs-sc"
+----
+
++
+[NOTE]
+======
+There are LOTS of PVC types. Please adjust the configuration of them following the provider instructions 
+======
+
+. Apply the pvc.yaml running the following command
+
++
+[source,console]
+----
+kubectl apply -f pvc.yaml
+persistentvolumeclaim/kyso-scs-prod created
+----
+
+. Create a new file named `configmap.yaml` with the next contents, but adjusted to your infrastructure.
+
++
+[source,yaml]
+----
+apiVersion: v1
+data:
+  application.yaml: |
+    cron:
+      # Frequency in which the cronjobs will be executed
+      expr: "*/30 * * * * ?"
+    app:
+      indexer:
+        # Elasticsearch kubernetes internal name
+        elasticsearch: "http://elasticsearch-master.elasticsearch-prod.svc.cluster.local:9200"
+        # Location of temporary files
+        filepath: "/tmp"
+        # Base location of scs data (where the report files will be placed)
+        scsBasePath: "/sftp/data/scs"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: kyso-indexer-config
+  namespace: kyso-scs-prod
+----
+
+. Apply `configmap.yaml` running the following command
+
++
+[source,console]
+----
+kubectl apply -f configmap.yaml
+configmap/kyso-indexer-config created
+----
+
+. Open `svc_map.yaml` and adjust the parameters to the adequate values of your infrastructure. The following example has the values related to the previous deployments
+
++
+[source,yaml]
+----
+# The first service will be removed, it is used only while moving from kitt 1.x
+# to 2.x (it is needed if kyso-scs is updated before kyso-api, as we have
+# changed the service name removing the '-svc' suffix)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs-svc
+  namespace: kyso-scs-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: kyso-scs-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: kyso-scs-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: kyso-scs-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+
+. Apply `svc_map.yaml` running the following command
+
++
+[source,console]
+----
+kubectl apply -f svc_map.yaml
+configmap/kyso-indexer-config created
+----
+
+. Open `values.yaml`` and change the values to fit into your infrastructure. The following example 
+is related to the previous deployments.
+
+
++
+[source,yaml]
+----
+replicaCount: 1
+dataPvcName: kyso-scs-prod
+dataVolName: kyso-scs-prod
+sftpPubUser: pub
+sftpScsUser: scs
+cronjobs:
+    hardlink:
+        enabled: true
+        image:
+            repository: registry.kyso.io/docker/alpine
+            pullPolicy: IfNotPresent
+            tag: latest
+        schedule: 0 0 * * *
+        webhookUrl: http://kyso-scs-svc.kyso-scs-prod.svc.cluster.local:9000/hooks/hardlink
+containers:
+    indexer:
+        endpoint:
+            # if the endpoint is enabled we use it instead of the image
+            enabled: false
+            ip: ""
+            port: 8080
+        config:
+            # The following values are used by the application.yaml config file
+            cronExpr: '*/30 * * * * ?'
+            elasticsearchUrl: http://elasticsearch:9200
+            mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+        image:
+            repository: registry.kyso.io/kyso-io/kyso-indexer
+            pullPolicy: IfNotPresent
+            tag: 2.3.3
+        service:
+            port: 8080
+            targetPort: 8080
+    myssh:
+        image:
+            repository: registry.kyso.io/docker/mysecureshell
+            pullPolicy: IfNotPresent
+            tag: 2.0.0
+        secretName: kyso-scs-myssh-secret
+        service:
+            port: 22
+            targetPort: 22
+    nginx:
+        image:
+            repository: registry.kyso.io/docker/nginx-scs
+            pullPolicy: IfNotPresent
+            tag: 3.0.0
+        service:
+            port: 80
+            targetPort: 80
+        env:
+            - name: AUTH_REQUEST_URI
+              value: http://kyso-api.kyso-api-prod.svc.cluster.local/api/v1/auth/check-permissions
+    webhook:
+        enabled: true
+        image:
+            repository: registry.kyso.io/docker/webhook-scs
+            pullPolicy: IfNotPresent
+            tag: 1.2.5
+        service:
+            port: 9000
+            targetPort: 9000
+        env:
+            - name: KYSO_URL
+              value: http://kyso-api.kyso-api-prod.svc.cluster.local
+imagePullSecrets:
+    - name: dockerconfigjson
+ingress:
+    enabled: true
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+        - host: production.kyso.io
+podAnnotations:
+    # Add annotations for velero
+    backup.velero.io/backup-volumes: kyso-scs-prod
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n kyso-scs-prod -f values.yaml kyso-scs $KITT_HOME/lib/kitt/charts/kyso-scs
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n kyso-scs-prod
+NAME         READY   STATUS    RESTARTS   AGE
+kyso-scs-0   4/4     Running   0          6m10s
+----
+
+. Obtain the credentials for kyso-scs executing the following command
+
++
+[NOTE]
+======
+We are using https://github.com/jqlang/jq/wiki/Installation[jq] command to process json easily.
+
+jq is available in all operating systems
+======
+
++
+[source,console]
+----
+$ kubectl get secret -n kyso-scs-prod kyso-scs-myssh-secret -o json | jq -r '.data."user_pass.txt"' | base64 -d
+pub:WxIqIIa8I5BBtOnp
+scs:8LQYSUh1Dyj98l9o
+----
+
+. Adjust the following variables at KysoSettings collection with the values according to your deployment
+
+[cols="1,1,1"]
+|===
+|**key**
+|**description**
+|**example value**
+
+|SFTP_HOST
+|kyso-scs internal kubernetes name
+|kyso-scs.kyso-scs-prod.svc.cluster.local
+
+|SFTP_HOST
+|kyso-scs port
+|22
+
+|MAIL_FROM
+|Sender name and email which will send emails in name of Kyso
+|"kyso" <dev@dev.kyso.io>
+
+|SFTP_USERNAME
+|kyso-scs username
+|scs
+
+|SFTP_PASSWORD
+|Password for user scs obtained previously. **Adjust with your values**
+|8LQYSUh1Dyj98l9o
+
+|SFTP_PUBLIC_USERNAME
+|kyso-scs user for public files
+|pub
+
+|SFTP_PUBLIC_PASSWORD
+|Password for public user obtained previously. **Adjust with your values**
+|WxIqIIa8I5BBtOnp
+
+|STATIC_CONTENT_PREFIX
+|
+|/scs
+
+|STATIC_CONTENT_PUBLIC_PREFIX
+|
+|/pub
+
+|REPORT_PATH
+|Path where reports are unzipped
+|/data
+
+|TMP_FOLDER_PATH
+|Path where temporary files are stored
+|/app/data
+
+|KYSO_INDEXER_API_BASE_URL
+|Base URL of the kyso indexing service
+|http://kyso-scs.kyso-scs-prod.svc.cluster.local:8080
+
+|KYSO_WEBHOOK_URL
+|Webhooks URL (s3 import, du, etc.)
+|http://kyso-scs.kyso-scs-prod.svc.cluster.local:9000
+|=== 
+
+== Install **ingress**
+
+TBD
