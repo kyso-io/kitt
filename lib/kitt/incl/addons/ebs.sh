@@ -118,12 +118,23 @@ addons_ebs_remove() {
   addons_ebs_clean_directories
 }
 
+addons_ebs_logs() {
+  addons_ebs_export_variables
+  _addon="ebs"
+  _ns="$EBS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    kubectl logs -n "$_ns" -l "app.kubernetes.io/name=aws-ebs-csi-driver"
+  else
+    echo "Namespace '$_ns' for '$_addon' not found!"
+  fi
+}
+
 addons_ebs_status() {
   addons_ebs_export_variables
   _addon="ebs"
   _ns="$EBS_NAMESPACE"
   if find_namespace "$_ns"; then
-    kubectl get pod -n "$_ns" -l "app.kubernetes.io/name=aws-ebs-csi-driver"
+    kubectl get all -n "$_ns" -l "app.kubernetes.io/name=aws-ebs-csi-driver"
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
@@ -141,6 +152,7 @@ addons_ebs_command() {
   case "$1" in
     install) addons_ebs_install ;;
     remove) addons_ebs_remove ;;
+    logs) addons_ebs_logs ;;
     status) addons_ebs_status ;;
     summary) addons_ebs_summary ;;
     *) echo "Unknown ebs subcommand '$1'"; exit 1 ;;
@@ -148,7 +160,7 @@ addons_ebs_command() {
 }
 
 addons_ebs_command_list() {
-  echo "install remove status summary"
+  echo "install remove logs status summary"
 }
 
 # ----
