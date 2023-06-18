@@ -29,7 +29,8 @@ export CLUSTER_DEFAULT_INGRESS_CONTROLLER_REPO="$_controller_repo"
 export CLUSTER_DEFAULT_INGRESS_CONTROLLER_TAG="1.5.1-debian-11-r5"
 export CLUSTER_DEFAULT_INGRESS_ADD_COREDNS_CUSTOM="false"
 export CLUSTER_DEFAULT_INGRESS_USE_ALB_CONTROLLER="false"
-export CLUSTER_DEFAULT_INGRESS_LOAD_BALANCER_SCHEME="internet-facing"
+export CLUSTER_DEFAULT_INGRESS_AWS_LOAD_BALANCER_SCHEME="internet-facing"
+export CLUSTER_DEFAULT_INGRESS_AWS_LOAD_BALANCER_SSL_CERT=""
 
 # Fixed values
 export INGRESS_NAMESPACE="ingress"
@@ -121,12 +122,18 @@ addons_ingress_export_variables() {
     _use_alb_controller="$CLUSTER_DEFAULT_INGRESS_USE_ALB_CONTROLLER"
   fi
   export INGRESS_USE_ALB_CONTROLLER="$_use_alb_controller"
-  if [ "$CLUSTER_INGRESS_LOAD_BALANCER_SCHEME" ]; then
-    _load_balancer_scheme="$CLUSTER_INGRESS_LOAD_BALANCER_SCHEME"
+  if [ "$CLUSTER_INGRESS_AWS_LOAD_BALANCER_SCHEME" ]; then
+    _aws_lb_scheme="$CLUSTER_INGRESS_AWS_LOAD_BALANCER_SCHEME"
   else
-    _load_balancer_scheme="$CLUSTER_DEFAULT_INGRESS_LOAD_BALANCER_SCHEME"
+    _aws_lb_scheme="$CLUSTER_DEFAULT_INGRESS_AWS_LOAD_BALANCER_SCHEME"
   fi
-  export INGRESS_LOAD_BALANCER_SCHEME="$_load_balancer_scheme"
+  export INGRESS_AWS_LOAD_BALANCER_SCHEME="$_aws_lb_scheme"
+  if [ "$CLUSTER_INGRESS_AWS_LOAD_BALANCER_SSL_CERT" ]; then
+    _aws_lb_ssl_cert="$CLUSTER_INGRESS_AWS_LOAD_BALANCER_SSL_CERT"
+  else
+    _aws_lb_ssl_cert="$CLUSTER_DEFAULT_INGRESS_AWS_LOAD_BALANCER_SSL_CERT"
+  fi
+  export INGRESS_AWS_LOAD_BALANCER_SSL_CERT="$_aws_lb_ssl_cert"
   # Set variable to avoid loading variables twice
   _addons_ingress_export_variables="1"
 }
@@ -172,8 +179,11 @@ addons_ingress_read_variables() {
   INGRESS_USE_ALB_CONTROLLER=${READ_VALUE}
   if is_selected "$INGRESS_USE_ALB_CONTROLLER"; then
     read_value "AWS load balancer scheme (internal/internet-facing)" \
-      "${INGRESS_LOAD_BALANCER_SCHEME}"
-    INGRESS_LOAD_BALANCER_SCHEME=${READ_VALUE}
+      "${INGRESS_AWS_LOAD_BALANCER_SCHEME}"
+    INGRESS_AWS_LOAD_BALANCER_SCHEME=${READ_VALUE}
+    read_value "AWS load balancer ssl cert" \
+      "${INGRESS_AWS_LOAD_BALANCER_SSL_CERT}"
+    INGRESS_AWS_LOAD_BALANCER_SSL_CERT=${READ_VALUE}
   fi
 }
 
@@ -201,7 +211,9 @@ INGRESS_ADD_COREDNS_CUSTOM=$INGRESS_ADD_COREDNS_CUSTOM
 # Use AWS load balancer controller
 INGRESS_USE_ALB_CONTROLLER=$INGRESS_USE_ALB_CONTROLLER
 # AWS load balancer scheme (must be 'internal' or 'internet-facing')
-INGRESS_LOAD_BALANCER_SCHEME=$INGRESS_LOAD_BALANCER_SCHEME
+INGRESS_AWS_LOAD_BALANCER_SCHEME=$INGRESS_AWS_LOAD_BALANCER_SCHEME
+# AWS load balancer cert (leave it empty if not using ACM certificates)
+INGRESS_AWS_LOAD_BALANCER_SSL_CERT=$INGRESS_AWS_LOAD_BALANCER_SSL_CERT
 # ---
 EOF
 }
@@ -252,8 +264,10 @@ addons_ingress_install() {
   kubectl_apply "$_cert_yaml"
   # Remove AWS Load Balancer Controller section if not in use
   if is_selected "${CLUSTER_INGRESS_USE_ALB_CONTROLLER}"; then
-    _lb_scheme="$INGRESS_LOAD_BALANCER_SCHEME"
-    alb_controller_sed="s%__INGRESS_LOAD_BALANCER_SCHEME__%$_lb_scheme%"
+    _aws_lb_scheme="$INGRESS_AWS_LOAD_BALANCER_SCHEME"
+    _aws_lb_ssl_cert="$INGRESS_AWS_LOAD_BALANCER_SSL_CERT"
+    alb_controller_sed="s%__AWS_LOAD_BALANCER_SCHEME__%$_aws_lb_scheme%"
+    alb_controller_sed="s%__AWS_LOAD_BALANCER_SSL_CERT__%$_aws_lb_ssl_cert%"
   else
     alb_controller_sed="/BEG: USE_ALB_CONTROLLER/,/END: USE_ALB_CONTROLLER/d"
   fi

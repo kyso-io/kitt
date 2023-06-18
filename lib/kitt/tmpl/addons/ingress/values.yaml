@@ -20,7 +20,11 @@ replicaCount: __REPLICAS__
 service:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "__INGRESS_LOAD_BALANCER_SCHEME__"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "__AWS_LOAD_BALANCER_SCHEME__"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "__AWS_LOAD_BALANCER_SSL_CERT__"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 # END: USE_ALB_CONTROLLER
 # BEG: MAP_KYSO_DEV_PORTS
 tcp:
