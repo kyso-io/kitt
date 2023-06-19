@@ -1370,6 +1370,24 @@ ingress-nginx-ingress-controller-default-backend-f687c95978ln9h   1/1     Runnin
 ingress-nginx-ingress-controller-644bf9db5c-mpksj                 1/1     Running   0          42s
 ----
 
+
+. Adjust the following variables at KysoSettings collection with the values according to your deployment
+
+[cols="1,1,1"]
+|===
+|**key**
+|**description**
+|**example value**
+
+|BASE_URL
+|Public frontend url, needed to build a webhook with github and other integrations. Should be a public URL as well, because Github don't allow you to make a webhook vs localhost for security reasons (no public urls could provoke malfunction in 3rd party integrations)
+|https://lo.kyso.io
+
+|FRONTEND_URL
+|Just the frontend URL (same as previous setting for backwards compatibility)
+|https://lo.kyso.io
+|=== 
+
 . Let's check that the ingress is effectively running, checking that the it's answering to the defined domain name, and applying the certificates. Open your browser and open the following url https://<your_domain>/api/v.html. You must see something similar to the following screenshot (we used the domain https://lo.kyso.io/api/v.html)
 
 +
@@ -1402,3 +1420,822 @@ mongo-gui-prod    mongo-gui    nginx   lo.kyso.io   172.22.0.2   80      4d2h
 kyso-front-prod   kyso-front   nginx   lo.kyso.io   172.22.0.2   80      3d22h
 ----
 
+== Install **onlyoffice-ds** (optional)
+
+This component is used to **render Microsoft Office documents (pptx, xlsx, docx, etc.) and PDFs**. If you are not going to upload those kind of files to kyso, you can skip the installation of this component, but then, those files wouldn't be rendered at Kyso.
+
+. Create the onlyoffice-ds namespace
+
++
+[source,console]
+----
+$ kubectl create namespace onlyoffice-ds-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/onlyoffice-ds`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: onlyoffice-ds-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: onlyoffice-ds-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: onlyoffice-ds-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: onlyoffice-ds-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+  repository: "registry.kyso.io/docker/onlyoffice-documentserver"
+  tag: "7.2.0.204"
+  pullPolicy: "Always"
+# If needed
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "80"
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+  - host: "lo.kyso.io"
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n onlyoffice-ds-prod -f values.yaml onlyoffice-ds $KITT_HOME/lib/kitt/charts/onlyoffice-ds
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n onlyoffice-ds-prod
+NAME                             READY   STATUS    RESTARTS   AGE
+onlyoffice-ds-6664446d49-bjdtc   1/1     Running   0          43s
+----
+
+. As we already have the ingress up and running, we can go directly to our browser and check that the following url is working https://<your_domain>/7.2.0-204/welcome/.
+
++
+image::onlyoffice-0.png[Kyso being served by ingress]
+
+== Install **imagebox** (optional)
+
+This component is used to **render SVS files (medical/microscope scanners and images)**.If you are not going to upload those kind of files to kyso, you can skip the installation of this component.
+
+. Create the imagebox namespace
+
++
+[source,console]
+----
+$ kubectl create namespace imagebox-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/imagebox`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: imagebox-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: imagebox-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: imagebox-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: imagebox-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+  repository: "registry.kyso.io/docker/imagebox"
+  tag: "latest"
+  pullPolicy: "Always"
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "8080"
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+  - host: "lo.kyso.io"
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n imagebox-prod -f values.yaml imagebox $KITT_HOME/lib/kitt/charts/imagebox
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n imagebox-prod
+NAME                        READY   STATUS    RESTARTS   AGE
+imagebox-5fbbbc57b4-czbmg   1/1     Running   0          108s
+----
+
+. To test that the SVS support is working, just create a new report at your https://<your_domain> with a SVS file, you should see something like this:
+
++
+image::imagebox-0.png[Kyso being served by ingress]
+
+== Install **notification-consumer** 
+
+This component is used to send notifications to users via **email**. This component is required for processes like password recovering, invitation links, etc.
+
+. Create the notification-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace notification-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/imagebox`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/notification-consumer
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n notification-consumer-prod -f values.yaml notification-consumer $KITT_HOME/lib/kitt/charts/notification-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n notification-consumer-prod
+NAME                                    READY   STATUS    RESTARTS   AGE
+notification-consumer-8589664bd-s6gm5   1/1     Running   0          15s
+----
+
+. Adjust the following variables at KysoSettings collection with the values according to your deployment
+
+[cols="1,1,1"]
+|===
+|**key**
+|**description**
+|**example value**
+
+|MAIL_FROM
+|Sender name and email which will send emails in name of Kyso
+|"kyso" <dev@dev.kyso.io>
+
+|MAIL_TRANSPORT
+|SMTP mail transport using the following format: smtps://USER:PASSWORD@smtp.googlemail.com
+|smtps://dev@dev.kyso.io:THE_PASSWORD@mailu.kyso.io
+|=== 
+
+
+. To test it, you can create a new user using the sign-up form (https://lo.kyso.io/signup) and check that your are receiving an email after the registration
+
++
+image::notification-consumer-0.png[Register a new user at the signup page]
+
+. You must receive the following emails
+
++
+image::notification-consumer-1.png[Received emails]
+
+== Install **activity-feed-consumer**
+
+. Create the activity-feed-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace activity-feed-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/activity-feed-consumer`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: activity-feed-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: activity-feed-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: activity-feed-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: activity-feed-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/activity-feed-consumer
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n activity-feed-consumer-prod -f values.yaml activity-feed-consumer $KITT_HOME/lib/kitt/charts/activity-feed-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n activity-feed-consumer-prod
+NAME                                     READY   STATUS    RESTARTS   AGE
+activity-feed-consumer-d6f9f4b59-8v5rw   1/1     Running   0          14s
+----
+
+. To test it, you can create a new report and check that the activity feed on the right column reflects the latests actions
+
++
+image::activity-feed-consumer-0.png[Activity feed testing]
+
+== Install **analytics-consumer** (optional)
+
+This component is used to compile analytics and statistics of the reports. If you are not interested in this feature, you can skip it.
+
+. Create the analytics-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace analytics-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/analytics-consumer`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/analytics-consumer
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n analytics-consumer-prod -f values.yaml analytics-consumer $KITT_HOME/lib/kitt/charts/analytics-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n analytics-consumer-prod
+NAME                                  READY   STATUS    RESTARTS   AGE
+analytics-consumer-6fc8f9fb95-wjks5   1/1     Running   0          19s
+----
+
+. To test it, you can just access to any report, click on the ellipsis button and select "Analytics". If you see something like the following screenshot, means that it's working as expected
+
++
+image::analytics-consumer-0.png[Analytics consumer testing]
+
+== Install **file-metadata-postprocess-consumer** (optional)
+
+This component is used to analyze CSV and TSV files, to summarize and generate stats. If you are not interested in this feature, you can skip it.
+
+. Create the file-metadata-postprocess-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace file-metadata-postprocess-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/file-metadata-postprocess-consumer`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: file-metadata-postprocess-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: file-metadata-postprocess-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: file-metadata-postprocess-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: file-metadata-postprocess-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/file-metadata-postprocess
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n file-metadata-postprocess-consumer-prod -f values.yaml file-metadata-postprocess-consumer $KITT_HOME/lib/kitt/charts/file-metadata-postprocess-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n file-metadata-postprocess-consumer-prod
+NAME                                                  READY   STATUS    RESTARTS   AGE
+file-metadata-postprocess-consumer-5d7f85d487-8l7tp   1/1     Running   0          20s
+----
+
+. To test it, you can just create a new report, upload a CSV file with a numeric column and check that some stats are shown in the frontend.
+
++
+image::file-metadata-postprocess-0.png[File metadata postprocess consumer testing]
+
+== Install **slack-notifications-consumer** (optional)
+
+This component is used to send notifications to users via **slack**.
+
+== Install **teams-notification-consumer** (optional)
+
+This component is used to send notifications to users via **teams**.
+
+== Install **Jupyter diff components** (optional)
+
+This component is used to **diff Jupyter Notebooks**. If you are not interested in Jupyter notebook diffing, you can skip the installation of this component.
+
+=== Install **kyso-nbdime**
+
+=== Install **jupyter-diff microfrontend**
