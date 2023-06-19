@@ -304,12 +304,23 @@ addons_efs_remove() {
   addons_efs_clean_directories
 }
 
+addons_efs_logs() {
+  addons_efs_export_variables
+  _addon="efs"
+  _ns="$EFS_NAMESPACE"
+  if find_namespace "$_ns"; then
+    kubectl logs -n "$_ns" -l "app.kubernetes.io/name=aws-efs-csi-driver"
+  else
+    echo "Namespace '$_ns' for '$_addon' not found!"
+  fi
+}
+
 addons_efs_status() {
   addons_efs_export_variables
   _addon="efs"
   _ns="$EFS_NAMESPACE"
   if find_namespace "$_ns"; then
-    kubectl get pod -n "$_ns" -l "app.kubernetes.io/name=aws-efs-csi-driver"
+    kubectl get all -n "$_ns" -l "app.kubernetes.io/name=aws-efs-csi-driver"
   else
     echo "Namespace '$_ns' for '$_addon' not found!"
   fi
@@ -328,6 +339,7 @@ addons_efs_command() {
     createfs) addons_efs_createfs ;;
     install) addons_efs_install ;;
     remove) addons_efs_remove ;;
+    logs) addons_efs_logs ;;
     status) addons_efs_status ;;
     summary) addons_efs_summary ;;
     *) echo "Unknown efs subcommand '$1'"; exit 1 ;;
@@ -335,7 +347,7 @@ addons_efs_command() {
 }
 
 addons_efs_command_list() {
-  echo "createfs install remove status summary"
+  echo "createfs install remove logs status summary"
 }
 
 # ----
