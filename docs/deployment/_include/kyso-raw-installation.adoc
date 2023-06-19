@@ -725,7 +725,7 @@ image::kyso-api-1.png[Populated database]
 
 |BASE_URL
 |domain in which kyso will be served
-|https://production.kyso.io
+|https://lo.kyso.io
 
 |MAIL_TRANSPORT
 |SMTP mail transport using the following format: smtps://USER:PASSWORD@MAIL.DOMAIN
@@ -737,7 +737,7 @@ image::kyso-api-1.png[Populated database]
 
 |FRONTEND_URL
 |domain in which kyso will be served (same as BASE_URL, legacy setting)
-|https://production.kyso.io
+|https://lo.kyso.io
 
 |ELASTICSEARCH_URL
 |Internal Kubernetes URL for Elasticsearch. **DEPENDS ON ELASTICSEARCH DEPLOYMENT**
@@ -863,7 +863,7 @@ ingress:
     annotations:
         nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     hosts:
-        - host: production.kyso.io
+        - host: lo.kyso.io
 ----
 
 . Apply helm chart executing this
@@ -1159,7 +1159,7 @@ ingress:
     annotations:
         nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     hosts:
-        - host: production.kyso.io
+        - host: lo.kyso.io
 podAnnotations:
     # Add annotations for velero
     backup.velero.io/backup-volumes: kyso-scs-prod
@@ -1281,4 +1281,124 @@ Kyso requires **https**. In this section we are going to prepare the configurati
 |http://kyso-scs.kyso-scs-prod.svc.cluster.local:9000
 |=== 
 
-. 
+. Create a namespace `ingress`
+
++
+[source,console]
+----
+$ kubectl create namespace ingress
+----
+
+. Create a new secret with the desired certificates
+
++
+[source,console]
+----
+kubectl create secret tls ingress-cert \
+    --namespace ingress \
+    --cert /route/to/your/domain.crt \
+    --key /route/to/your/domain.key
+----
+
++
+[NOTE]
+======
+Put in tls.crt the content of your certificate crt file
+
+Put in tls.key the content of your certificate key file
+======
+
+. Test that the secret is effectively created running
+
++
+[source,console]
+----
+$ kubectl get secret -n ingress
+NAME           TYPE                DATA   AGE
+ingress-cert   kubernetes.io/tls   2      2d17h
+----
+
+=== nginx ingress
+
+. Now, we are going to install the ingress's helm chart. First of all, copy the file placed at your kitt folder `lib/kitt/tmpl/addons/ingress`. There are two files, `values.yaml` and `coredns-custom.yaml`
+
+. Substitute the properties at `values.yaml` with the adequate to your deployment. The following example represents a generic configuration
+
++
+[source,yaml]
+----
+config:
+  enable-brotli: "true"
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+  enable-real-ip: "true"
+  use-gzip: "true"
+image:
+  registry: "docker.io"
+  repository: "bitnami/nginx-ingress-controller"
+  tag: "1.5.1-debian-11-r5"
+defaultBackend:
+  image:
+    registry: "docker.io"
+    repository: "bitnami/nginx"
+    tag: "1.22.1-debian-11-r7"
+ingressClassResource:
+  default: true
+extraArgs:
+  # Make sure this property matches with previosly defined secret name
+  default-ssl-certificate: "ingress/ingress-cert"
+  ingress-class: nginx
+replicaCount: 1
+----
+
+. Apply the helm chart executing the following command
+
++
+[source,console]
+----
+helm upgrade --install -n ingress -f values.yaml ingress bitnami/nginx-ingress-controller --version=9.3.22
+----
+
+. Check that everything is running executing the following command
+
++
+[source,console]
+----
+$ kubectl get pods -n ingress
+NAME                                                              READY   STATUS    RESTARTS   AGE
+ingress-nginx-ingress-controller-default-backend-f687c95978ln9h   1/1     Running   0          42s
+ingress-nginx-ingress-controller-644bf9db5c-mpksj                 1/1     Running   0          42s
+----
+
+. Let's check that the ingress is effectively running, checking that the it's answering to the defined domain name, and applying the certificates. Open your browser and open the following url https://<your_domain>/api/v.html. You must see something similar to the following screenshot (we used the domain https://lo.kyso.io/api/v.html)
+
++
+image::ingress-0.png[API being served by ingress]
+
+. If you access directly to https://<your_domain>/login, you should see something similar to the following screenshot (we used the domain https://lo.kyso.io)
+
++
+image::ingress-1.png[Kyso being served by ingress]
+
++
+[NOTE]
+======
+Note that the certificates are valid!
+======
+
++
+image::ingress-2.png[Kyso being served by ingress]
+
+. You can check all the ingresses running in your kubernetes cluster running the next command
+
++
+[source,console]
+----
+$ kubectl get ingress -A
+NAMESPACE         NAME         CLASS   HOSTS        ADDRESS      PORTS   AGE
+kyso-scs-prod     kyso-scs     nginx   lo.kyso.io   172.22.0.2   80      3d3h
+kyso-api-prod     kyso-api     nginx   lo.kyso.io   172.22.0.2   80      3d23h
+mongo-gui-prod    mongo-gui    nginx   lo.kyso.io   172.22.0.2   80      4d2h
+kyso-front-prod   kyso-front   nginx   lo.kyso.io   172.22.0.2   80      3d22h
+----
+
