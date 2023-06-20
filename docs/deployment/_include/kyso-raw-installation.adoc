@@ -1116,7 +1116,7 @@ containers:
         image:
             repository: registry.kyso.io/kyso-io/kyso-indexer
             pullPolicy: IfNotPresent
-            tag: 2.3.3
+            tag: 2.0.20
         service:
             port: 8080
             targetPort: 8080
@@ -1124,7 +1124,7 @@ containers:
         image:
             repository: registry.kyso.io/docker/mysecureshell
             pullPolicy: IfNotPresent
-            tag: 2.0.0
+            tag: latest
         secretName: kyso-scs-myssh-secret
         service:
             port: 22
@@ -1133,7 +1133,7 @@ containers:
         image:
             repository: registry.kyso.io/docker/nginx-scs
             pullPolicy: IfNotPresent
-            tag: 3.0.0
+            tag: latest
         service:
             port: 80
             targetPort: 80
@@ -1145,7 +1145,7 @@ containers:
         image:
             repository: registry.kyso.io/docker/webhook-scs
             pullPolicy: IfNotPresent
-            tag: 1.2.5
+            tag: latest
         service:
             port: 9000
             targetPort: 9000
