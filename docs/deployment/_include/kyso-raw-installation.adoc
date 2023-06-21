@@ -2478,4 +2478,201 @@ This component is used to **diff Jupyter Notebooks**. If you are not interested 
 
 === Install **kyso-nbdime**
 
+. Create the teams-notification-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace kyso-nbdime-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/kyso-nbdime`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`)
+
+. Copy these files into a temporary directory
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/docker/kyso-nbdime
+    tag: latest
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+service:
+    port: "3005"
+    targetPort: "3005"
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n kyso-nbdime-prod -f values.yaml kyso-nbdime $KITT_HOME/lib/kitt/charts/kyso-nbdime
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n kyso-nbdime-prod
+NAME                          READY   STATUS    RESTARTS   AGE
+kyso-nbdime-764c575dd-kqwcc   1/1     Running   0          16s
+----
+
+. Adjust the following variables at KysoSettings collection with the values according to your deployment
+
+[cols="1,1,1"]
+|===
+|**key**
+|**description**
+|**example value**
+
+|KYSO_NBDIME_URL
+|URL of the nbdime service
+|http://kyso-nbdime.kyso-nbdime-prod.svc.cluster.local:3005
+|=== 
+
+
 === Install **jupyter-diff microfrontend**
+
+. Create the jupyter-diff namespace
+
++
+[source,console]
+----
+$ kubectl create namespace jupyter-diff-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/jupyter-diff`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: jupyter-diff-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: jupyter-diff-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: jupyter-diff-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: jupyter-diff-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/microfrontends/jupyter-diff        
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+# Endpoint settings
+endpoint:
+    enabled: false
+    ip: ""
+    port: "3000"
+# Service settings
+service:
+    targetPort: "3000"
+# Ingress configuration
+ingress:
+    enabled: true
+    className: nginx
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+        - host: lo.kyso.io
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n jupyter-diff-prod -f values.yaml jupyter-diff $KITT_HOME/lib/kitt/charts/jupyter-diff
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n jupyter-diff-prod
+NAME                          READY   STATUS    RESTARTS   AGE
+kyso-nbdime-764c575dd-kqwcc   1/1     Running   0          16s
+----
+
+. Check that the microfrontend is accesible at https://<your_server>/kyjupdiff/
