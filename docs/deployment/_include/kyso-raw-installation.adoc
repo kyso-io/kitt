@@ -2226,11 +2226,251 @@ image::file-metadata-postprocess-0.png[File metadata postprocess consumer testin
 
 == Install **slack-notifications-consumer** (optional)
 
-This component is used to send notifications to users via **slack**.
+This component is used to send notifications to users using **slack**.
+
+. Create the slack-notifications-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace slack-notifications-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/slack-notifications-consumer`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: slack-notifications-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: slack-notifications-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: slack-notifications-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: slack-notifications-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/slack-notifications-consumer
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n slack-notifications-consumer-prod -f values.yaml slack-notifications-consumer $KITT_HOME/lib/kitt/charts/slack-notifications-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n slack-notifications-consumer-prod
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+slack-notifications-consumer   1/1     1            1           18s
+----
 
 == Install **teams-notification-consumer** (optional)
 
 This component is used to send notifications to users via **teams**.
+
+. Create the teams-notification-consumer namespace
+
++
+[source,console]
+----
+$ kubectl create namespace teams-notification-consumer-prod
+----
+
+. In kitt folder, open the folder `lib/kitt/tmpl/apps/teams-notification-consumer`
+
+. That folder contains the definitions of the values that would be used by the helm chart (`values.yaml`) and the definition of the SVC (`svc_map.yaml``)
+
+. Copy these files into a temporary directory
+
+. Open `svc_map.yaml` and change the values to fit into your infrastructure. 
+
++
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: teams-notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: teams-notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: teams-notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: teams-notification-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
+----
+
+. Apply `svc_map.yaml` executing the following instruction
+
++
+[source,yaml]
+----
+$ kubectl apply -f svc_map.yaml
+service/elasticsearch created
+service/kyso-scs created
+service/nats created
+service/mongodb created
+----
+
+. Open `values.yaml` and change the values to fit into your infrastructure.
+
++
+[source,yaml]
+----
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/teams-notification-consumer
+    tag: 2.0.20
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+----
+
+. Apply helm chart executing this
+
++
+[source,console]
+----
+helm upgrade --install -n teams-notification-consumer-prod -f values.yaml teams-notification-consumer $KITT_HOME/lib/kitt/charts/teams-notification-consumer
+----
+
+. Check that the deployment is running executing
+
++
+[source,console]
+----
+$ kubectl get pods -n teams-notification-consumer-prod
+NAME                                           READY   STATUS    RESTARTS   AGE
+teams-notification-consumer-747d7bc49c-wp7bp   1/1     Running   0          14s
+----
 
 == Install **Jupyter diff components** (optional)
 
