@@ -1,0 +1,76 @@
+replicaCount: 1
+dataPvcName: kyso-scs-prod
+dataVolName: kyso-scs-prod
+sftpPubUser: pub
+sftpScsUser: scs
+cronjobs:
+    hardlink:
+        enabled: true
+        image:
+            repository: registry.kyso.io/docker/alpine
+            pullPolicy: IfNotPresent
+            tag: latest
+        schedule: 0 0 * * *
+        webhookUrl: http://kyso-scs-svc.kyso-scs-prod.svc.cluster.local:9000/hooks/hardlink
+containers:
+    indexer:
+        endpoint:
+            # if the endpoint is enabled we use it instead of the image
+            enabled: false
+            ip: ""
+            port: 8080
+        config:
+            # The following values are used by the application.yaml config file
+            cronExpr: '*/30 * * * * ?'
+            elasticsearchUrl: http://elasticsearch:9200
+            mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+        image:
+            repository: registry.kyso.io/kyso-io/kyso-indexer
+            pullPolicy: IfNotPresent
+            tag: latest
+        service:
+            port: 8080
+            targetPort: 8080
+    myssh:
+        image:
+            repository: registry.kyso.io/docker/mysecureshell
+            pullPolicy: IfNotPresent
+            tag: latest
+        secretName: kyso-scs-myssh-secret
+        service:
+            port: 22
+            targetPort: 22
+    nginx:
+        image:
+            repository: registry.kyso.io/docker/nginx-scs
+            pullPolicy: IfNotPresent
+            tag: latest
+        service:
+            port: 80
+            targetPort: 80
+        env:
+            - name: AUTH_REQUEST_URI
+              value: http://kyso-api.kyso-api-prod.svc.cluster.local/api/v1/auth/check-permissions
+    webhook:
+        enabled: true
+        image:
+            repository: registry.kyso.io/docker/webhook-scs
+            pullPolicy: IfNotPresent
+            tag: latest
+        service:
+            port: 9000
+            targetPort: 9000
+        env:
+            - name: KYSO_URL
+              value: http://kyso-api.kyso-api-prod.svc.cluster.local
+imagePullSecrets:
+    - name: dockerconfigjson
+ingress:
+    enabled: true
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+        - host: lo.kyso.io
+podAnnotations:
+    # Add annotations for velero
+    backup.velero.io/backup-volumes: kyso-scs-prod

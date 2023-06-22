@@ -1,0 +1,22 @@
+replicas: 1
+image: docker.elastic.co/elasticsearch/elasticsearch
+# imageTag: not set, we expect the one from the chart to be available
+# To make pods spread between zones could change the antiAffinityTopologyKey to
+# 'topology.kubernetes.io/zone', but for now that is OK and while we have one
+# node per zone all will work as expected.
+antiAffinityTopologyKey: kubernetes.io/hostname
+# set to hard, we will need as many nodes as replicas
+antiAffinity: hard
+esJavaOpts: ""
+resources:
+    requests:
+        cpu: 1000m
+        memory: 2Gi
+clusterHealthCheckParams: local=true
+volumeClaimTemplate:
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 30Gi
+    storageClassName: gp3

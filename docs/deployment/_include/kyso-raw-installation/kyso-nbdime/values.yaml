@@ -1,0 +1,10 @@
+replicaCount: 1
+image:
+    repository: registry.kyso.io/docker/kyso-nbdime
+    tag: latest
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+service:
+    port: "3005"
+    targetPort: "3005"

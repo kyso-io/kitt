@@ -1,0 +1,28 @@
+imagePullSecrets:
+  - name: "dockerconfigjson"
+nats:
+  image: nats:2.8.2-alpine
+  jetstream:
+    enabled: true
+    memStorage:
+      enabled: true
+      size: "2Gi"
+    fileStorage:
+      enabled: true
+      size: "10Gi"
+natsbox:
+  image: natsio/nats-box:0.11.0
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+reloader:
+  image: natsio/nats-server-config-reloader:0.7.0
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+exporter:
+  image: natsio/prometheus-nats-exporter:0.9.3
+  imagePullSecrets:
+    - name: "dockerconfigjson"
+cluster:
+  enabled: false
+  name: "kyso-nats"
+  replicas: 1

@@ -1,0 +1,42 @@
+replicaCount: 1
+image:
+    # Put here the repository in which the images are placed
+    repository: registry.kyso.io/kyso-io/kyso-api
+    # Specify the desired tag
+    tag: latest
+    pullPolicy: IfNotPresent
+imagePullSecrets:
+    - name: dockerconfigjson
+# Endpoint settings
+endpoint:
+    enabled: false
+    ip: ""
+    port: "4000"
+# Service settings
+service:
+    targetPort: "4000"
+# Ingress configuration
+ingress:
+    enabled: true
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    hosts:
+        # Specify the host in which kyso will respond on
+        - host: lo.kyso.io
+# Ingress API Docs configuration (optional)
+ingressDocs:
+    enabled: false
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+# Basic authentication if required (optional)
+ingressDocsAuth:
+    user: apidoc
+    pass: ""
+# Kyso configuration file values
+envSecret:
+    # Connection String to MongoDB
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso
+    # To populate Kyso with testing metadata (optional)
+    populateMailPrefix: lo
+    populateTestData: true

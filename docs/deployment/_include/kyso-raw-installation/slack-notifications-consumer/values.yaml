@@ -1,0 +1,11 @@
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/consumers/slack-notifications-consumer
+    tag: latest
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+
+envSecret:
+    # Put here the password generated for your environment and double check the kubernetes DNS follows your insfraestructure (pay attention to mongodb-prod and match it with your namespace name)
+    mongodbDatabaseUri: mongodb://kysodb:Ugui1dpMKP@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/kyso

@@ -1,0 +1,25 @@
+replicaCount: 
+image:
+  repository: "registry.kyso.io/docker/mongo-gui"
+  tag: "1.0.0"
+  pullPolicy: "Always"
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "4321"
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  # PUT HERE THE MAIN DOMAIN YOU WILL USE 
+  hosts:
+  - host: "lo.kyso.io"
+ingressAuth:
+  user: "mongo-admin"
+  pass: ""
+# Kyso configuration file values
+secrets:
+  mongodbDatabaseUri: "mongodb://root:4irK7lqwTE@kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local/admin"

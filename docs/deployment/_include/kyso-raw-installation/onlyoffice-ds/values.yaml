@@ -1,0 +1,17 @@
+replicaCount: 1
+image:
+  repository: "registry.kyso.io/docker/onlyoffice-documentserver"
+  tag: "7.2.0.204"
+  pullPolicy: "Always"
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "80"
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+  - host: "lo.kyso.io"

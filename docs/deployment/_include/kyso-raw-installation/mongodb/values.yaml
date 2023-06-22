@@ -1,0 +1,41 @@
+global:
+  imageRegistry: "docker.io"
+  imagePullSecrets:
+  - "dockerconfigjson"
+image:
+  repository: "bitnami/mongodb"
+  tag: "5.0.10-debian-11-r3"
+architecture: replicaset
+# Number of replicas for replicaset mode
+replicaCount: 1
+# Use statefulSet if running in standalone mode
+useStatefulSet: true
+arbiter:
+  enabled: false
+metrics:
+  enabled: false
+  image:
+    repository: "bitnami/mongodb-exporter"
+    tag: "0.33.0-debian-11-r9"
+  extraFlags: "--compatible-mode"
+    # Added --compatible-mode for the metrics exporter (almost all grafana
+    # dashboards available use the old variable names) and use the chart to
+    # generate the serviceMonitor (we have added the release label to the
+    # additionalLabels to make the prometheus operator select the
+    # serviceMonitor automatically (it probably can be done using a different
+    # strategy, but this is simple and works).
+  serviceMonitor:
+    enabled: false
+    additionalLabels:
+      release: null
+auth:
+  replicaSetKey: "RSGb1cgaIv"
+  rootPassword: "4irK7lqwTE"
+  databases:
+  - kyso
+  usernames:
+  - kysodb
+  passwords:
+  - "Ugui1dpMKP"
+persistence:
+  enabled: true

@@ -1,0 +1,23 @@
+replicaCount: 1
+image:
+    repository: registry.kyso.io/kyso-io/microfrontends/jupyter-diff
+    tag: latest
+    pullPolicy: Always
+imagePullSecrets:
+    - name: dockerconfigjson
+# Endpoint settings
+endpoint:
+    enabled: false
+    ip: ""
+    port: "3000"
+# Service settings
+service:
+    targetPort: "3000"
+# Ingress configuration
+ingress:
+    enabled: true
+    className: nginx
+    annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    hosts:
+        - host: lo.kyso.io

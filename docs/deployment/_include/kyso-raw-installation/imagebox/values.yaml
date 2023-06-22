@@ -1,0 +1,17 @@
+replicaCount: 1
+image:
+  repository: "registry.kyso.io/docker/imagebox"
+  tag: "latest"
+  pullPolicy: "Always"
+imagePullSecrets:
+  - name: "dockerconfigjson"
+# Service settings
+service:
+  targetPort: "8080"
+# Ingress configuration
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+  - host: "lo.kyso.io"

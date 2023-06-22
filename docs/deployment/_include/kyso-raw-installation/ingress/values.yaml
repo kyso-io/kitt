@@ -1,0 +1,22 @@
+config:
+  enable-brotli: "true"
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+  enable-real-ip: "true"
+  use-gzip: "true"
+image:
+  registry: "docker.io"
+  repository: "bitnami/nginx-ingress-controller"
+  tag: "1.5.1-debian-11-r5"
+defaultBackend:
+  image:
+    registry: "docker.io"
+    repository: "bitnami/nginx"
+    tag: "1.22.1-debian-11-r7"
+ingressClassResource:
+  default: true
+extraArgs:
+  # Make sure this property matches with previosly defined secret name
+  default-ssl-certificate: "ingress/ingress-cert"
+  ingress-class: nginx
+replicaCount: 1

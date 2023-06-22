@@ -1,0 +1,19 @@
+apiVersion: v1
+data:
+  application.yaml: |
+    cron:
+      # Frequency in which the cronjobs will be executed
+      expr: "*/30 * * * * ?"
+    app:
+      indexer:
+        # Elasticsearch kubernetes internal name
+        elasticsearch: "http://elasticsearch-master.elasticsearch-prod.svc.cluster.local:9200"
+        # Location of temporary files
+        filepath: "/tmp"
+        # Base location of scs data (where the report files will be placed)
+        scsBasePath: "/sftp/data/scs"
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: kyso-indexer-config
+  namespace: kyso-scs-prod

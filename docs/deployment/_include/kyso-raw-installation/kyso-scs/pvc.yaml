@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kyso-scs-prod
+  namespace: kyso-scs-prod
+  labels:
+    app.kubernetes.io/name: kyso-scs
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi

@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: analytics-consumer-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017

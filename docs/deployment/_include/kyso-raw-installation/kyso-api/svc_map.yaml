@@ -1,0 +1,79 @@
+# The first service will be removed, it is used only while moving from kitt 1.x
+# to 2.x (it is needed if kyso-api is updated before kyso-scs, as we have
+# changed the service name removing the '-svc' suffix)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-api-svc
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-api
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: elasticsearch-master.elasticsearch-prod.svc.cluster.local
+  ports:
+  - name: elastisearch
+    port: 9200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-nbdime
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nbdime.kyso-nbdime-prod.svc.cluster.local
+  ports:
+  - name: http
+    port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyso-scs
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-scs.kyso-scs-prod.svc.cluster.local
+  ports:
+  - name: sftp
+    port: 22
+  - name: indexer
+    port: 8080
+  - name: webhook
+    port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-nats.nats-prod.svc.cluster.local
+  ports:
+  - name: nats
+    port: 4222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: kyso-api-prod
+spec:
+  type: ExternalName
+  externalName: kyso-mongodb-0.kyso-mongodb-headless.mongodb-prod.svc.cluster.local
+  ports:
+  - name: mongodb
+    port: 27017
