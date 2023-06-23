@@ -267,7 +267,11 @@ addons_ingress_install() {
     _aws_lb_scheme="$INGRESS_AWS_LOAD_BALANCER_SCHEME"
     _aws_lb_ssl_cert="$INGRESS_AWS_LOAD_BALANCER_SSL_CERT"
     alb_sed="s%__AWS_LOAD_BALANCER_SCHEME__%$_aws_lb_scheme%"
-    alb_sed="$alb_sed;s%__AWS_LOAD_BALANCER_SSL_CERT__%$_aws_lb_ssl_cert%"
+    if [ "$_aws_lb_ssl_cert" ]; then
+      alb_sed="$alb_sed;s%__AWS_LOAD_BALANCER_SSL_CERT__%$_aws_lb_ssl_cert%"
+    else
+      alb_sed="$alb_sed;/__AWS_LOAD_BALANCER_SSL_CERT__/d"
+    fi
   else
     alb_sed="/BEG: USE_ALB_CONTROLLER/,/END: USE_ALB_CONTROLLER/d"
   fi
