@@ -266,10 +266,10 @@ addons_ingress_install() {
   if is_selected "${CLUSTER_INGRESS_USE_ALB_CONTROLLER}"; then
     _aws_lb_scheme="$INGRESS_AWS_LOAD_BALANCER_SCHEME"
     _aws_lb_ssl_cert="$INGRESS_AWS_LOAD_BALANCER_SSL_CERT"
-    alb_controller_sed="s%__AWS_LOAD_BALANCER_SCHEME__%$_aws_lb_scheme%"
-    alb_controller_sed="s%__AWS_LOAD_BALANCER_SSL_CERT__%$_aws_lb_ssl_cert%"
+    alb_sed="s%__AWS_LOAD_BALANCER_SCHEME__%$_aws_lb_scheme%"
+    alb_sed="$alb_sed;s%__AWS_LOAD_BALANCER_SSL_CERT__%$_aws_lb_ssl_cert%"
   else
-    alb_controller_sed="/BEG: USE_ALB_CONTROLLER/,/END: USE_ALB_CONTROLLER/d"
+    alb_sed="/BEG: USE_ALB_CONTROLLER/,/END: USE_ALB_CONTROLLER/d"
   fi
   # Remove kyso dev port mapping if not set
   if is_selected "${CLUSTER_MAP_KYSO_DEV_PORTS}"; then
@@ -288,7 +288,7 @@ addons_ingress_install() {
     -e "s%__INGRESS_CONTROLLER_REPO__%$INGRESS_CONTROLLER_REPO%" \
     -e "s%__INGRESS_CONTROLLER_TAG__%$INGRESS_CONTROLLER_TAG%" \
     -e "$dev_ports_sed" \
-    -e "$alb_controller_sed" \
+    -e "$alb_sed" \
     "$_values_tmpl" >"$_values_yaml"
   # Update or install chart
   helm_upgrade "$_ns" "$_values_yaml" "$_release" "$_chart" "$_version"
