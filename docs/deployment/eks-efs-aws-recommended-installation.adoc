@@ -36,6 +36,10 @@ These instructions were tested on Ubuntu and Debian operating systems. Minor adj
 
 include::{includedir}/required-tools.adoc[leveloffset=1]
 
+// == General kitt configuration
+
+include::{includedir}/general_kitt_config.adoc[leveloffset=1]
+
 == Infrastructure provisioning with Terraform
 
 Kyso provides *kitt*, a CLI tool that eases the generation (and execution) of the terraform scripts which provisions the infrastructure in AWS. If you prefer to generate and execute by yourself the terraform scripts, please move to the appendices (there is a section about the terraform templates) and add manually your information (users, regions, etc.).
@@ -88,6 +92,7 @@ Cluster Workers in AZ2 []: 0
 Cluster Workers in AZ3 []: 0
 Cluster CDIR Prefix []: 10.23
 Cluster EFS fileSystemId []:
+Cluster Public Endpoints (Yes/No) [No]: No          
 Save updated configuration? (Yes/No) [Yes]: Yes
 -------------------------------------
 Configuration saved to '/home/admin/kitt-data/clusters/default/config'

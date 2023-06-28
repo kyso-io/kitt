@@ -1,0 +1,43 @@
+= General kitt configuration
+
+. Run the following command and set the adequate values
++
+[source,console]
+----
+$ ./kitt.sh config update
+Current KITT Defaults
+-------------------------------------
+DEFAULT_DATA_DIR=/home/fjbarrena/kitt-data       # Where the files of that cluster will be placed
+DEFAULT_CLUSTER_NAME=default                     # The name of the cluster. You can manage different clusters using kitt
+DEFAULT_CLUSTER_DOMAIN=lo.kyso.io                
+DEFAULT_CLUSTER_LOCAL_DOMAIN=lo.kyso.io           
+DEFAULT_CLUSTER_DATA_IN_GIT=true
+DEFAULT_CLUSTER_PULL_SECRETS_IN_NS=true
+DEFAULT_CLUSTER_USE_BASIC_AUTH=false
+DEFAULT_CLUSTER_USE_SOPS=false
+DEFAULT_DEPLOYMENT_NAME=lo  
+-------------------------------------
+Update configuration? (Yes/No) [No]: 
+-------------------------------------
+----
+
+[OPTIONAL] In order to ease the environment, the following steps must be taken
+
+1. Create a symbolic link to kitt.sh in /usr/local/bin
+
++
+[source,console]
+----
+$ cd /usr/local/bin
+$ sudo ln -s ~/git/kitt/bin/kitt.sh kitt.sh 
+----
+
+2. Check that the symbolic link was created successfully running 
+
++
+[source,console]
+----
+$ ls -lhrt /usr/local/bin/kitt.sh
+$ sudo ln -s ~/git/kitt/bin/kitt.sh kitt.sh 
+lrwxrwxrwx 1 root root 46 jun  9 17:43 kitt.sh -> /home/fjbarrena/git/kitt/bin/kitt.sh
+----

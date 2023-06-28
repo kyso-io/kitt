@@ -1,4 +1,4 @@
-= Kyso Deployment using Amazon EC2 and k3d
+= Kyso development deployment on bare metal
 :author: Kyso Inc.
 :data-uri:
 :doctype: article
@@ -13,7 +13,8 @@ ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
 :sourcedir: ../../..
 :docsdir: ..
 :includedir: _include
-:imagesdir: {docsdir}/images/deployment/ec2-aws-evaluation
+:imagesdir: {docsdir}/images/deployment/eks-efs-aws-recommended-installation
+
 // define 'file_includes' to check it on the included files
 :file_includes: true
 // Include revnumber.txt (contains a macro with the kitt version number)
@@ -21,47 +22,9 @@ include::{docsdir}/revnumber.txt[]
 
 == Overview
 
-These instructions describe how to install Kyso for *evaluation purposes* in a EC2 instance at AWS
+These instructions describe how to install Kyso and the required infrastructure at your own machine, in a linux based system. 
 
-== EC2 instance creation instructions
-
-. Open and login into AWS console
-. Open EC2 Dashboard
-. Click on Launch instance button and select option "Launch instance":
-+
-image::1.png[Launch instance]
-
-. Write a *name* for the instance, i.e: kyso-pilot
-. Select *Debian* as OS
-+
-[NOTE]
-======
-Kyso can be installed in *any* operating system, but this instructions are based on Debian. Other OS based in Unix might have slightly different instructions (different package manager, etc.), but the step by step, and the tools, are exactly the same.
-======
-
-. Choose the desired instance type. *t3.large is the recommended type for a pilot*
-. Click on *Create new key pair* and choose the following options (recommended, but other options are good as well)
-+
-image::2.png[Create new key pair]
-+
-A `.pem` file will be downloaded in your local machine, save it in a secure place
-
-. Put the following rules at Network Settings:
-+
-image::3.png[Network settings]
-
-. Configure the storage to the desired size. *Recommended size for a pilot is 30GB GP3*.
-. Click on "Launch instance"
-. Create a new ElasticIP and associate it with the recently created instance
-. Click on the menu item *Instances* and select the recently created instance
-. Click on the "Connect" button. You will see the public IP of your machine. Save it for later.
-. Click on the tab *SSH Client* to configure your local machine to access through SSH to the EC2 instance
-+
-image::5.png[SSH Client]
-
-. Check out that you are able to connect to the EC2 instance through SSH
-+
-image::6.png[Connect to instance using shell]
+These instructions were tested on Ubuntu and Debian operating systems. Minor adjustments would be needed if the operating system is different.
 
 // == Installation of required tools
 
@@ -71,59 +34,120 @@ include::{includedir}/required-tools.adoc[leveloffset=1]
 
 include::{includedir}/general_kitt_config.adoc[leveloffset=1]
 
-== k3d installation
+== Environment configuration
 
-. Sudo as root
+1. Clone handbook repository in your machine
+
 +
 [source,console]
 ----
-$ sudo su -
+$ git clone git@gitlab.kyso.io:kyso-io/handbook.git 
+----
+
+Handbook has the SSL certificates to be used at lo.kyso.io, which points to 127.0.0.1. These certificates expires every month, but we have
+an automatism which renews them and stores them in handbook. Cloning handbook in your machine, and updating it every time the certificates 
+expires, it's an easy way to have always the right certificates. We will use this later in the configuration 
+
+== k3d installation
+
+. Configure the environment running the following command 
++
+[source,console]
+----
+$ kitt.sh config update
+-------------------------------------
+Update configuration? (Yes/No) [No]: Yes
+-------------------------------------
+Configuring KITT Defaults
+-------------------------------------
+When reading values an empty string or spaces keep the default value.
+To adjust the value to an empty string use a single - or edit the file.
+-------------------------------------
+Default data directory [/home/fjbarrena/kitt-data]: 
+Default cluster name [default]: default 
+Default cluster domain [lo.kyso.io]: lo.kyso.io 
+Default cluster local domain [lo.kyso.io]: lo.kyso.io 
+Keep cluster data in git (Yes/No) [Yes]: Yes
+Cluster adds pull secrets to namespaces (Yes/No) [Yes]: Yes 
+Cluster adds HTTP Basic Auth to services (Yes/No) [No]: No
+Cluster uses SOPS to manage secrets (Yes/No) [No]: No
+Default deployment name [lo]: lo
+Save updated configuration? (Yes/No) [Yes]: Yes
+-------------------------------------
+Configuration saved to '/home/fjbarrena/.kitt.conf'
+-------------------------------------
 ----
 
 . Configure the `k3d` cluster running the following command and selecting the options shown:
 +
 [source,console]
 ----
-$ ./kitt.sh clust config update
+$ $ kitt.sh clust config update
 Cluster kind? (eks|ext|k3d) []: k3d
-
+Configuration variables
+-------------------------------------
+KIND=k3d
+NAME=default
+KUBECTL_CONTEXT=default
+DOMAIN=lo.kyso.io
+FORCE_SSL_REDIRECT=true
+INGRESS_REPLICAS=1
+DATA_IN_GIT=true
+PULL_SECRETS_IN_NS=false
+USE_BASIC_AUTH=false
+USE_SOPS=false
+NUM_SERVERS=1
+NUM_WORKERS=0
+K3S_IMAGE=docker.io/rancher/k3s:v1.23.6-k3s1
+API_HOST=127.0.0.1
+API_PORT=6443
+LB_HOST_IP=127.0.0.1
+LB_HTTP_PORT=80
+LB_HTTPS_PORT=443
+MAP_KYSO_DEV_PORTS=false
+USE_LOCAL_STORAGE=true
+USE_LOCAL_REGISTRY=false
+USE_REMOTE_REGISTRY=true
+USE_CALICO=true
+Configuring cluster 'default'
+-------------------------------------
 When reading values an empty string or spaces keep the default value.
 To adjust the value to an empty string use a single - or edit the file.
 -------------------------------------
-Cluster kind? (eks|ext|k3d) [k3d]:
-Cluster Kubectl Context [default]:
-Cluster DNS Domain [lo.kyso.io]: <PUT_HERE_THE_DOMAIN_YOU_WILL_USE>
-Keep cluster data in git (Yes/No) [Yes]:
-Force SSL redirect on ingress (Yes/No) [Yes]:
-Cluster Ingress Replicas [1]:
-Add pull secrets to namespaces (Yes/No) [Yes]: Yes
-Use basic auth (Yes/No) [Yes]:
-Use SOPS (Yes/No) [Yes]: No
-Number of servers (Master + Agent) [1]:
-Number of workers (Agents) [0]:
-K3s Image [docker.io/rancher/k3s:v1.25.7-k3s1]:
-API Host [127.0.0.1]:
-API Port [6443]:
+Cluster kind? (eks|ext|k3d) [k3d]: k3d
+Cluster Kubectl Context [default]: default
+Cluster DNS Domain [lo.kyso.io]: lo.kyso.io
+Keep cluster data in git (Yes/No) [Yes]: Yes
+Force SSL redirect on ingress (Yes/No) [Yes]: Yes
+Cluster Ingress Replicas [1]: 
+Add pull secrets to namespaces (Yes/No) [No]: Yes
+Use basic auth (Yes/No) [No]: No  
+Use SOPS (Yes/No) [No]: No
+Number of servers (Master + Agent) [1]: 1
+Number of workers (Agents) [0]: 
+K3s Image [docker.io/rancher/k3s:v1.23.6-k3s1]: docker.io/rancher/k3s:v1.25.7-k3s1                    
+API Host [127.0.0.1]: 0.0.0.0
+API Port [6443]: 
 LoadBalancer Host IP [127.0.0.1]: 0.0.0.0
-LoadBalancer HTTP Port [80]:
-LoadBalancer HTTPS Port [443]:
-Map Kyso development ports? (Yes/No) [No]:
-Use local storage? (Yes/No) [Yes]:
-Use local registry? (Yes/No) [No]:
-Use remote registry? (Yes/No) [Yes]:
-Use calico? (Yes/No) [Yes]:
+LoadBalancer HTTP Port [80]: 
+LoadBalancer HTTPS Port [443]: 
+Map Kyso development ports? (Yes/No) [No]: Yes
+Use local storage? (Yes/No) [Yes]: Yes
+Use local registry? (Yes/No) [No]: No      
+Use remote registry? (Yes/No) [Yes]: Yes
+Use calico? (Yes/No) [Yes]: Yes
 -------------------------------------
-Configuration saved to '/home/admin/kitt-data/clusters/default/config'
+Configuration saved to '/home/fjbarrena/kitt-data/clusters/default/config'
 -------------------------------------
 Remote registry configuration not found, configuring it now!
 Configuring remote registry
 -------------------------------------
 Registry NAME []: registry.kyso.io
 Registry URL []: registry.kyso.io
-Registry USER []: <PUT_HERE_CREDENTIALS_PROVIDED>
-Registry PASS []: <PUT_HERE_CREDENTIALS_PROVIDED>
+Registry USER []: YOUR_USERNAME
+Registry PASS []: YOUR_ACCESS_TOKEN
 -------------------------------------
-Configuration saved to '/home/admin/kitt-data/clusters/default/secrets/registry.sops.env'
+Configuration saved to '/home/fjbarrena/kitt-data/clusters/default/secrets/registry.env'
 -------------------------------------
 ----
 +
