@@ -92,7 +92,7 @@ Cluster Workers in AZ2 []: 0
 Cluster Workers in AZ3 []: 0
 Cluster CDIR Prefix []: 10.23
 Cluster EFS fileSystemId []:
-Cluster Public Endpoints (Yes/No) [No]: No          
+Cluster Public Endpoints (Yes/No) [No]: Yes          
 Save updated configuration? (Yes/No) [Yes]: Yes
 -------------------------------------
 Configuration saved to '/home/admin/kitt-data/clusters/default/config'
@@ -108,6 +108,13 @@ Registry PASS []: <PUT_HERE_CREDENTIALS_PROVIDED>
 Configuration saved to '/home/admin/kitt-data/clusters/default/secrets/registry.sops.env'
 -------------------------------------
 ----
+
++
+[IMPORTANT]
+======
+Remember that, if you set **Cluster Public Endpoints** property to **No**, the kubernetes cluster will be no publicly accesible, and that means that you **must run the terraform specifications in a machine that has access to the kubernetes cluster**.
+======
+
 +
 [NOTE]
 ======
