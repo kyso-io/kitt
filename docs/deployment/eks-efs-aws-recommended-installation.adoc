@@ -152,6 +152,21 @@ If that don't happens, run the command `./kitt.sh clust eks kubeconfig` to switc
 $ kubectl get nodes
 ----
 
+. Now, install all the desired addons into the cluster (you can get a list of all the prepared addons running `kitt.sh addons`)
+
++
+[source,console]
+----
+$ ./kitt.sh addons ebs install
+$ ./kitt.sh addons efs install
+----
+
++
+[NOTE]
+======
+The minimal addons required for kyso are: *ebs* and *efs*. The **ingress** addon will be installed later in the Ingress installation section
+======
+
 . Then, create the *efs* filesystem
 +
 [source,console]
@@ -167,51 +182,15 @@ Save updated configuration? (Yes/No) [Yes]: yes
 *IMPORTANT*. Execute the command until it don't fail. Sometimes the operation takes too much time, exceeding the timers and provoking a failure. As the *command is idempotent*, you can securely execute it as may times as you need until it finishes successfully
 =========
 
-. Configure the *ingress* running the following command and choosing the
-options shown:
-+
-[source,console]
-----
-$ ./kitt.sh addons ingress env-update
-Ingress Helm Chart Version [9.3.22]:
-Ingress Backend Image Registry [docker.io]:
-Ingress Backend Image Repository in Registry [bitnami/nginx]:
-Ingress Backend Image Tag [1.22.1-debian-11-r7]:
-Ingress Controller Image Registry [docker.io]:
-Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]:
-Ingress Controller Image Tag [1.5.1-debian-11-r5]:
-Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
--------------------------------------
-Save updated ingress env vars? (Yes/No) [Yes]: Yes
--------------------------------------
-ingress configuration saved to '/home/admin/kitt-data/clusters/default/envs/ingress/ingress.env'
--------------------------------------
-----
+// == Ingress installation
 
-. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/${user}/kitt-data/certificates`
-+
-[WARNING]
-=========
-*EXTREMELY IMPORTANT:* Ensure that the name of the certs follows this convention _domain.crt_ and _domain.key_. If your domain is whatever.example.com, then your files would be *whatever.example.com.crt* and *whatever.example.com.key*
-=========
+include::{includedir}/ingress_installation.adoc[leveloffset=1]
 
-. Now, install all the addons required into the cluster, executing:
-+
-[source,console]
-----
-$ ./kitt.sh addons eks-all install
-----
-+
-[NOTE]
-======
-The minimal addons required for kyso are: *ingress*, *ebs* and *efs*
-======
 
 // == Kyso installation
 
 include::{includedir}/kyso.adoc[leveloffset=1]
 
-{empty} +
 
 == DNS configuration
 

@@ -1,0 +1,195 @@
+= Ingress installation
+
++
+[IMPORTANT]
+=========
+**DECISION POINT**. You must choose which ingress you want to configure: plain nginx ingress or using AWS NLB
+=========
+
+== Option 1: Using classic LoadBalancer
+
+. Configure the *ingress* running the following command and choosing the
+options shown:
++
+[source,console]
+----
+$ ./kitt.sh addons ingress env-update
+Ingress Helm Chart Version [9.3.22]:
+Ingress Backend Image Registry [docker.io]:
+Ingress Backend Image Repository in Registry [bitnami/nginx]:
+Ingress Backend Image Tag [1.22.1-debian-11-r7]:
+Ingress Controller Image Registry [docker.io]:
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]:
+Ingress Controller Image Tag [1.5.1-debian-11-r5]:
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/home/admin/kitt-data/clusters/default/envs/ingress/ingress.env'
+-------------------------------------
+----
+
+. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/${user}/kitt-data/certificates`
++
+[WARNING]
+=========
+*EXTREMELY IMPORTANT:* Ensure that the name of the certs follows this convention _domain.crt_ and _domain.key_. If your domain is whatever.example.com, then your files would be *whatever.example.com.crt* and *whatever.example.com.key*
+=========
+
+. Now, install all the addons required into the cluster, executing:
++
+[source,console]
+----
+$ ./kitt.sh addons ingress install
+----
+
+== Option 2: Using AWS NLB
+
+. Install AWS alb-controller using the following command
+
++
+[source,console]
+----
+$ ./kitt.sh addons alb-controller install
+Installing 'alb-controller'
+-------------------------------------
+"eks" has been added to your repositories
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "eks" chart repository
+Update Complete. ⎈Happy Helming!⎈
+Release "alb-controller" does not exist. Installing it now.
+NAME: alb-controller
+LAST DEPLOYED: Wed Jun 28 17:23:47 2023
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+AWS Load Balancer controller installed!
+-------------------------------------
+----
+
+. **optional** You can check the status of the alb-controller executing the next command
+
++
+[source,console]
+----
+& ./kitt.sh addons alb-controller status
+NAME                                                               READY   STATUS    RESTARTS   AGE
+pod/alb-controller-aws-load-balancer-controller-7fc9dcfc7d-5tkks   1/1     Running   0          82s
+
+NAME                                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+service/aws-load-balancer-webhook-service   ClusterIP   172.20.22.105   <none>        443/TCP   83s
+
+NAME                                                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/alb-controller-aws-load-balancer-controller   1/1     1            1           83s
+
+NAME                                                                     DESIRED   CURRENT   READY   AGE
+replicaset.apps/alb-controller-aws-load-balancer-controller-7fc9dcfc7d   1         1         1       84s
+----
+
+. Now, let's configure the ingress executing the following command
+
++
+[source,console]
+----
+& ./kitt.sh addons ingress env-update
+-------------------------------------
+Reading ingress settings
+-------------------------------------
+Ingress Helm Chart Version [9.3.22]: 
+Ingress Backend Image Registry [docker.io]: 
+Ingress Backend Image Repository in Registry [bitnami/nginx]: 
+Ingress Backend Image Tag [1.22.1-debian-11-r7]: 
+Ingress Controller Image Registry [docker.io]: 
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]: 
+Ingress Controller Image Tag [1.5.1-debian-11-r5]: 
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: 
+Use AWS Load Balancer Controller  (Yes/No) [No]: Yes
+AWS load balancer scheme (internal/internet-facing) [internet-facing]: 
+AWS load balancer ssl cert []: 
+----
+
+. Copy the certificates from your domain (in this example fjbarrena.kyso.io) to `/home/${user}/kitt-data/certificates`
+
++
+[WARNING]
+=========
+*EXTREMELY IMPORTANT:* Ensure that the name of the certs follows this convention _domain.crt_ and _domain.key_. If your domain is whatever.example.com, then your files would be *whatever.example.com.crt* and *whatever.example.com.key*
+=========
+
++
+[INFO]
+=========
+If you are going to use AWS Cert Manager to manage the certificates, you still need to have those files. Finally, these files aren't going to be used, so you can just generate self-signed certificates, or even invalid ones.
+=========
+
+. And install the ingress executing the following command
+
++
+[source,console]
+----
+& ./kitt.sh addons ingress install
+...
+-------------------------------------
+LoadBalancer info:
+-------------------------------------
+NAME                                               TYPE           CLUSTER-IP       EXTERNAL-IP                                                                    PORT(S)                      AGE
+ingress-nginx-ingress-controller                   LoadBalancer   172.20.126.199   k8s-ingress-ingressn-d06fc468f2-44a5dd394427a401.elb.eu-west-2.amazonaws.com   80:30814/TCP,443:30812/TCP   23s
+-------------------------------------
+----
+
+. Once is provisioned (that could take a few minutes), if you access to the external-ip, you must see the 404 error page from nginx
+
+image::alb-404.png[ALB responding with 404, title="ALB responding with 404"]
+
+=== Using AWS Cert Manager
+
+. Create (or import) a certificate in AWS Cert Manager
+. Once created, enter into the certificate detail page and copy the **AWS ARN**
+
+image::aws-cert0.png[AWS Cert Manager detail page, title="AWS Cert Manager detail page"]
+
+. Now, configure ingress with kitt and the ARN copied above
+
++
+[source,console]
+----
+
+$ ./kitt.sh addons ingress env-update
+-------------------------------------
+Update ingress env vars? (Yes/No) [No]: Yes
+-------------------------------------
+Reading ingress settings
+-------------------------------------
+Ingress Helm Chart Version [9.3.22]: 
+Ingress Backend Image Registry [docker.io]: 
+Ingress Backend Image Repository in Registry [bitnami/nginx]: 
+Ingress Backend Image Tag [1.22.1-debian-11-r7]: 
+Ingress Controller Image Registry [docker.io]: 
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]: 
+Ingress Controller Image Tag [1.5.1-debian-11-r5]: 
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: 
+Use AWS Load Balancer Controller  (Yes/No) [Yes]: 
+AWS load balancer scheme (internal/internet-facing) [internet-facing]: 
+AWS load balancer ssl cert []: arn:aws:acm:eu-west-2:858604803370:certificate/7bfe17c6-fe89-4f4f-81b8-545db54a6b00
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/home/fjbarrena/kitt-data/clusters/terraform-test-2/envs/ingress/ingress.env'
+-------------------------------------
+----
+
++
+[NOTE]
+=========
+Remember to paste **the ARN of the certificate** in the last question **AWS load balancer ssl cert**
+=========
+
+. Then, reinstall the ingress
+
++
+[source,console]
+----
+$ ./kitt.sh addons ingress install
+----
