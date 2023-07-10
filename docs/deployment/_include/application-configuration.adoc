@@ -5,7 +5,7 @@
 :icons: font
 :lang: en
 ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
-:source-highlighter: rouge
+:source-highlighter: highlight.js
 :title-page:
 :toc: left
 :toclevels: 4
@@ -22,21 +22,21 @@ include::{docsdir}/revnumber.txt[]
 
 Kyso has different configuration options that can fit into your needs. This documentation describes what are those options and how to configure them properly.
 
-These properties are stored in **MongoDB** in the collection **KysoSettings**, which is basically a key-value list.
+These properties are stored in _MongoDB_ in the collection _KysoSettings_, which is basically a key-value list.
 
 == 3rd party authentication providers
 
 Kyso can be configured to manage different authentication providers, specifically:
 
-* Internal Kyso authentication system
-* Google
-* Github
-* Bitbucket
-* Gitlab
-* PingID SAML
-* OKTA SAML
+. Internal Kyso authentication system
+. Google
+. Github
+. Bitbucket
+. Gitlab
+. PingID SAML
+. OKTA SAML
 
-You can enable **any provider you want**, **in any combination**. For Kyso, the unique user identificator is the **email**, so as far as a user uses the same email in every provider, for Kyso it is the same user.
+You can enable *any provider you want, in any combination*. For Kyso, the unique user identificator is the email, so as far as a user uses the same email in every provider, for Kyso it is the same user.
 
 === Internal Kyso authentication system
 
@@ -46,7 +46,6 @@ You can **disable it** by changing the property key `AUTH_ENABLE_GLOBALLY_KYSO` 
 
 === Google
 
-+
 [NOTE]
 ======
 You need to configure beforehand the Google OAuth 2.0 Client ID in https://console.cloud.google.com/apis/credentials[Google Console]
