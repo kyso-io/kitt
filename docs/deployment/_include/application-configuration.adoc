@@ -1,0 +1,56 @@
+= Kyso Application Configuration
+:author: Kyso Inc.
+:data-uri:
+:doctype: article
+:icons: font
+:lang: en
+ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
+:source-highlighter: rouge
+:title-page:
+:toc: left
+:toclevels: 4
+// User defined attributes
+:sourcedir: ../../../..
+:docsdir: ../..
+:includedir: _include
+:imagesdir: {docsdir}/images/_include/application-configuration
+// define 'file_includes' to check it on the included files
+:file_includes: true
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+
+Kyso has different configuration options that can fit into your needs. This documentation describes what are those options and how to configure them properly.
+
+These properties are stored in **MongoDB** in the collection **KysoSettings**, which is basically a key-value list.
+
+== 3rd party authentication providers
+
+Kyso can be configured to manage different authentication providers, specifically:
+
+* Internal Kyso authentication system
+* Google
+* Github
+* Bitbucket
+* Gitlab
+* PingID SAML
+* OKTA SAML
+
+You can enable **any provider you want**, **in any combination**. For Kyso, the unique user identificator is the **email**, so as far as a user uses the same email in every provider, for Kyso it is the same user.
+
+=== Internal Kyso authentication system
+
+Kyso's internal authentication system is **enabled** by default, and doesn't require any specific configuration.
+
+You can **disable it** by changing the property key `AUTH_ENABLE_GLOBALLY_KYSO` to **false** at the collection `KysoSettings`
+
+=== Google
+
++
+[NOTE]
+======
+You need to configure beforehand the Google OAuth 2.0 Client ID in https://console.cloud.google.com/apis/credentials[Google Console]
+======
+
++
+image::google_auth_1.png[Google OAuth 2.0 Screenshot]
