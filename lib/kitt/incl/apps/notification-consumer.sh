@@ -46,8 +46,10 @@ apps_notification_consumer_export_variables() {
   # Values
   _ns="notification-consumer-$DEPLOYMENT_NAME"
   export NOTIFICATION_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export NOTIFICATION_CONSUMER_CHART="$_repo_name/notification-consumer"
   # Directories
-  export NOTIFICATION_CONSUMER_CHART_DIR="$CHARTS_DIR/notification-consumer"
   _tmpl_dir="$TMPL_DIR/apps/notification-consumer"
   export NOTIFICATION_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/notification-consumer"
@@ -197,11 +199,13 @@ apps_notification_consumer_install() {
   if is_selected "$NOTIFICATION_CONSUMER_AUTO_SAVE_ENV"; then
     apps_notification_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="notification-consumer"
   _ns="$NOTIFICATION_CONSUMER_NAMESPACE"
   # directories
-  _chart="$NOTIFICATION_CONSUMER_CHART_DIR"
+  _chart="$NOTIFICATION_CONSUMER_CHART"
   # deprecated files
   _secret_env="$NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$NOTIFICATION_CONSUMER_SECRET_YAML"

@@ -52,8 +52,10 @@ apps_mongo_gui_export_variables() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   # Values
   export MONGO_GUI_NAMESPACE="mongo-gui-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export MONGO_GUI_CHART="$_repo_name/mongo-gui"
   # Directories
-  export MONGO_GUI_CHART_DIR="$CHARTS_DIR/mongo-gui"
   export MONGO_GUI_TMPL_DIR="$TMPL_DIR/apps/mongo-gui"
   export MONGO_GUI_HELM_DIR="$DEPLOY_HELM_DIR/mongo-gui"
   export MONGO_GUI_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/mongo-gui"
@@ -162,7 +164,7 @@ apps_mongo_gui_install() {
   _app="mongo-gui"
   _ns="$MONGO_GUI_NAMESPACE"
   # directories
-  _chart="$MONGO_GUI_CHART_DIR"
+  _chart="$MONGO_GUI_CHART"
   # deprecated yaml files
   _auth_yaml="$MONGO_GUI_AUTH_YAML"
   _secret_yaml="$MONGO_GUI_SECRET_YAML"

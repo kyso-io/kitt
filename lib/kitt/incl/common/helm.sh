@@ -12,6 +12,16 @@ set -e
 # shellcheck disable=SC2034
 INCL_COMMON_HELM_SH="1"
 
+# ---------
+# Variables
+# ---------
+
+export KYSO_HELM_REPO_NAME="kyso-charts"
+_charts_api_url="https://gitlab.kyso.io/api/v4/projects/142"
+export KYSO_HELM_REPO_URL="$_charts_api_url/packages/helm/stable"
+export KYSO_HELM_USERNAME="charts-reader"
+export KYSO_HELM_PASSWORD="4hU-aUDkrH9y1GBSEc6M"
+
 # --------
 # Includes
 # --------
@@ -36,6 +46,24 @@ check_helm_repo() {
   if [ "$repo_added" != "yes" ]; then
     helm repo add "$repo_name" "$repo_url"
     helm repo update "$repo_name"
+  fi
+}
+
+check_kyso_helm_repo() {
+  repo_name="$KYSO_HELM_REPO_NAME"
+  repo_url="$KYSO_HELM_REPO_URL"
+  repo_user="$KYSO_HELM_USERNAME"
+  repo_pass="$KYSO_HELM_PASSWORD"
+  repo_added="$(
+    helm repo list -o yaml 2>/dev/null |
+      sed -ne "/name: $repo_name/ {n; s%.*url: $repo_url$%yes%p; q;}"
+  )" || true
+  if [ "$repo_added" != "yes" ]; then
+  helm repo add \
+    --username "$repo_user" \
+    --password "$repo_pass" \
+    "$repo_name" "$repo_url"
+  helm repo update "$repo_name"
   fi
 }
 

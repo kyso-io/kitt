@@ -53,8 +53,10 @@ apps_jupyter_diff_export_variables() {
   
   # Values
   export JUPYTER_DIFF_NAMESPACE="jupyter-diff-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export JUPYTER_DIFF_CHART="$_repo_name/jupyter-diff"
   # Directories
-  export JUPYTER_DIFF_CHART_DIR="$CHARTS_DIR/jupyter-diff"
   export JUPYTER_DIFF_TMPL_DIR="$TMPL_DIR/apps/jupyter-diff"
   export JUPYTER_DIFF_HELM_DIR="$DEPLOY_HELM_DIR/jupyter-diff"
   export JUPYTER_DIFF_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/jupyter-diff"
@@ -226,11 +228,13 @@ apps_jupyter_diff_install() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_jupyter_diff_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="jupyter-diff"
   _ns="$JUPYTER_DIFF_NAMESPACE"
   # directory
-  _chart="$JUPYTER_DIFF_CHART_DIR"
+  _chart="$JUPYTER_DIFF_CHART"
   # deprecated yaml files
   _deploy_yaml="$JUPYTER_DIFF_DEPLOY_YAML"
   _ingress_yaml="$JUPYTER_DIFF_INGRESS_YAML"

@@ -68,7 +68,9 @@ dam_kyso_dam_export_variables() {
   # Values
   export KYSO_DAM_NAMESPACE="kyso-dam-$DEPLOYMENT_NAME"
   # Directories
-  export KYSO_DAM_CHART_DIR="$CHARTS_DIR/kyso-dam"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export KYSO_DAM_CHART="$_repo_name/kyso-dam"
   export KYSO_DAM_TMPL_DIR="$TMPL_DIR/dam/kyso-dam"
   export KYSO_DAM_HELM_DIR="$DEPLOY_HELM_DIR/kyso-dam"
   export KYSO_DAM_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/kyso-dam"
@@ -355,11 +357,13 @@ dam_kyso_dam_install() {
   # Load additional variables & check directories
   dam_common_export_service_hostnames "$_deployment" "$_cluster"
   dam_kyso_dam_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="kyso-dam"
   _ns="$KYSO_DAM_NAMESPACE"
   # directory
-  _chart="$KYSO_DAM_CHART_DIR"
+  _chart="$KYSO_DAM_CHART"
   # files
   _helm_values_tmpl="$KYSO_DAM_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_DAM_HELM_VALUES_YAML"
