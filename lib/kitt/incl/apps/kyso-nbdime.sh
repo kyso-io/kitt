@@ -48,8 +48,10 @@ apps_kyso_nbdime_export_variables() {
   # Values
   _ns="kyso-nbdime-$DEPLOYMENT_NAME"
   export KYSO_NBDIME_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export KYSO_NBDIME_CHART="$_repo_name/kyso-nbdime"
   # Directories
-  export KYSO_NBDIME_CHART_DIR="$CHARTS_DIR/kyso-nbdime"
   _tmpl_dir="$TMPL_DIR/apps/kyso-nbdime"
   export KYSO_NBDIME_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/kyso-nbdime"
@@ -178,11 +180,13 @@ apps_kyso_nbdime_install() {
   if is_selected "$KYSO_NBDIME_AUTO_SAVE_ENV"; then
     apps_kyso_nbdime_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="kyso-nbdime"
   _ns="$KYSO_NBDIME_NAMESPACE"
   # directories
-  _chart="$KYSO_NBDIME_CHART_DIR"
+  _chart="$KYSO_NBDIME_CHART"
   # files
   _helm_values_tmpl="$KYSO_NBDIME_HELM_VALUES_TMPL"
   _helm_values_yaml="$KYSO_NBDIME_HELM_VALUES_YAML"

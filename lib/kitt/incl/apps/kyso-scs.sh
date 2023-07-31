@@ -84,8 +84,10 @@ apps_kyso_scs_export_variables() {
   apps_elasticsearch_export_variables "$_deployment" "$_cluster"
   # Values
   export KYSO_SCS_NAMESPACE="kyso-scs-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export KYSO_SCS_CHART="$_repo_name/kyso-scs"
   # Directories
-  export KYSO_SCS_CHART_DIR="$CHARTS_DIR/kyso-scs"
   export KYSO_SCS_TMPL_DIR="$TMPL_DIR/apps/kyso-scs"
   export KYSO_SCS_HELM_DIR="$DEPLOY_HELM_DIR/kyso-scs"
   export KYSO_SCS_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/kyso-scs"
@@ -548,6 +550,8 @@ apps_kyso_scs_pvc_create() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_kyso_scs_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
@@ -687,7 +691,7 @@ apps_kyso_scs_install() {
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   # directories
-  _chart="$KYSO_SCS_CHART_DIR"
+  _chart="$KYSO_SCS_CHART"
   # deprecated yaml files
   _cronjobs_yaml="$KYSO_SCS_CRONJOBS_YAML"
   _deploy_yaml="$KYSO_SCS_DEPLOY_YAML"
@@ -965,7 +969,7 @@ apps_kyso_scs_remove() {
   _app="kyso-scs"
   _ns="$KYSO_SCS_NAMESPACE"
   # directories
-  _chart="$KYSO_SCS_CHART_DIR"
+  _chart="$KYSO_SCS_CHART"
   # deprecated yaml files
   _cronjobs_yaml="$KYSO_SCS_CRONJOBS_YAML"
   _deploy_yaml="$KYSO_SCS_DEPLOY_YAML"

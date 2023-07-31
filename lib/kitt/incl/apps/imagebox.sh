@@ -51,8 +51,10 @@ apps_imagebox_export_variables() {
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   # Values
   export IMAGEBOX_NAMESPACE="imagebox-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export IMAGEBOX_CHART="$_repo_name/imagebox"
   # Directories
-  export IMAGEBOX_CHART_DIR="$CHARTS_DIR/imagebox"
   export IMAGEBOX_TMPL_DIR="$TMPL_DIR/apps/imagebox"
   export IMAGEBOX_HELM_DIR="$DEPLOY_HELM_DIR/imagebox"
   export IMAGEBOX_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/imagebox"
@@ -138,11 +140,13 @@ apps_imagebox_install() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_imagebox_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="imagebox"
   _ns="$IMAGEBOX_NAMESPACE"
   # directories
-  _chart="$IMAGEBOX_CHART_DIR"
+  _chart="$IMAGEBOX_CHART"
   # files
   _helm_values_tmpl="$IMAGEBOX_HELM_VALUES_TMPL"
   _helm_values_yaml="$IMAGEBOX_HELM_VALUES_YAML"

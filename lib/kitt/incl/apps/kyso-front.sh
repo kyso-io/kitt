@@ -50,8 +50,10 @@ apps_kyso_front_export_variables() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   # Values
   export KYSO_FRONT_NAMESPACE="kyso-front-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export KYSO_FRONT_CHART="$_repo_name/kyso-front"
   # Directories
-  export KYSO_FRONT_CHART_DIR="$CHARTS_DIR/kyso-front"
   export KYSO_FRONT_TMPL_DIR="$TMPL_DIR/apps/kyso-front"
   export KYSO_FRONT_HELM_DIR="$DEPLOY_HELM_DIR/kyso-front"
   export KYSO_FRONT_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/kyso-front"
@@ -223,11 +225,13 @@ apps_kyso_front_install() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_kyso_front_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="kyso-front"
   _ns="$KYSO_FRONT_NAMESPACE"
   # directory
-  _chart="$KYSO_FRONT_CHART_DIR"
+  _chart="$KYSO_FRONT_CHART"
   # deprecated yaml files
   _deploy_yaml="$KYSO_FRONT_DEPLOY_YAML"
   _ingress_yaml="$KYSO_FRONT_INGRESS_YAML"

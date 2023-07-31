@@ -46,8 +46,10 @@ apps_file_metadata_postprocess_consumer_export_variables() {
   # Values
   _ns="file-metadata-postprocess-consumer-$DEPLOYMENT_NAME"
   export FILE_METADATA_POSTPROCESS_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export FILE_METADATA_POSTPROCESS_CONSUMER_CHART="$_repo_name/file-metadata-postprocess-consumer"
   # Directories
-  export FILE_METADATA_POSTPROCESS_CONSUMER_CHART_DIR="$CHARTS_DIR/file-metadata-postprocess-consumer"
   _tmpl_dir="$TMPL_DIR/apps/file-metadata-postprocess-consumer"
   export FILE_METADATA_POSTPROCESS_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/file-metadata-postprocess-consumer"
@@ -197,11 +199,13 @@ apps_file_metadata_postprocess_consumer_install() {
   if is_selected "$FILE_METADATA_POSTPROCESS_AUTO_SAVE_ENV"; then
     apps_file_metadata_postprocess_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="file-metadata-postprocess-consumer"
   _ns="$FILE_METADATA_POSTPROCESS_CONSUMER_NAMESPACE"
   # directories
-  _chart="$FILE_METADATA_POSTPROCESS_CONSUMER_CHART_DIR"
+  _chart="$FILE_METADATA_POSTPROCESS_CONSUMER_CHART"
   # deprecated files
   _secret_env="$FILE_METADATA_POSTPROCESS_ENV_SECRET"
   _secret_yaml="$FILE_METADATA_POSTPROCESS_SECRET_YAML"
