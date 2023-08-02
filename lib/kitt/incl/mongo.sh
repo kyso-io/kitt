@@ -101,6 +101,7 @@ mongo_command() {
       _script="mongorestore --uri $_user_database_uri --archive --drop"
       _file="stdin"
       _file="$_arg"
+      _fdir="stdin"
     else
       echo "Pass the database dump FILE to restore"
       exit 1
