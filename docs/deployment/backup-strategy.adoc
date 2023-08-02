@@ -13,7 +13,7 @@ ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
 :sourcedir: ../../..
 :docsdir: ..
 :includedir: _include
-:imagesdir: {docsdir}/images/deployment/backup-strategy
+:imagesdir: {docsdir}/images/_include/backup-strategy
 
 // define 'file_includes' to check it on the included files
 :file_includes: true
@@ -54,15 +54,10 @@ This is the strategy we are following regarding backups:
 * **Kyso-SCS**. Backup the entire pod using velero, every day at 03:00. 7 days window.
 * **Elasticsearch**. No backup, reindex if needed.
 
-== Use case using velero
-
-=== Using mongodump and mongorestore
-
-1. Install mongodump and mongorestore
+== MongoDB backup and restore using mongodump and mongorestore
 
 **K**yso's **I**nternal **T**ool of **T**ools, **kitt** for friends, provides you a fast and easy way to do MongoDB backups. Just run the following command:
 
-+
 [source,console]
 ----
 $ kitt.sh mongo dump $(date -d "today" +"%Y%m%d%H%M")-mongodb.bck lo
@@ -73,7 +68,6 @@ $ ls -lhrt
 -rw-rw-r--  1 user user 158620 jul 27 18:59 202307271859-mongodb.bck
 ----
 
-+
 [NOTE]
 ======
 In the previous example, the last parameter `lo` refers to the CLUSTER_NAME in which the parameter will be executed. If you only have one CLUSTER managed by kitt, you can ignore that parameter.
@@ -81,12 +75,10 @@ In the previous example, the last parameter `lo` refers to the CLUSTER_NAME in w
 
 To do it automatically, just create a crontab in unix that executes the previous command. You will need another crontab to delete the old backups, or you can do it manually periodically.
 
-
-== MongoDB Restore using kitt
+=== MongoDB Restore using kitt
 
 To restore a database just run the following command
 
-+
 [source,console]
 ----
 $ kitt.sh mongo restore 202307271859-mongodb.bck lo
@@ -98,7 +90,6 @@ pod/mongo-cli-20230802-124606 condition met
 pod "mongo-cli-20230802-124606" deleted
 ----
 
-+
 [NOTE]
 ======
 In the previous example, the last parameter `lo` refers to the CLUSTER_NAME in which the parameter will be executed. If you only have one CLUSTER managed by kitt, you can ignore that parameter.
@@ -112,7 +103,6 @@ Velero backups can be stored in different providers, but in this example we are 
 
 Once you have the S3 bucket and the account properly configured, it's time to install Velero in your Kubernetes cluster. We are going to use **helm** to install it in our cluster. Create a file named `values.yaml` and put the following values (https://github.com/vmware-tanzu/helm-charts/blob/main/charts/velero/values.yaml[the official documentation is here]):
 
-+
 [source,yaml]
 ----
 initContainers:
@@ -150,7 +140,6 @@ schedules:
       ttl: "240h"  # This setting will delete backups automatically after 10 days
 ----
 
-+
 [NOTE]
 ======
 Remember to adjust the configuration to your needs
@@ -158,7 +147,6 @@ Remember to adjust the configuration to your needs
 
 Add the helm repository
 
-+
 [source,console]
 ----
 $ helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
@@ -166,7 +154,6 @@ $ helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
 
 And install velero
 
-+
 [source,console]
 ----
 $ helm install velero vmware-tanzu/velero --namespace <YOUR NAMESPACE> -f values.yaml --create-namespace
@@ -174,7 +161,6 @@ $ helm install velero vmware-tanzu/velero --namespace <YOUR NAMESPACE> -f values
 
 Now, before starting configuring the automatic backups, let's make a quick test to ensure that velero is working. For that we are going to make a manual backup of all our kubernetes cluster
 
-+
 [source,console]
 ----
 $ velero backup create demo
@@ -188,7 +174,6 @@ If everything is ok, it's time to configure automatic backups using velero, and 
 
 Velero has `schedule` command to program automatic backups. This is the configuration we have in production:
 
-+
 [source,console]
 ----
 $ velero schedule get
@@ -199,7 +184,6 @@ kyso-scs-dev   Enabled   2022-06-14 22:01:00 +0200 CEST   45 0 * * *   720h0m0s 
 
 To create a schedule, just follow Velero's documentation, some examples:
 
-+
 [source,console]
 ----
 # Create a backup every 6 hours.
@@ -218,7 +202,7 @@ velero create schedule NAME --schedule="@every 168h" --ttl 2160h0m0s
 Our schedule configurations are:
 
 * For mongodb
-+
+
 [source, console]
 ----
 velero schedule describe mongodb-dev
@@ -256,7 +240,6 @@ Last Backup:  2023-08-02 02:30:52 +0200 CEST
 
 * For kyso-scs
 
-+
 [source, console]
 ----
 velero schedule describe kyso-scs-dev
@@ -294,7 +277,6 @@ Last Backup:  2023-08-02 02:45:52 +0200 CEST
 
 To **restore** a backup, first list the available backups using:
 
-+
 [source, console]
 ----
 $ velero backup get
@@ -309,7 +291,6 @@ mongodb-dev-20230704003053    Completed   0        0          2023-07-04 02:30:5
 
 Select the backup you want to restore, for example `mongodb-dev-20230704003053` in this case, and launch the next restore command
 
-+
 [source, console]
 ----
 $ velero restore create my-restore-name --from-backup mongodb-dev-20230704003053
@@ -321,7 +302,6 @@ After a restore, it's recommended to perfom a full elasticsearch reindex, to ens
 
 . Get a valid auth token (global administrator required)
 
-+
 [source, console]
 ----
 $ curl -X 'POST' \
@@ -338,7 +318,6 @@ $ curl -X 'POST' \
 
 . Call the following endpoint using the previously acquired token
 
-+
 [source, console]
 ----
 $ curl -X 'GET' \
@@ -349,7 +328,6 @@ $ curl -X 'GET' \
 
 The reindex process can last a long time, depending on the data you have stored at Kyso. Please remember that this is an unattended process. If you want to check that the process is running, you can see the kyso-indexer logs using the following command
 
-+
 [source, console]
 ----
 $ SCS_CONTAINER=indexer kitt.sh apps kyso-scs logs lo
@@ -357,7 +335,6 @@ $ SCS_CONTAINER=indexer kitt.sh apps kyso-scs logs lo
 
 Or the kubectl equivalent
 
-+
 [source, console]
 ----
 $ kubectl logs -f --tail=100 -n kyso-scs-lo kyso-scs-0 indexer
