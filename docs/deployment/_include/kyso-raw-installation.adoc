@@ -1268,18 +1268,8 @@ Now that we have the essential parts of Kyso, we need to make them accessible wi
 
 === Certificates
 
-Kyso requires **https**. In this section we are going to prepare the configuration for SSL Certificates. These are the prerrequisites necessary
-
-[cols="1"]
-|===
-|**prerequisite**
-
-|Certificate KEY file
-
-|Certificate CRT file
-
-|http://kyso-scs.kyso-scs-prod.svc.cluster.local:9000
-|=== 
+Kyso requires **https**. In this section we are going to prepare the configuration for SSL Certificates. First of all, let's create the namespace in which
+we will deploy the ingress
 
 . Create a namespace `ingress`
 
@@ -1288,6 +1278,29 @@ Kyso requires **https**. In this section we are going to prepare the configurati
 ----
 $ kubectl create namespace ingress
 ----
+
++
+[IMPORTANT]
+=========
+**DECISION POINT**. You must choose which certificates are you going to use: custom certificates (generic, can be used with any provider) or AWS CERT Manager
+=========
+
++
+[IMPORTANT]
+=========
+**DECISION POINT**. You must choose which ingress are you going to use: classic LB (generic, compatible across cloud providers) or AWS NLB
+=========
+
+==== Custom certificates
+
+Follow this instructions to configure kyso to use custom certificates. These are the prerrequisites necessary
+
+[cols="1"]
+|===
+|**prerequisite**
+|Certificate KEY file
+|Certificate CRT file
+|=== 
 
 . Create a new secret with the desired certificates
 
@@ -1318,7 +1331,8 @@ NAME           TYPE                DATA   AGE
 ingress-cert   kubernetes.io/tls   2      2d17h
 ----
 
-=== nginx ingress
+
+=== Classic LB (nginx ingress)
 
 . Now, we are going to install the ingress's helm chart. First of all, copy the file placed at your kitt folder `lib/kitt/tmpl/addons/ingress`. There are two files, `values.yaml` and `coredns-custom.yaml`
 
@@ -1419,6 +1433,60 @@ kyso-api-prod     kyso-api     nginx   lo.kyso.io   172.22.0.2   80      3d23h
 mongo-gui-prod    mongo-gui    nginx   lo.kyso.io   172.22.0.2   80      4d2h
 kyso-front-prod   kyso-front   nginx   lo.kyso.io   172.22.0.2   80      3d22h
 ----
+
+=== AWS NLB (nginx ingress)
+
+==== AWS Cert Manager
+
+. Create (or import) a certificate in AWS Cert Manager
+. Once created, enter into the certificate detail page and copy the **AWS ARN**
+
+image::aws-cert0.png[AWS Cert Manager detail page, title="AWS Cert Manager detail page"]
+
+. Now, configure ingress with kitt and the ARN copied above
+
++
+[source,console]
+----
+
+$ ./kitt.sh addons ingress env-update
+-------------------------------------
+Update ingress env vars? (Yes/No) [No]: Yes
+-------------------------------------
+Reading ingress settings
+-------------------------------------
+Ingress Helm Chart Version [9.3.22]: 
+Ingress Backend Image Registry [docker.io]: 
+Ingress Backend Image Repository in Registry [bitnami/nginx]: 
+Ingress Backend Image Tag [1.22.1-debian-11-r7]: 
+Ingress Controller Image Registry [docker.io]: 
+Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]: 
+Ingress Controller Image Tag [1.5.1-debian-11-r5]: 
+Add Ingress CoreDNS Custom Config (Yes/No) [No]: 
+Use AWS Load Balancer Controller  (Yes/No) [Yes]: 
+AWS load balancer scheme (internal/internet-facing) [internet-facing]: 
+AWS load balancer ssl cert []: arn:aws:acm:eu-west-2:858604803370:certificate/7bfe17c6-fe89-4f4f-81b8-545db54a6b00
+-------------------------------------
+Save updated ingress env vars? (Yes/No) [Yes]: Yes
+-------------------------------------
+ingress configuration saved to '/home/fjbarrena/kitt-data/clusters/terraform-test-2/envs/ingress/ingress.env'
+-------------------------------------
+----
+
++
+[NOTE]
+=========
+Remember to paste **the ARN of the certificate** in the last question **AWS load balancer ssl cert**
+=========
+
+. Then, reinstall the ingress
+
++
+[source,console]
+----
+$ ./kitt.sh addons ingress install
+----
+TBD
 
 == Install **onlyoffice-ds** (optional)
 

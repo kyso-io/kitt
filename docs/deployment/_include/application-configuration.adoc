@@ -13,7 +13,7 @@ ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
 :sourcedir: ../../../..
 :docsdir: ../..
 :includedir: _include
-:imagesdir: {docsdir}/images/_include/application-configuration
+:imagesdir: {docsdir}/images/_include
 // define 'file_includes' to check it on the included files
 :file_includes: true
 // Include revnumber.txt (contains a macro with the kitt version number)
@@ -35,6 +35,7 @@ Kyso can be configured to manage different authentication providers, specificall
 . Gitlab
 . PingID SAML
 . OKTA SAML
+
 
 You can enable *any provider you want, in any combination*. For Kyso, the unique user identificator is the email, so as far as a user uses the same email in every provider, for Kyso it is the same user.
 

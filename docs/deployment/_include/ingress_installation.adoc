@@ -22,6 +22,9 @@ Ingress Controller Image Registry [docker.io]:
 Ingress Controller Image Repository in Registry [bitnami/nginx-ingress-controller]:
 Ingress Controller Image Tag [1.5.1-debian-11-r5]:
 Add Ingress CoreDNS Custom Config (Yes/No) [No]: Yes
+Use AWS Load Balancer Controller  (Yes/No) [No]: No
+AWS load balancer scheme (internal/internet-facing) [internet-facing]:
+AWS load balancer ssl cert []:
 -------------------------------------
 Save updated ingress env vars? (Yes/No) [Yes]: Yes
 -------------------------------------
