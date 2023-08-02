@@ -57,8 +57,10 @@ apps_kyso_api_export_variables() {
   apps_mongodb_export_variables "$_deployment" "$_cluster"
   # Values
   export KYSO_API_NAMESPACE="kyso-api-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export KYSO_API_CHART="$_repo_name/kyso-api"
   # Directories
-  export KYSO_API_CHART_DIR="$CHARTS_DIR/kyso-api"
   export KYSO_API_TMPL_DIR="$TMPL_DIR/apps/kyso-api"
   export KYSO_API_HELM_DIR="$DEPLOY_HELM_DIR/kyso-api"
   export KYSO_API_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/kyso-api"
@@ -273,11 +275,13 @@ apps_kyso_api_install() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_kyso_api_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="kyso-api"
   _ns="$KYSO_API_NAMESPACE"
   # directories
-  _chart="$KYSO_API_CHART_DIR"
+  _chart="$KYSO_API_CHART"
   # deprecated yaml files
   _auth_yaml="$KYSO_API_AUTH_YAML"
   _deploy_yaml="$KYSO_API_DEPLOY_YAML"

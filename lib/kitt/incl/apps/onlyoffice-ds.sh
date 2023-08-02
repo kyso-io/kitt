@@ -51,8 +51,10 @@ apps_onlyoffice_ds_export_variables() {
   apps_kyso_scs_export_variables "$_deployment" "$_cluster"
   # Values
   export ONLYOFFICE_DS_NAMESPACE="onlyoffice-ds-$DEPLOYMENT_NAME"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export ONLYOFFICE_DS_CHART="$_repo_name/onlyoffice-ds"
   # Directories
-  export ONLYOFFICE_DS_CHART_DIR="$CHARTS_DIR/onlyoffice-ds"
   export ONLYOFFICE_DS_TMPL_DIR="$TMPL_DIR/apps/onlyoffice-ds"
   export ONLYOFFICE_DS_HELM_DIR="$DEPLOY_HELM_DIR/onlyoffice-ds"
   export ONLYOFFICE_DS_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/onlyoffice-ds"
@@ -143,11 +145,13 @@ apps_onlyoffice_ds_install() {
   # Load additional variables & check directories
   apps_common_export_service_hostnames "$_deployment" "$_cluster"
   apps_onlyoffice_ds_check_directories
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="onlyoffice-ds"
   _ns="$ONLYOFFICE_DS_NAMESPACE"
   # directories
-  _chart="$ONLYOFFICE_DS_CHART_DIR"
+  _chart="$ONLYOFFICE_DS_CHART"
   # deprecated yaml files
   _service_yaml="$ONLYOFFICE_DS_SVC_YAML"
   _deploy_yaml="$ONLYOFFICE_DS_DEPLOY_YAML"

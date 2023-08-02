@@ -46,8 +46,10 @@ apps_analytics_consumer_export_variables() {
   # Values
   _ns="analytics-consumer-$DEPLOYMENT_NAME"
   export ANALYTICS_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export ANALYTICS_CONSUMER_CHART="$_repo_name/analytics-consumer"
   # Directories
-  export ANALYTICS_CONSUMER_CHART_DIR="$CHARTS_DIR/analytics-consumer"
   _tmpl_dir="$TMPL_DIR/apps/analytics-consumer"
   export ANALYTICS_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/analytics-consumer"
@@ -197,11 +199,13 @@ apps_analytics_consumer_install() {
   if is_selected "$ANALYTICS_CONSUMER_AUTO_SAVE_ENV"; then
     apps_analytics_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="analytics-consumer"
   _ns="$ANALYTICS_CONSUMER_NAMESPACE"
   # directories
-  _chart="$ANALYTICS_CONSUMER_CHART_DIR"
+  _chart="$ANALYTICS_CONSUMER_CHART"
   # deprecated files
   _secret_env="$ANALYTICS_CONSUMER_ENV_SECRET"
   _secret_yaml="$ANALYTICS_CONSUMER_SECRET_YAML"

@@ -46,8 +46,10 @@ apps_slack_notifications_consumer_export_variables() {
   # Values
   _ns="slack-notifications-consumer-$DEPLOYMENT_NAME"
   export SLACK_NOTIFICATIONS_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export SLACK_NOTIFICATIONS_CONSUMER_CHART="$_repo_name/slack-notifications-consumer"
   # Directories
-  export SLACK_NOTIFICATIONS_CONSUMER_CHART_DIR="$CHARTS_DIR/slack-notifications-consumer"
   _tmpl_dir="$TMPL_DIR/apps/slack-notifications-consumer"
   export SLACK_NOTIFICATIONS_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/slack-notifications-consumer"
@@ -197,11 +199,13 @@ apps_slack_notifications_consumer_install() {
   if is_selected "$SLACK_NOTIFICATIONS_CONSUMER_AUTO_SAVE_ENV"; then
     apps_slack_notifications_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="slack-notifications-consumer"
   _ns="$SLACK_NOTIFICATIONS_CONSUMER_NAMESPACE"
   # directories
-  _chart="$SLACK_NOTIFICATIONS_CONSUMER_CHART_DIR"
+  _chart="$SLACK_NOTIFICATIONS_CONSUMER_CHART"
   # deprecated files
   _secret_env="$SLACK_NOTIFICATIONS_CONSUMER_ENV_SECRET"
   _secret_yaml="$SLACK_NOTIFICATIONS_CONSUMER_SECRET_YAML"

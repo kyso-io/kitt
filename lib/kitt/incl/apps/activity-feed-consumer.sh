@@ -46,8 +46,10 @@ apps_activity_feed_consumer_export_variables() {
   # Values
   _ns="activity-feed-consumer-$DEPLOYMENT_NAME"
   export ACTIVITY_FEED_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export ACTIVITY_FEED_CONSUMER_CHART="$_repo_name/activity-feed-consumer"
   # Directories
-  export ACTIVITY_FEED_CONSUMER_CHART_DIR="$CHARTS_DIR/activity-feed-consumer"
   _tmpl_dir="$TMPL_DIR/apps/activity-feed-consumer"
   export ACTIVITY_FEED_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/activity-feed-consumer"
@@ -197,11 +199,13 @@ apps_activity_feed_consumer_install() {
   if is_selected "$ACTIVITY_FEED_CONSUMER_AUTO_SAVE_ENV"; then
     apps_activity_feed_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="activity-feed-consumer"
   _ns="$ACTIVITY_FEED_CONSUMER_NAMESPACE"
   # directories
-  _chart="$ACTIVITY_FEED_CONSUMER_CHART_DIR"
+  _chart="$ACTIVITY_FEED_CONSUMER_CHART"
   # deprecated files
   _secret_env="$ACTIVITY_FEED_CONSUMER_ENV_SECRET"
   _secret_yaml="$ACTIVITY_FEED_CONSUMER_SECRET_YAML"

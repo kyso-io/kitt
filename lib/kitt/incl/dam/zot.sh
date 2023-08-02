@@ -19,12 +19,17 @@ INCL_DAM_ZOT_SH="1"
 # Defaults
 #_zot_repo="registry.kyso.io/docker/zot"
 _zot_repo="ghcr.io/project-zot/zot-linux-amd64"
-_zot_tag="v2.0.0-rc3"
+_zot_tag="v2.0.0-rc5"
 export DEPLOYMENT_DEFAULT_ZOT_IMAGE="$_zot_repo:$_zot_tag"
 export DEPLOYMENT_DEFAULT_ZOT_HOSTNAME="zot"
 export DEPLOYMENT_DEFAULT_ZOT_REPLICAS="1"
 export DEPLOYMENT_DEFAULT_ZOT_ADMIN_USER="admin"
 export DEPLOYMENT_DEFAULT_ZOT_READER_USER="reader"
+
+# Fixed values
+export ZOT_HELM_REPO_NAME="project-zot"
+export ZOT_HELM_REPO_URL="http://zotregistry.io/helm-charts"
+export ZOT_HELM_CHART="$ZOT_HELM_REPO_NAME/zot"
 
 # CMND_DSC="zot: manage zot deployment for kyso"
 
@@ -51,7 +56,6 @@ dam_zot_export_variables() {
   # Values
   export ZOT_NAMESPACE="zot-$DEPLOYMENT_NAME"
   # Directories
-  export ZOT_CHART_DIR="$CHARTS_DIR/zot"
   export ZOT_TMPL_DIR="$TMPL_DIR/dam/zot"
   export ZOT_HELM_DIR="$DEPLOY_HELM_DIR/zot"
   export ZOT_KUBECTL_DIR="$DEPLOY_KUBECTL_DIR/zot"
@@ -243,8 +247,9 @@ dam_zot_install() {
   _app="zot"
   _ns="$ZOT_NAMESPACE"
   _auth_name="$_app-secret"
-  # directory
-  _chart="$ZOT_CHART_DIR"
+  _repo_name="$ZOT_HELM_REPO_NAME"
+  _repo_url="$ZOT_HELM_REPO_URL"
+  _chart="$ZOT_HELM_CHART"
   # files
   _auth_file="$ZOT_AUTH_FILE"
   _auth_yaml="$ZOT_AUTH_YAML"
@@ -252,6 +257,9 @@ dam_zot_install() {
   _helm_values_yaml="$ZOT_HELM_VALUES_YAML"
   _helm_values_yaml_plain="$ZOT_HELM_VALUES_YAML_PLAIN"
   _cert_yaml="$ZOT_KUBECTL_DIR/tls-${ZOT_HOSTNAME}${SOPS_EXT}.yaml"
+  # Check helm repo
+  check_helm_repo "$_repo_name" "$_repo_url"
+  # Create namespace if needed
   if ! find_namespace "$_ns"; then
     # Remove old files, just in case ...
     # shellcheck disable=SC2086

@@ -46,8 +46,10 @@ apps_teams_notification_consumer_export_variables() {
   # Values
   _ns="teams-notification-consumer-$DEPLOYMENT_NAME"
   export TEAMS_NOTIFICATION_CONSUMER_NAMESPACE="$_ns"
+  # Charts
+  _repo_name="$KYSO_HELM_REPO_NAME"
+  export TEAMS_NOTIFICATION_CONSUMER_CHART="$_repo_name/teams-notification-consumer"
   # Directories
-  export TEAMS_NOTIFICATION_CONSUMER_CHART_DIR="$CHARTS_DIR/teams-notification-consumer"
   _tmpl_dir="$TMPL_DIR/apps/teams-notification-consumer"
   export TEAMS_NOTIFICATION_CONSUMER_TMPL_DIR="$_tmpl_dir"
   _helm_dir="$DEPLOY_HELM_DIR/teams-notification-consumer"
@@ -197,11 +199,13 @@ apps_teams_notification_consumer_install() {
   if is_selected "$TEAMS_NOTIFICATION_CONSUMER_AUTO_SAVE_ENV"; then
     apps_teams_notification_consumer_env_save "$_deployment" "$_cluster"
   fi
+  # Check kyso helm repo
+  check_kyso_helm_repo
   # Adjust variables
   _app="teams-notification-consumer"
   _ns="$TEAMS_NOTIFICATION_CONSUMER_NAMESPACE"
   # directories
-  _chart="$TEAMS_NOTIFICATION_CONSUMER_CHART_DIR"
+  _chart="$TEAMS_NOTIFICATION_CONSUMER_CHART"
   # deprecated files
   _secret_env="$TEAMS_NOTIFICATION_CONSUMER_ENV_SECRET"
   _secret_yaml="$TEAMS_NOTIFICATION_CONSUMER_SECRET_YAML"
