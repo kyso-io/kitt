@@ -1,0 +1,280 @@
+= Monitoring strategy
+:author: Kyso Inc.
+:data-uri:
+:doctype: article
+:icons: font
+:lang: en
+ifndef::backend-pdf[:nofooter:] // disable footer except for PDF
+:source-highlighter: rouge
+:title-page:
+:toc: left
+:toclevels: 4
+// User defined attributes
+:sourcedir: ../../..
+:docsdir: ..
+:includedir: _include
+:imagesdir: {docsdir}/images/_include/monitoring-strategy
+
+// define 'file_includes' to check it on the included files
+:file_includes: true
+// Include revnumber.txt (contains a macro with the kitt version number)
+include::{docsdir}/revnumber.txt[]
+
+== Overview
+
+This document describes how to monitorize Kyso services
+
+== Components involved
+
+The following charts shows the global architecture of Kyso
+
+image::kyso-architecture-full.png[Kyso Global Architecture]
+
+Generally speaking, Kyso follows an **************************************************event driven architecture**************************************************, which is controlled mostly by the component `kyso-api`, a modular monolith, ready to be split into different services if required. We follow a modular decoupled approach for the API, so we only break the monolith if it’s required for performance, or for specific needs when scaling (*“Premature optimisation is the root of all evil”* - [Donald Knuth](https://en.wikipedia.org/wiki/Donald_Knuth)).
+
+The events are sent to a message broker, `NATS`, and listened to by different consumers, which are responsible for executing specific features (notifications, pre-processing, analytics, etc.)
+
+Every component in the architecture is packaged in a `docker` image and deployed on top of `kubernetes` using `helm` charts**********************.********************** However, `kubernetes` is not a strict requirement, and can be deployed using other orchestrators, or directly on bare metal with `docker`.
+
+Regarding persistence, Kyso relies on `MongoDB`, `ElasticSearch` and `kyso-scs` ************************************(basically a SFTP server with vitamins).
+
+---
+
+Now we will describe every component of the architecture, detailing the underlying technologies and their main responsibilities.
+
+### kyso-api
+
+Kyso API is the central component in the architecture, in charge of every main action at Kyso (directly or dispatching events to delegate them to other components). 
+
+One of the most important features of `kyso-api` is the https://docs.kyso.io/settings-and-administration/permissions-system[permission system], which allows users to have access to content, and which is used and consumed by other components of the architecture. More information about Kyso's permission system and security https://kyso.io/blog/engineering/permissions-in-a-distributed-architecture/Readme.md[here] and https://kyso.io/blog/engineering/kysos-security-overview/Readme.md[here].
+
+### kyso-front
+Application frontend. Almost everything related to user communication is done here. 
+
+### kyso-cli
+
+Command line interface which allows users to manage their content using a shell. Specially, useful for **CI/CD pipelines**, intensively tested on **GitLab CI/CD**, **Gitub actions**, **Bitbucket CI/CD*** and **Domino Data Lab**.
+
+### kyso-indexer
+
+This component is responsible for file indexing, allowing users to search full text using Kyso's search box. Every time a new report is uploaded, every file is processed asynchronously by `kyso-indexer`. That process uses `Apache Tika` to extract plain text from different files (html, suite office, etc.). That text is then processed and ingested in `Elasticsearch`, leveraging `kyso-api` to perform queries. This process is done as well for comments, tasks, report's metadata and user data.
+
+### kyso-scs
+This component is responsible to store and serve report files. The storing is done using `MySecureShell (MySSH)`, a simple `SFTP` server. There is a `NGINX` server in front of `MySSH SFTP`, configured to serve the files as a static file server, **but taking into account the permissions of the requester** (calling `kyso-api` to assess it), to ensure that any content is shown to users without the adequate permissions.
+
+### NodeJS based Consumers (notification, slack, teams, activity-feed and analytics)
+
+Notifications’ consumers are responsible for the communications between Kyso and users. Every consumer is specialised in a specific type of notification:
+
+- `notifications-consumer` sends notifications via email
+- `teams-consumer` sends notifications using Microsoft Teams
+- `slack-consumer` sends notifications using Slack
+
+On the other hand, `activity-feed-consumer` is responsible for recording every action done by every user and storing it appropriately in `MongoDB`. That information is used at `kyso-front` to show the latest updates in an organization or channel, but can be used as well for traceability.
+
+Finally, `analytics-consumer` is responsible for recording engagement metrics related to reports (visits, actions and other data).
+
+### Python based Consumers (file-metadata-postprocess)
+This component is responsible for pre-processing `CSV` and `TSV` files, to build different charts related to the statistical distribution of the data. This information is processed with `Python`, using well-known libraries, and the results are stored as `SVGs` at `MongoDB`, and displayed as reports on `kyso-front`
+
+### jupyter-diff and nbdime
+Responsible for jupyter notebook diffing.
+
+### document-server
+Responsible for rendering office suite files (word, powerpoint, excel, etc.).
+
+### ImageBox
+Responsible for rendering SVS files (medical/microscope scanners), for our Pharma clients.
+
+As described, every component is used to deliver a set of features, but there are components more important than others, because they are in charge of core features. The following list orders the components in order of importance:
+
+. MongoDB
+. kyso-api
+. kyso-front
+. kyso-scs
+. NATS
+. notification-consumer
+. Elasticsearch
+. kyso-indexer
+. document-server (OnlyOffice)
+. nbdime and jupyter-diff
+. ImageBox (if rendering of SVS files are relevant)
+. activity-feed-consumer
+. file-metadata-postprocess
+. slack-consumer and teams-consumer (if applicable)
+. analytics-consumer
+
+== Strategy
+
+Depending on the needs and the criticality of every customer, the strategy may vary. As a generality, **we recommend monitor at least the most critical components**, specifically: `MongoDB`, `kyso-api`, `kyso-front`, `kyso-scs`, `NATS`, `notification-consumer` (because is required for user's account activation), `elasticsearch` and `kyso-indexer`.
+
+If your Kyso's instance has no plans to use specific integrations like slack or teams, or you are sure that you are not going to allow rendering suite office documents or SVS images, you can consider to uninstall these modules.
+
+In the next sections we will describe a use case of monitoring for every critical component using Zabbix, however, take this description as an example and remember to tailor monitoring to your particular use case.
+
+== MongoDB monitoring
+
+We just follow the standard rules described at https://www.zabbix.com/integrations/mongodb[zabbix portal]
+
+== kyso-api monitoring
+
+`kyso-api` provides an endpoint which exposes relevant metrics regarding the current status of the API. This endpoint is open, don't require authentication, and can be consumed by 3rd party monitoring tools.
+
+[source, console]
+----
+curl -X 'GET' \
+  'https://dev.kyso.io/api/v1/metrics' \
+  -H 'accept: */*'
+
+# HELP process_cpu_user_seconds_total Total user CPU time spent in seconds.
+# TYPE process_cpu_user_seconds_total counter
+process_cpu_user_seconds_total 1864.141601
+
+# HELP process_cpu_system_seconds_total Total system CPU time spent in seconds.
+# TYPE process_cpu_system_seconds_total counter
+process_cpu_system_seconds_total 525.861245
+
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 2390.002846
+
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1691647876
+
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 235798528
+
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 11259744256
+
+# HELP process_heap_bytes Process heap size in bytes.
+# TYPE process_heap_bytes gauge
+process_heap_bytes 297312256
+
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 83
+
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1048576
+
+# HELP nodejs_eventloop_lag_seconds Lag of event loop in seconds.
+# TYPE nodejs_eventloop_lag_seconds gauge
+nodejs_eventloop_lag_seconds 0
+
+# HELP nodejs_eventloop_lag_min_seconds The minimum recorded event loop delay.
+# TYPE nodejs_eventloop_lag_min_seconds gauge
+nodejs_eventloop_lag_min_seconds 0.000003072
+
+# HELP nodejs_eventloop_lag_max_seconds The maximum recorded event loop delay.
+# TYPE nodejs_eventloop_lag_max_seconds gauge
+nodejs_eventloop_lag_max_seconds 0.886571007
+
+# HELP nodejs_eventloop_lag_mean_seconds The mean of the recorded event loop delays.
+# TYPE nodejs_eventloop_lag_mean_seconds gauge
+nodejs_eventloop_lag_mean_seconds 0.010213866261508253
+
+# HELP nodejs_eventloop_lag_stddev_seconds The standard deviation of the recorded event loop delays.
+# TYPE nodejs_eventloop_lag_stddev_seconds gauge
+nodejs_eventloop_lag_stddev_seconds 0.0013236234254026152
+
+# HELP nodejs_eventloop_lag_p50_seconds The 50th percentile of the recorded event loop delays.
+# TYPE nodejs_eventloop_lag_p50_seconds gauge
+nodejs_eventloop_lag_p50_seconds 0.010092543
+
+# HELP nodejs_eventloop_lag_p90_seconds The 90th percentile of the recorded event loop delays.
+# TYPE nodejs_eventloop_lag_p90_seconds gauge
+nodejs_eventloop_lag_p90_seconds 0.010149887
+
+# HELP nodejs_eventloop_lag_p99_seconds The 99th percentile of the recorded event loop delays.
+# TYPE nodejs_eventloop_lag_p99_seconds gauge
+nodejs_eventloop_lag_p99_seconds 0.013123583
+
+# HELP nodejs_active_resources Number of active resources that are currently keeping the event loop alive, grouped by async resource type.
+# TYPE nodejs_active_resources gauge
+nodejs_active_resources{type="FSReqCallback"} 1
+nodejs_active_resources{type="PipeWrap"} 2
+nodejs_active_resources{type="TCPSocketWrap"} 63
+nodejs_active_resources{type="TCPServerWrap"} 1
+nodejs_active_resources{type="Timeout"} 2
+nodejs_active_resources{type="Immediate"} 1
+
+# HELP nodejs_active_resources_total Total number of active resources.
+# TYPE nodejs_active_resources_total gauge
+nodejs_active_resources_total 70
+
+# HELP nodejs_active_handles Number of active libuv handles grouped by handle type. Every handle type is C++ class name.
+# TYPE nodejs_active_handles gauge
+nodejs_active_handles{type="Socket"} 65
+nodejs_active_handles{type="Server"} 1
+
+# HELP nodejs_active_handles_total Total number of active handles.
+# TYPE nodejs_active_handles_total gauge
+nodejs_active_handles_total 66
+
+# HELP nodejs_active_requests Number of active libuv requests grouped by request type. Every request type is C++ class name.
+# TYPE nodejs_active_requests gauge
+nodejs_active_requests{type="FSReqCallback"} 1
+
+# HELP nodejs_active_requests_total Total number of active requests.
+# TYPE nodejs_active_requests_total gauge
+nodejs_active_requests_total 1
+
+# HELP nodejs_heap_size_total_bytes Process heap size from Node.js in bytes.
+# TYPE nodejs_heap_size_total_bytes gauge
+nodejs_heap_size_total_bytes 163086336
+
+# HELP nodejs_heap_size_used_bytes Process heap size used from Node.js in bytes.
+# TYPE nodejs_heap_size_used_bytes gauge
+nodejs_heap_size_used_bytes 146354368
+
+# HELP nodejs_external_memory_bytes Node.js external memory size in bytes.
+# TYPE nodejs_external_memory_bytes gauge
+nodejs_external_memory_bytes 51836914
+
+...
+----
+
+
+To assess if a metric has a value that must raise an alert, we recommend to connect this endpoint to a metric visualization tool (grafana, prometheus, aspecto, etc.), and see which values are considered normal in your infrastructure. Once you have a clear vision about that, the recommendation is to set alarms which exceeds 50% the value considered normal.
+
+These values vary a lot depending on `kyso-api` is deployed (EKS, plain K8s cluster, OpenShift, etc.), for that reason a previous study is necessary.
+
+The most important metrics to follow up are:
+
+. process_cpu_user_seconds_total
+. process_cpu_system_seconds_total 
+. process_cpu_seconds_total
+. process_heap_bytes
+. nodejs_heap_size_total_bytes
+. nodejs_heap_size_used_bytes
+
+We recommend to add another alarm comparing the two last metrics, `nodejs_heap_size_total_bytes` and `nodejs_heap_size_used_bytes`. If `nodejs_heap_size_used_bytes` is 90% of `nodejs_heap_size_total_bytes` we could run into an `out of memory issue`
+
+== kyso-front monitoring
+
+A simple alarm checking that the root of the application (for example https://dev.kyso.io) is returning a 200 code is enough.
+
+`kyso-front` is basically an nginx server, everything related to `kyso-front` is executed locally in the browser, so usually we don't found issues there.
+
+== NATS monitoring
+
+We just follow the standard rules described at 
+https://docs.nats.io/running-a-nats-service/configuration/monitoring[NATS documentation]
+
+== notification-consumer monitoring
+
+See kyso-api monitoring, follows the same structure.
+
+== ElasticSearch monitoring
+
+We just follow the standard rules described at 
+https://www.zabbix.com/integrations/elasticsearch[zabbix portal]
+
+== kyso-indexer monitoring
+
+See kyso-api monitoring, follows the same structure.
